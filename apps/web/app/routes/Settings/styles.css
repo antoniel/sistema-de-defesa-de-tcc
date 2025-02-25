@@ -1,0 +1,7 @@
+.settings-page-wrapper {
+  padding: 2rem 0;
+}
+
+.settings-page-wrapper .MuiDataGrid-cell {
+  text-transform: inherit;
+}

@@ -1,0 +1,30 @@
+.user-actions-wrapper {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  cursor: pointer;
+
+  padding: 8px;
+  border-radius: 4px;
+  transition: border 1s ease-in;
+
+  margin-left: 48px;
+}
+
+.user-actions {
+  display: flex;
+  flex-direction: column;
+  margin-left: 12px;
+}
+
+.user-actions p {
+  margin: 0;
+}
+
+.user-actions p.name {
+  font-weight: bold;
+}
+
+.user-actions p.role {
+  font-size: 12px;
+}

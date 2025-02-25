@@ -1,0 +1,167 @@
+._loginRegister {
+  text-align: center;
+}
+
+.column {
+  float: left;
+  width: 50%;
+  height: 100%;
+  background-color: white;
+}
+
+._loginRegister:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+.right {
+  height: 438px;
+}
+
+.search-form {
+  margin: 20px 0px;
+  background-color: #dbd9d9;
+}
+
+@media (max-width: 700px) {
+  .footer {
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+  }
+
+  .column {
+    width: 100%;
+  }
+}
+
+/*////////////////////////*/
+
+/* .container {
+  padding: 20px 100px 20px 100px;
+} */
+
+.input {
+  padding: 5px 15px;
+  /* margin-left: 20px; */
+}
+
+.user {
+  list-style: none;
+  margin: 10px 0;
+  padding: 10px;
+  background: rgb(255, 255, 255);
+  display: flex;
+  /* justify-content: space-between; */
+}
+
+.user-id {
+  color: rgb(65, 97, 108);
+  margin-right: 20px;
+  padding-left: 20px;
+}
+
+.user-name {
+  color: rgb(65, 97, 108);
+}
+
+.user-right {
+  color: rgb(65, 97, 108);
+  margin-left: auto;
+  padding-right: 20px;
+}
+
+.user-role {
+  color: rgb(65, 97, 108);
+  margin-left: 20px;
+}
+
+.user-age {
+  color: rgb(65, 97, 108);
+}
+
+.center {
+  margin: 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  -ms-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+}
+
+.left-btn {
+  float: left;
+}
+.right-btn {
+  float: right;
+}
+
+.MuiBox-root {
+  padding: 0px !important;
+}
+
+.MuiPaper-root {
+  padding: 20px 0px !important;
+  margin: 0px 1px !important;
+}
+
+.MuiPaper-elevation4 {
+  box-shadow: none !important;
+}
+
+.MuiTextField-root {
+  width: 100%;
+}
+
+.MuiOutlinedInput-input {
+  padding: 18.5px 50px 18.5px 14px !important;
+}
+
+#search-board {
+  position: relative;
+  z-index: 3;
+  margin: 15px -50px;
+  width: 25px;
+  min-width: 25px;
+  height: 25px;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+  background: url("/public/img/search_19.svg") 0 0 no-repeat;
+}
+
+#see-board {
+  position: relative;
+  z-index: 3;
+  margin: 15px;
+  width: 25px;
+  min-width: 25px;
+  height: 25px;
+  padding: 2px;
+  border: none;
+  cursor: pointer;
+  background: url("/public/img/eye-open_2.svg") 0 0 no-repeat;
+}
+
+#trash {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  background: url("/public/img/trash_24.svg") 0 0 no-repeat;
+}
+
+.MuiDataGrid-selectedRowCount {
+  display: none !important;
+}
+
+/* .MuiDataGrid-columnsContainer{
+  background:black;
+} */
+
+.MuiDataGrid-cell.lowercase {
+  text-transform: lowercase;
+}

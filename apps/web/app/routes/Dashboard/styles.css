@@ -1,0 +1,176 @@
+._loginRegister {
+  text-align: center;
+}
+
+.column {
+  float: left;
+  width: 50%;
+  height: 100%;
+  background-color: white;
+}
+
+._loginRegister:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+.right {
+  height: 438px;
+}
+
+.dashboard-column .MuiDataGrid-columnHeaderTitleContainer {
+  justify-content: center;
+}
+
+.dashboard-column:not(.MuiDataGrid-columnHeader--sorted)
+  .MuiDataGrid-iconButtonContainer {
+  display: none;
+}
+
+.MuiDataGrid-columnHeader:last-child .MuiDataGrid-columnSeparator {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .footer {
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+  }
+
+  .column {
+    width: 100%;
+  }
+}
+
+/*////////////////////////*/
+
+/* .container {
+  padding: 20px 100px 20px 100px;
+} */
+
+.input {
+  padding: 5px 15px;
+  /* margin-left: 20px; */
+}
+
+.user {
+  list-style: none;
+  margin: 10px 0;
+  padding: 10px;
+  background: rgb(255, 255, 255);
+  display: flex;
+  /* justify-content: space-between; */
+}
+
+.user-id {
+  color: rgb(65, 97, 108);
+  margin-right: 20px;
+  padding-left: 20px;
+}
+
+.user-right {
+  color: rgb(65, 97, 108);
+  margin-left: auto;
+  padding-right: 20px;
+}
+
+.user-role {
+  color: rgb(65, 97, 108);
+  margin-left: 20px;
+}
+
+.user-age {
+  color: rgb(65, 97, 108);
+}
+
+.center {
+  margin: 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  -ms-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+  z-index: 1;
+}
+
+.left-btn {
+  float: left;
+}
+.right-btn {
+  float: right;
+  width: 25%;
+}
+
+#add-user {
+  width: 20px;
+  height: 20px;
+  padding: 0px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  background: url("/public/img/user-add_1.svg") 0 0 no-repeat;
+}
+
+#edit-board {
+  height: 20px;
+  width: 20px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  background: url("/public/img/edit_10.svg") 0 0 no-repeat;
+}
+
+#send-email {
+  width: 25px;
+  height: 25px;
+  padding: 4px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  background: url("/public/img/email_5.svg") 0 0 no-repeat;
+}
+
+#give-score {
+  width: 20px;
+  height: 20px;
+  padding: 2px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  background: url("/public/img/grade.svg") 0 0 no-repeat;
+}
+
+#give-score-solo {
+  width: 20px;
+  height: 20px;
+  padding: 4px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  background: url("/public/img/star_34.svg") 0 0 no-repeat;
+}
+
+.MuiDataGrid-row:nth-of-type(even) {
+  background-color: #f2f2f2;
+}
+
+a.local-cell {
+  text-transform: lowercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.MuiDataGrid-cell.lowercase {
+  text-transform: lowercase;
+}
+
+.grid-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
