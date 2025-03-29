@@ -1,5 +1,6 @@
 "use client" // Required for hooks like useState, useEffect, useRouter
 
+import { Header } from "@/components/layout/Header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton" // For loading state
@@ -230,6 +231,7 @@ export default function Home() {
   // Render main component
   return (
     <div className="container mx-auto p-4 md:p-8">
+      <Header className="mb-6" />
       {/* Search and Add Button Section */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
         <Input
