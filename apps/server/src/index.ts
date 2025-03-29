@@ -10,12 +10,12 @@ import { db } from './database'; // Assuming index.ts inside ./database
 
 // Import route modules
 import { serve } from '@hono/node-server';
-import { authRoutes } from './routes/auth';
-import { bancaRoutes } from './routes/banca';
-import { calendarRoutes } from './routes/calendar';
-import { cursoRoutes } from './routes/curso';
-import { documentoRoutes } from './routes/documento';
-import { usuarioRoutes } from './routes/usuario';
+import { authRoutes } from './modules/auth/auth.route';
+import { bancaRoutes } from './modules/banca/banca.route';
+import { calendarRoutes } from './modules/calendar/calendar.route';
+import { cursoRoutes } from './modules/curso/curso.route';
+import { documentoRoutes } from './modules/documento/documento.route';
+import { usuarioRoutes } from './modules/usuario/usuario.route';
 import { AppVariables } from './types';
 
 // Create Hono app with typed Variables
