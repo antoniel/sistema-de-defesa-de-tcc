@@ -1,10 +1,12 @@
 import { Hono, MiddlewareHandler } from "hono"
 import { cors } from "hono/cors"
+import { jwt } from "hono/jwt"
 import { logger } from "hono/logger"
 import { poweredBy } from "hono/powered-by"
 import { prettyJSON } from "hono/pretty-json"
 import { AppError } from "./error"
 import { authRoutes } from "./modules/auth/auth.route"
+import { JWT_SECRET } from "./modules/auth/jwt"
 import { bancaRoutes } from "./modules/banca/banca.route"
 import { calendarRoutes } from "./modules/calendar/calendar.route"
 import { cursoRoutes } from "./modules/curso/curso.route"
@@ -19,6 +21,7 @@ export const app = (depsMiddleware: MiddlewareHandler<{ Variables: AppVariables 
     .use("*", logger())
     .use("*", cors())
     .use("*", prettyJSON())
+    .use("*", jwt({ secret: JWT_SECRET }))
     .get("/", (c) => c.json({ message: "Server is running!" }))
     .route("/auth", authRoutes)
     .route("/banca", bancaRoutes)

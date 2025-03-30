@@ -10,7 +10,7 @@ import * as service from "./usuario.service"
 
 export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
   .get("/me", async (c) => {
-    const [error, user] = await service.getUserById(c, c.get("user").id)
+    const [error, user] = await service.getUserById(c, Number(c.get("jwtPayload").sub))
     if (error) {
       throw match(error)
         .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar usuário"))
