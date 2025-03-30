@@ -8,11 +8,6 @@ import { AppResult, err, ok } from "../../result"
 import { AppVariables } from "../../types"
 import { JWT_AUDIENCE, JWT_EXPIRY_SECONDS, JWT_ISSUER, JWT_SECRET } from "./jwt"
 
-interface ServiceError {
-  message: string
-  status: number
-}
-
 interface LoginResponse {
   id: number
   token: string
@@ -35,6 +30,7 @@ export const loginUserService = async (
   const dbInstance = c.get("db")
 
   try {
+    debugger
     const potentialUsers = await dbInstance.select().from(usuarios).where(eq(usuarios.email, email)).limit(1)
     const user = potentialUsers[0]
 
@@ -89,10 +85,12 @@ export const loginUserService = async (
   }
 }
 
+type RequestPasswordResetServiceError = { type: "database_error" }
+
 export const requestPasswordResetService = async (
   c: Context<{ Variables: AppVariables }>,
   email: string
-): Promise<AppResult<void, ServiceError>> => {
+): Promise<AppResult<void, RequestPasswordResetServiceError>> => {
   const dbInstance = c.get("db")
   console.log(`Password reset requested for email: ${email}`)
 
@@ -140,10 +138,12 @@ export const requestPasswordResetService = async (
   }
 }
 
+type VerifyResetHashServiceError = { type: "token_expired" } | { type: "token_invalid" } | { type: "database_error" }
+
 export const verifyResetHashService = async (
   c: Context<{ Variables: AppVariables }>,
   hash: string
-): Promise<AppResult<{ valid: boolean }, ServiceError>> => {
+): Promise<AppResult<{ valid: boolean }, VerifyResetHashServiceError>> => {
   const dbInstance = c.get("db")
   console.log(`Verifying reset hash: ${hash}`)
 
@@ -171,24 +171,31 @@ export const verifyResetHashService = async (
         } catch (cleanupError) {
           console.error("Error cleaning up expired reset token:", cleanupError)
         }
-        return err({ message: "Token de redefinição expirado.", status: 410 })
+        return err({ type: "token_expired" })
       }
-      return err({ message: "Token de redefinição inválido.", status: 404 })
+      return err({ type: "token_invalid" })
     }
 
     console.log(`Reset hash verification successful for hash: ${hash}`)
     return ok({ valid: true })
   } catch (dbError) {
     console.error("Database error during reset hash verification:", dbError)
-    return err({ message: "Erro interno ao verificar o token de redefinição.", status: 500 })
+    return err({ type: "database_error" })
   }
 }
+
+type ResetPasswordServiceError =
+  | { type: "token_invalid_or_expired" }
+  | { type: "hashing_error" }
+  | { type: "user_not_found" }
+  | { type: "update_error" }
+  | { type: "database_error" }
 
 export const resetPasswordService = async (
   c: Context<{ Variables: AppVariables }>,
   hash: string,
   newPassword: string
-): Promise<AppResult<void, ServiceError>> => {
+): Promise<AppResult<void, ResetPasswordServiceError>> => {
   const dbInstance = c.get("db")
   console.log(`Attempting password reset with hash: ${hash}`)
 
@@ -204,7 +211,7 @@ export const resetPasswordService = async (
     if (!resetRecord) {
       console.log(`Password reset failed: Hash ${hash} not found or expired during reset attempt.`)
 
-      return err({ message: "Token de redefinição inválido ou expirado.", status: 400 })
+      return err({ type: "token_invalid_or_expired" })
     }
 
     let newPasswordHash: string
@@ -212,7 +219,7 @@ export const resetPasswordService = async (
       newPasswordHash = await bcrypt.hash(newPassword, 10)
     } catch (hashError) {
       console.error("Password hashing failed during reset:", hashError)
-      return err({ message: "Erro ao processar nova senha.", status: 500 })
+      return err({ type: "hashing_error" })
     }
 
     try {
@@ -226,7 +233,7 @@ export const resetPasswordService = async (
       if (updateResult.rowCount === 0) {
         console.error(`Password reset failed: User with ID ${userId} not found during update.`)
 
-        return err({ message: "Usuário associado ao token não encontrado.", status: 404 })
+        return err({ type: "user_not_found" })
       }
 
       console.log(`Password successfully reset for user ID: ${userId}`)
@@ -237,11 +244,11 @@ export const resetPasswordService = async (
       return ok(undefined)
     } catch (error) {
       console.error(`Error updating password or deleting reset token for hash ${hash}:`, error)
-      return err({ message: "Erro ao atualizar a senha.", status: 500 })
+      return err({ type: "update_error" })
     }
   } catch (dbError) {
     console.error("Database error during password reset:", dbError)
-    return err({ message: "Erro interno ao redefinir a senha.", status: 500 })
+    return err({ type: "database_error" })
   }
 }
 
@@ -252,10 +259,15 @@ interface InviteDetails {
   status: string
 }
 
+type VerifyInviteHashServiceError =
+  | { type: "invite_not_found" }
+  | { type: "invite_not_pending"; status: string }
+  | { type: "database_error" }
+
 export const verifyInviteHashService = async (
   c: Context<{ Variables: AppVariables }>,
   hash: string
-): Promise<AppResult<InviteDetails, ServiceError>> => {
+): Promise<AppResult<InviteDetails, VerifyInviteHashServiceError>> => {
   const dbInstance = c.get("db")
   console.log(`Verifying invite hash: ${hash}`)
 
@@ -275,13 +287,13 @@ export const verifyInviteHashService = async (
 
     if (!inviteRecord) {
       console.log(`Invite hash verification failed: Hash ${hash} not found.`)
-      return err({ message: "Convite inválido.", status: 404 })
+      return err({ type: "invite_not_found" })
     }
 
     if (inviteRecord.status !== "pending") {
       console.log(`Invite hash verification failed: Invite ${hash} has status ${inviteRecord.status}.`)
 
-      return err({ message: `Convite não está mais pendente (status: ${inviteRecord.status}).`, status: 410 })
+      return err({ type: "invite_not_pending", status: inviteRecord.status ?? "unknown" })
     }
 
     console.log(`Invite hash verification successful for hash: ${hash}`)
@@ -295,13 +307,11 @@ export const verifyInviteHashService = async (
     return ok(details)
   } catch (dbError) {
     console.error("Database error during invite hash verification:", dbError)
-    return err({ message: "Erro interno ao verificar o convite.", status: 500 })
+    return err({ type: "database_error" })
   }
 }
 
-export const logoutUserService = async (
-  c: Context<{ Variables: AppVariables }>
-): Promise<AppResult<void, ServiceError>> => {
-  console.log("Logout request received. No server-side action taken in this stateless implementation.")
+export const logoutUserService = async (_c: Context<{ Variables: AppVariables }>): Promise<AppResult<void, never>> => {
+  console.log("Logout request received.")
   return ok(undefined)
 }

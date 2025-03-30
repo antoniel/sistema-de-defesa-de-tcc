@@ -6,46 +6,33 @@ import { Label } from "@/components/ui/label"
 import { AlertCircle } from "lucide-react"
 import React, { useState } from "react"
 import { useNavigate } from "react-router"
-import { loginUser, storeAuthToken } from "../services/authService" // Adjust import path if needed
+import { useLoginMutation } from "../services/authService"
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const longinMutation = useLoginMutation()
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    setError(null) // Clear previous errors
-    setLoading(true)
-
-    try {
-      const { token /*, user */ } = await loginUser(username, password) // Call the service
-
-      // Store token (e.g., in localStorage)
-      storeAuthToken(token)
-
-      // Optional: Store user info (e.g., in context or state management)
-      // setUserContext(user);
-
-      // Navigate to homepage on success
-      navigate("/")
-    } catch (err) {
-      // Display error message from the service - Keep API error messages as they are, or provide a generic Portuguese error
-      // Option 1: Keep API error message
-      // setError(err instanceof Error ? err.message : "Ocorreu um erro inesperado.")
-      // Option 2: Generic Portuguese error (use this if API messages are not user-friendly)
-      setError(err instanceof Error ? err.message : "Ocorreu um erro inesperado.") // Using API message for now
-    } finally {
-      setLoading(false)
-    }
+    longinMutation.mutate(
+      { json: { email: username, password } },
+      {
+        onSuccess: (data) => {
+          console.log(data)
+          // storeAuthToken(data.token)
+          // navigate("/")
+        },
+        onError: (error) => {
+          console.error(error)
+        },
+      }
+    )
   }
 
   return (
     <div className="flex min-h-[calc(100vh-theme(spacing.14))] items-center justify-center p-4">
-      {" "}
-      {/* Adjust min-h based on header height */}
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-2xl">Login</CardTitle>
@@ -53,11 +40,11 @@ export default function LoginPage() {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="grid gap-4">
-            {error && (
+            {longinMutation.error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Erro</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription>{longinMutation.error.message}</AlertDescription>
               </Alert>
             )}
             <div className="grid gap-2">
@@ -69,7 +56,7 @@ export default function LoginPage() {
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                disabled={loading}
+                disabled={longinMutation.isPending}
               />
             </div>
             <div className="grid gap-2">
@@ -80,13 +67,13 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
+                disabled={longinMutation.isPending}
               />
             </div>
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Entrando..." : "Entrar"}
+            <Button type="submit" className="w-full" disabled={longinMutation.isPending}>
+              {longinMutation.isPending ? "Entrando..." : "Entrar"}
             </Button>
           </CardFooter>
         </form>

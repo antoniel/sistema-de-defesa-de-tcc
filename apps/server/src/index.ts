@@ -10,6 +10,7 @@ import { db } from "./database" // Assuming index.ts inside ./database
 
 // Import route modules
 import { serve } from "@hono/node-server"
+import { cors } from "hono/cors"
 import { createMiddleware } from "hono/factory"
 import { AppError } from "./error"
 import { authRoutes } from "./modules/auth/auth.route"
@@ -30,6 +31,7 @@ export const app = (depsMiddleware: MiddlewareHandler<{ Variables: AppVariables 
     .use(depsMiddleware)
     .use("*", poweredBy())
     .use("*", logger())
+    .use("*", cors())
     .use("*", prettyJSON())
     .get("/", (c) => c.json({ message: "Server is running!" }))
     .route("/auth", authRoutes)
@@ -43,13 +45,13 @@ export const app = (depsMiddleware: MiddlewareHandler<{ Variables: AppVariables 
     })
     .onError((err, c) => {
       if (err instanceof AppError) {
-        return c.json({ message: err.message, ok: false }, err.status)
+        return c.json({ message: err.message }, err.status)
       }
       console.error(`Server Error: ${err}`)
-      return c.json({ message: "Internal Server Error", ok: false }, 500)
+      return c.json({ message: "Internal Server Error" }, 500)
     })
 
-export type AppType = typeof app
+export type AppType = ReturnType<typeof app>
 
 serve({ fetch: app(TrueDeps).fetch, port: 3000 })
 console.log(" ✅ Server starting on port 3000...")
