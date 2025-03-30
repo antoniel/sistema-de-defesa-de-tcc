@@ -71,8 +71,8 @@ export const invites = pgTable(
   "invite",
   {
     id: serial("id").primaryKey(),
-    userId: varchar("user_id", { length: 10 }).references(() => usuarios.id), // Quem foi convidado (opcional até aceitar?)
-    bancaId: varchar("banca_id", { length: 10 })
+    userId: integer("user_id").references(() => usuarios.id), // Quem foi convidado (opcional até aceitar?)
+    bancaId: integer("banca_id")
       .notNull()
       .references(() => bancas.id), // Para qual banca
     emailConvidado: varchar("email_convidado", { length: 64 }).notNull(), // Email para onde o convite foi enviado
@@ -93,7 +93,7 @@ export const resetPasswords = pgTable(
   "reset_password",
   {
     id: serial("id").primaryKey(),
-    userId: varchar("user_id", { length: 10 })
+    userId: integer("user_id")
       .notNull()
       .references(() => usuarios.id),
     resetPasswordHash: varchar("reset_password_hash", { length: 255 }).unique(),
@@ -110,7 +110,7 @@ export const resetPasswords = pgTable(
 // --- Tabela de Sessão (Opcional, se usar DB session) ---
 export const sessions = pgTable("session", {
   id: varchar("id", { length: 128 }).primaryKey(), // Aumentado tamanho
-  userId: varchar("user_id", { length: 10 }).references(() => usuarios.id), // Associar sessão a usuário
+  userId: integer("user_id").references(() => usuarios.id), // Associar sessão a usuário
   expire: timestamp("expire").notNull(),
   data: text("data"), // Usar text em vez de blob para JSON
   // token_access removido, geralmente gerenciado por JWT em header
@@ -119,10 +119,10 @@ export const sessions = pgTable("session", {
 // --- Tabela de Junção: Usuário <-> Banca (N:N) ---
 export const usuariosBancas = pgTable("usuario_banca", {
   id: serial("id").primaryKey(),
-  usuarioId: varchar("id_usuario", { length: 10 })
+  usuarioId: integer("id_usuario")
     .notNull()
     .references(() => usuarios.id),
-  bancaId: varchar("id_banca", { length: 10 })
+  bancaId: integer("id_banca")
     .notNull()
     .references(() => bancas.id),
   role: varchar("role", { length: 64 }).notNull(), // Ex: 'orientador', 'co-orientador', 'discente', 'avaliador'
@@ -133,10 +133,11 @@ export const usuariosBancas = pgTable("usuario_banca", {
 // --- Tabela de Junção: Banca <-> Documento (N:N) ---
 export const bancasDocumentos = pgTable("banca_documento", {
   id: serial("id").primaryKey(),
-  bancaId: varchar("id_banca", { length: 10 })
+  bancaId: integer("id_banca")
     .notNull()
-    .references(() => bancas.id),
-  documentoId: varchar("id_documento", { length: 10 })
+    .$type<number>() // Explicitly cast to integer
+    .references(() => bancas.id, { onDelete: "cascade" }), // Ensure cascading deletes
+  documentoId: integer("id_documento")
     .notNull()
     .references(() => documentos.id),
 })

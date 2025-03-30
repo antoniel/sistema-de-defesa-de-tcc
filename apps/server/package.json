@@ -10,6 +10,9 @@
     "db:push": "drizzle-kit push",
     "test": "vitest --run"
   },
+  "main": "shared/index.ts",
+  "module": "shared/index.ts",
+  "types": "shared/index.ts",
   "license": "MIT",
   "dependencies": {
     "@electric-sql/pglite": "^0.2.17",
@@ -17,7 +20,8 @@
     "bcryptjs": "^3.0.2",
     "drizzle-orm": "^0.41.0",
     "hono": "^4.2.4",
-    "pg": "^8.14.1"
+    "pg": "^8.14.1",
+    "ts-pattern": "^5.7.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240405.0",

@@ -27,10 +27,12 @@ export const loginUser = async (email: string, password: string): Promise<LoginS
 
   try {
     // Use apiClient.post, passing data directly as the second argument
-    const response = await apiClient.post<LoginSuccessResponse>(url, { email, password })
+    const response = await apiClient.auth.login.$post({
+      json: { email, password },
+    })
 
     // Axios response data is directly the body
-    return response.data
+    return response.json()
   } catch (error) {
     console.error("Login failed:", error)
 
