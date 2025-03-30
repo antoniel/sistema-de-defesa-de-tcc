@@ -31,8 +31,7 @@ export const loginUserService = async (
 
   try {
     debugger
-    const potentialUsers = await dbInstance.select().from(usuarios).where(eq(usuarios.email, email)).limit(1)
-    const user = potentialUsers[0]
+    const [user] = await dbInstance.select().from(usuarios).where(eq(usuarios.email, email)).limit(1)
 
     if (!user) {
       console.log(`Login attempt failed: User not found for email ${email}`)

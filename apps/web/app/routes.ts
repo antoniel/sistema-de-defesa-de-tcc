@@ -1,9 +1,9 @@
 // import { type RouteConfig, index } from "@react-router/dev/routes"
 // export default [
-//   // index("routes/Home/index.tsx"),
-//   // route("/addbanca", "routes/ExaminingBoard/index.tsx"),
-//   // route("/login", "routes/Login/index.tsx"),
-//   // route("/register", "routes/Register/index.tsx"),
+//   // index("routes/Home/index.tsx"), ✅
+//   // route("/addbanca", "routes/ExaminingBoard/index.tsx"), ✅
+//   // route("/login", "routes/Login/index.tsx"), ✅
+//   // route("/register", "routes/Register/index.tsx"), ✅
 //   // route("/account", "routes/AccountSettings/index.tsx"),
 //   // route("/dashboard", "routes/Dashboard/index.tsx"),
 //   // route("/verbanca", "routes/ViewBanca/index.tsx"),
@@ -19,4 +19,3 @@ import { flatRoutes } from "@react-router/fs-routes"
 
 // https://reactrouter.com/7.2.0/how-to/file-route-conventions
 export default flatRoutes() satisfies RouteConfig
-
