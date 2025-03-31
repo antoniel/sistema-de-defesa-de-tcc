@@ -8,7 +8,8 @@
     "migration:gen": "drizzle-kit generate",
     "migration:run": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "test": "vitest --run"
+    "test": "vitest --run",
+    "seed": "tsx scripts/seed.ts"
   },
   "main": "shared/index.ts",
   "module": "shared/index.ts",

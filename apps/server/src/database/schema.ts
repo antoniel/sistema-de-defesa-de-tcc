@@ -1,41 +1,37 @@
 import { relations, sql } from "drizzle-orm"
-import { boolean, integer, pgEnum, pgTable, serial, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core"
+import { boolean, integer, pgEnum, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core"
 
 export const userRole = pgEnum("user_role", ["STUDENT", "TEACHER", "ADMIN"])
 export type UserRole = (typeof userRole.enumValues)[number]
 export const Users = pgTable("usuario", {
   id: serial("id").primaryKey(),
-  username: varchar("username", { length: 255 }).notNull().unique(),
-  passwordHash: varchar("password_has", { length: 255 }).notNull(), // Nome da coluna original era password_has
-  authKey: varchar("auth_key", { length: 255 }).notNull().unique(),
-  email: varchar("email", { length: 64 }).notNull().unique(),
-  nome: varchar("nome", { length: 255 }).notNull(),
-  school: varchar("school", { length: 64 }).notNull(), // Ex: Instituto de Computação
-  academicTitle: varchar("academic_title", { length: 64 }).notNull(), // Ex: Doutorado
-  lattesUrl: varchar("lattesUrl", { length: 255 }), // Aumentado tamanho para URL
-  status: varchar("status", { length: 12 }).notNull().default("active"), // Ex: active, inactive
+  username: text("username").notNull().unique(),
+  passwordHash: text("password_has").notNull(), // Nome da coluna original era password_has
+  authKey: text("auth_key").notNull().unique(),
+  email: text("email").notNull().unique(),
+  nome: text("nome").notNull(),
+  school: text("school").notNull(), // Ex: Instituto de Computação
+  academicTitle: text("academic_title").notNull(), // Ex: Doutorado
+  lattesUrl: text("lattesUrl"), // Aumentado tamanho para URL
+  status: text("status").notNull().default("active"), // Ex: active, inactive
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
-  role: varchar("role", { length: 64 }).notNull(), // Papel oferecido (orientador, avaliador)
+  role: text("role").notNull(), // Papel oferecido (orientador, avaliador)
 })
 export type InsertUser = typeof Users.$inferInsert
 export type SelectUser = typeof Users.$inferSelect
 
-export const cursos = pgTable(
-  "cursos",
-  {
-    id: serial("id").primaryKey(),
-    nome: varchar("nome", { length: 255 }).notNull(),
-    sigla: varchar("sigla", { length: 10 }).notNull().unique(), // Ex: 'BCC', 'ENGCOMP'
-    // Adicionar outros campos como coordenacao, disciplina principal, etc., se necessário
-  },
-  (table) => ({
-    siglaIdx: uniqueIndex("sigla_idx").on(table.sigla),
-  })
-)
+export const cursos = pgTable("cursos", {
+  id: serial("id").primaryKey(),
+  nome: text("nome").notNull(),
+  sigla: text("sigla").notNull().unique(), // Ex: 'BCC', 'ENGCOMP'
+  // Adicionar outros campos como coordenacao, disciplina principal, etc., se necessário
+})
+export type InsertCurso = typeof cursos.$inferInsert
+export type SelectCurso = typeof cursos.$inferSelect
 
-const genderEnum = pgEnum("gender", ["male", "female"])
-const modalidadeEnum = pgEnum("modalidade", ["remoto", "local"])
+export const genderEnum = pgEnum("gender", ["male", "female"])
+export const modalidadeEnum = pgEnum("modalidade", ["remoto", "local"])
 export const Bancas = pgTable("banca", {
   id: serial("id").primaryKey(),
   // user_id no dump original parece redundante se temos a relação N:N em usuario_banca
@@ -43,20 +39,20 @@ export const Bancas = pgTable("banca", {
   // userId: int('user_id').notNull().references(() => usuarios.id), // FK para usuario (Proprietário?)
   cursoId: integer("curso_id")
     .notNull()
-    .references(() => cursos.id), // FK para curso (ajustado de varchar)
-  autor: varchar("autor", { length: 100 }).notNull(), // Nome do autor/aluno principal
-  matricula: varchar("matricula", { length: 10 }), // Matrícula do autor/aluno principal
+    .references(() => cursos.id), // FK para curso (ajustado de text)
+  autor: text("autor").notNull(), // Nome do autor/aluno principal
+  matricula: text("matricula"), // Matrícula do autor/aluno principal
   gender: genderEnum("gender"),
-  turma: varchar("turma", { length: 45 }).notNull(),
-  ano: varchar("ano", { length: 4 }).notNull(),
-  semestreLetivo: varchar("semestre_letivo", { length: 1 }), // Ex: '1', '2'
-  tituloTrabalho: varchar("titulo_trabalho", { length: 255 }).notNull(),
+  turma: text("turma").notNull(),
+  ano: text("ano").notNull(),
+  semestreLetivo: text("semestre_letivo"), // Ex: '1', '2'
+  tituloTrabalho: text("titulo_trabalho").notNull(),
   resumo: text("resumo").notNull(),
   abstract: text("abstract").notNull(),
   palavrasChave: text("palavras_chave").notNull(),
   dataRealizacao: timestamp("data_realizacao").notNull(),
-  notaFinal: varchar("nota_final", { length: 10 }),
-  local: varchar("local", { length: 255 }), // Room or Meeting Link
+  notaFinal: text("nota_final"),
+  local: text("local"), // Room or Meeting Link
   modalidade: modalidadeEnum("modalidade").notNull(), // 'remoto' or 'local'
   visible: boolean("visible").notNull().default(true),
 })
@@ -65,53 +61,41 @@ export type SelectBanca = typeof Bancas.$inferSelect
 
 export const documentos = pgTable("documento", {
   id: serial("id").primaryKey(),
-  path: varchar("path", { length: 255 }), // Caminho no storage
+  path: text("path"), // Caminho no storage
   descricao: text("descricao").notNull(), // Nome original do arquivo?
-  status: varchar("status", { length: 64 }).notNull(), // Ex: 'pending', 'approved', 'rejected'
+  status: text("status").notNull(), // Ex: 'pending', 'approved', 'rejected'
   dataSubmissao: timestamp("data_submissao").notNull(),
 })
 
-export const invites = pgTable(
-  "invite",
-  {
-    id: serial("id").primaryKey(),
-    userId: integer("user_id").references(() => Users.id), // Quem foi convidado (opcional até aceitar?)
-    bancaId: integer("banca_id")
-      .notNull()
-      .references(() => Bancas.id), // Para qual banca
-    emailConvidado: varchar("email_convidado", { length: 64 }).notNull(), // Email para onde o convite foi enviado
-    roleConvidado: varchar("role_convidado", { length: 64 }).notNull(), // Papel oferecido (orientador, avaliador)
-    inviteHash: varchar("invite_hash", { length: 255 }).unique(), // Hash único do convite
-    status: varchar("status", { length: 20 }).default("pending"), // Ex: pending, accepted, expired
-    createdAt: timestamp("created_at")
-      .notNull()
-      .default(sql`CURRENT_TIMESTAMP`),
-  },
-  (table) => ({
-    hashIdx: uniqueIndex("hash_idx").on(table.inviteHash),
-  })
-)
+export const invites = pgTable("invite", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => Users.id), // Quem foi convidado (opcional até aceitar?)
+  bancaId: integer("banca_id")
+    .notNull()
+    .references(() => Bancas.id), // Para qual banca
+  emailConvidado: text("email_convidado").notNull(), // Email para onde o convite foi enviado
+  roleConvidado: text("role_convidado").notNull(), // Papel oferecido (orientador, avaliador)
+  inviteHash: text("invite_hash").unique(), // Hash único do convite
+  status: text("status").default("pending"), // Ex: pending, accepted, expired
+  createdAt: timestamp("created_at")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+})
 
-export const resetPasswords = pgTable(
-  "reset_password",
-  {
-    id: serial("id").primaryKey(),
-    userId: integer("user_id")
-      .notNull()
-      .references(() => Users.id),
-    resetPasswordHash: varchar("reset_password_hash", { length: 255 }).unique(),
-    createdAt: timestamp("created_at")
-      .notNull()
-      .default(sql`CURRENT_TIMESTAMP`),
-    expiresAt: timestamp("expires_at").notNull(), // Adicionado para controle
-  },
-  (table) => ({
-    hashResetIdx: uniqueIndex("hash_reset_idx").on(table.resetPasswordHash),
-  })
-)
+export const resetPasswords = pgTable("reset_password", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => Users.id),
+  resetPasswordHash: text("reset_password_hash").unique(),
+  createdAt: timestamp("created_at")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+  expiresAt: timestamp("expires_at").notNull(), // Adicionado para controle
+})
 
 export const sessions = pgTable("session", {
-  id: varchar("id", { length: 128 }).primaryKey(), // Aumentado tamanho
+  id: text("id").primaryKey(), // Aumentado tamanho
   userId: integer("user_id").references(() => Users.id), // Associar sessão a usuário
   expire: timestamp("expire").notNull(),
   data: text("data"), // Usar text em vez de blob para JSON
@@ -126,10 +110,12 @@ export const usuariosBancas = pgTable("usuario_banca", {
   bancaId: integer("id_banca")
     .notNull()
     .references(() => Bancas.id),
-  role: varchar("role", { length: 64 }).notNull(), // Ex: 'orientador', 'co-orientador', 'discente', 'avaliador'
-  nota: varchar("nota", { length: 10 }),
+  role: text("role").notNull(), // Ex: 'orientador', 'co-orientador', 'discente', 'avaliador'
+  nota: text("nota"),
   // Adicionar unique constraint para (usuarioId, bancaId) ?
 })
+export type InsertUsuarioBanca = typeof usuariosBancas.$inferInsert
+export type SelectUsuarioBanca = typeof usuariosBancas.$inferSelect
 
 export const bancasDocumentos = pgTable("banca_documento", {
   id: serial("id").primaryKey(),

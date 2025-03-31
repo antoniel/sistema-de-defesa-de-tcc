@@ -1,5 +1,5 @@
 {
-  "id": "1f2bfc7c-6c4b-4a10-bf7e-84fb55a5bcb1",
+  "id": "baf68600-b3df-44f6-a45d-ca0c176c762a",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -20,57 +20,46 @@
           "primaryKey": false,
           "notNull": true
         },
-        "disciplina": {
-          "name": "disciplina",
-          "type": "varchar(10)",
-          "primaryKey": false,
-          "notNull": true
-        },
         "autor": {
           "name": "autor",
-          "type": "varchar(100)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
         "matricula": {
           "name": "matricula",
-          "type": "varchar(10)",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "pronome_autor": {
-          "name": "pronome_autor",
-          "type": "varchar(20)",
+        "gender": {
+          "name": "gender",
+          "type": "gender",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": false
         },
         "turma": {
           "name": "turma",
-          "type": "varchar(45)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
         "ano": {
           "name": "ano",
-          "type": "varchar(4)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
         "semestre_letivo": {
           "name": "semestre_letivo",
-          "type": "varchar(1)",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "tipo_banca": {
-          "name": "tipo_banca",
-          "type": "char(10)",
-          "primaryKey": false,
-          "notNull": true
-        },
         "titulo_trabalho": {
           "name": "titulo_trabalho",
-          "type": "varchar(255)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -100,15 +89,22 @@
         },
         "nota_final": {
           "name": "nota_final",
-          "type": "varchar(10)",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
         "local": {
           "name": "local",
-          "type": "varchar(255)",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "modalidade": {
+          "name": "modalidade",
+          "type": "modalidade",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
         },
         "visible": {
           "name": "visible",
@@ -136,6 +132,120 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.usuario": {
+      "name": "usuario",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "username": {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password_has": {
+          "name": "password_has",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "auth_key": {
+          "name": "auth_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "school": {
+          "name": "school",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "academic_title": {
+          "name": "academic_title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lattesUrl": {
+          "name": "lattesUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "usuario_username_unique": {
+          "name": "usuario_username_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "username"
+          ]
+        },
+        "usuario_auth_key_unique": {
+          "name": "usuario_auth_key_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "auth_key"
+          ]
+        },
+        "usuario_email_unique": {
+          "name": "usuario_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -210,34 +320,18 @@
         },
         "nome": {
           "name": "nome",
-          "type": "varchar(255)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
         "sigla": {
           "name": "sigla",
-          "type": "varchar(10)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         }
       },
-      "indexes": {
-        "sigla_idx": {
-          "name": "sigla_idx",
-          "columns": [
-            {
-              "expression": "sigla",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
@@ -265,7 +359,7 @@
         },
         "path": {
           "name": "path",
-          "type": "varchar(255)",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -277,7 +371,7 @@
         },
         "status": {
           "name": "status",
-          "type": "varchar(64)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -320,25 +414,25 @@
         },
         "email_convidado": {
           "name": "email_convidado",
-          "type": "varchar(64)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
         "role_convidado": {
           "name": "role_convidado",
-          "type": "varchar(64)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
         "invite_hash": {
           "name": "invite_hash",
-          "type": "varchar(255)",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
         "status": {
           "name": "status",
-          "type": "varchar(20)",
+          "type": "text",
           "primaryKey": false,
           "notNull": false,
           "default": "'pending'"
@@ -351,23 +445,7 @@
           "default": "CURRENT_TIMESTAMP"
         }
       },
-      "indexes": {
-        "hash_idx": {
-          "name": "hash_idx",
-          "columns": [
-            {
-              "expression": "invite_hash",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
         "invite_user_id_usuario_id_fk": {
           "name": "invite_user_id_usuario_id_fk",
@@ -428,7 +506,7 @@
         },
         "reset_password_hash": {
           "name": "reset_password_hash",
-          "type": "varchar(255)",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -446,23 +524,7 @@
           "notNull": true
         }
       },
-      "indexes": {
-        "hash_reset_idx": {
-          "name": "hash_reset_idx",
-          "columns": [
-            {
-              "expression": "reset_password_hash",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
         "reset_password_user_id_usuario_id_fk": {
           "name": "reset_password_user_id_usuario_id_fk",
@@ -498,7 +560,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "varchar(128)",
+          "type": "text",
           "primaryKey": true,
           "notNull": true
         },
@@ -543,120 +605,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.usuario": {
-      "name": "usuario",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "username": {
-          "name": "username",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "password_has": {
-          "name": "password_has",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "auth_key": {
-          "name": "auth_key",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "email": {
-          "name": "email",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nome": {
-          "name": "nome",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "school": {
-          "name": "school",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "academic_title": {
-          "name": "academic_title",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "lattesUrl": {
-          "name": "lattesUrl",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "varchar(12)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'active'"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "role": {
-          "name": "role",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "usuario_username_unique": {
-          "name": "usuario_username_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "username"
-          ]
-        },
-        "usuario_auth_key_unique": {
-          "name": "usuario_auth_key_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "auth_key"
-          ]
-        },
-        "usuario_email_unique": {
-          "name": "usuario_email_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.usuario_banca": {
       "name": "usuario_banca",
       "schema": "",
@@ -681,13 +629,13 @@
         },
         "role": {
           "name": "role",
-          "type": "varchar(64)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
         "nota": {
           "name": "nota",
-          "type": "varchar(10)",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         }
@@ -728,7 +676,33 @@
       "isRLSEnabled": false
     }
   },
-  "enums": {},
+  "enums": {
+    "public.gender": {
+      "name": "gender",
+      "schema": "public",
+      "values": [
+        "male",
+        "female"
+      ]
+    },
+    "public.modalidade": {
+      "name": "modalidade",
+      "schema": "public",
+      "values": [
+        "remoto",
+        "local"
+      ]
+    },
+    "public.user_role": {
+      "name": "user_role",
+      "schema": "public",
+      "values": [
+        "STUDENT",
+        "TEACHER",
+        "ADMIN"
+      ]
+    }
+  },
   "schemas": {},
   "sequences": {},
   "roles": {},
