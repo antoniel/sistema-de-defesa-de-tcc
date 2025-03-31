@@ -1,16 +1,5 @@
 import { relations, sql } from "drizzle-orm"
-import {
-  boolean,
-  char,
-  integer,
-  pgEnum,
-  pgTable,
-  serial,
-  text,
-  timestamp,
-  uniqueIndex,
-  varchar,
-} from "drizzle-orm/pg-core"
+import { boolean, integer, pgEnum, pgTable, serial, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core"
 
 export const userRole = pgEnum("user_role", ["STUDENT", "TEACHER", "ADMIN"])
 export type UserRole = (typeof userRole.enumValues)[number]
@@ -45,6 +34,8 @@ export const cursos = pgTable(
   })
 )
 
+const genderEnum = pgEnum("gender", ["male", "female"])
+const modalidadeEnum = pgEnum("modalidade", ["remoto", "local"])
 export const Bancas = pgTable("banca", {
   id: serial("id").primaryKey(),
   // user_id no dump original parece redundante se temos a relação N:N em usuario_banca
@@ -53,14 +44,12 @@ export const Bancas = pgTable("banca", {
   cursoId: integer("curso_id")
     .notNull()
     .references(() => cursos.id), // FK para curso (ajustado de varchar)
-  disciplina: varchar("disciplina", { length: 10 }).notNull(), // Código da disciplina? Ex: MATA62
   autor: varchar("autor", { length: 100 }).notNull(), // Nome do autor/aluno principal
   matricula: varchar("matricula", { length: 10 }), // Matrícula do autor/aluno principal
-  pronomeAutor: varchar("pronome_autor", { length: 20 }), // Campo adicionado baseado no controller
+  gender: genderEnum("gender"),
   turma: varchar("turma", { length: 45 }).notNull(),
   ano: varchar("ano", { length: 4 }).notNull(),
   semestreLetivo: varchar("semestre_letivo", { length: 1 }), // Ex: '1', '2'
-  tipoBanca: char("tipo_banca", { length: 10 }).notNull(), // Ex: 'TCC1', 'TCC2', 'Mestrado'
   tituloTrabalho: varchar("titulo_trabalho", { length: 255 }).notNull(),
   resumo: text("resumo").notNull(),
   abstract: text("abstract").notNull(),
@@ -68,7 +57,7 @@ export const Bancas = pgTable("banca", {
   dataRealizacao: timestamp("data_realizacao").notNull(),
   notaFinal: varchar("nota_final", { length: 10 }),
   local: varchar("local", { length: 255 }), // Room or Meeting Link
-  modalidade: varchar("modalidade", { length: 10 }).notNull(), // 'remoto' or 'local'
+  modalidade: modalidadeEnum("modalidade").notNull(), // 'remoto' or 'local'
   visible: boolean("visible").notNull().default(true),
 })
 export type InsertBanca = typeof Bancas.$inferInsert

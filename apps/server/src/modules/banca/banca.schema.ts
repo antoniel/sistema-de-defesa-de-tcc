@@ -10,19 +10,15 @@ export const paramIdSchema = z.object({
 
 const baseBancaSchema = createInsertSchema(Bancas)
 
-const teacherCreateSchema = baseBancaSchema.extend({
+export const createBancaSchema = baseBancaSchema.extend({
   autor: z.string().min(1, "Autor é obrigatório"),
   matricula: z.string().min(1, "Matrícula é obrigatória"),
-  pronome_autor: z.enum(["0", "1"], { errorMap: () => ({ message: "Gênero do autor inválido" }) }),
+  dataRealizacao: z.coerce.date(),
 })
 
-const studentCreateSchema = baseBancaSchema.extend({})
+const partialCreateBancaSchema = createBancaSchema.partial()
 
-export const createBancaSchema = z.union([teacherCreateSchema, studentCreateSchema])
-
-const partialTeacherCreateSchema = teacherCreateSchema.partial()
-const partialStudentCreateSchema = studentCreateSchema.partial()
-export const updateBancaSchema = z.union([partialTeacherCreateSchema, partialStudentCreateSchema])
+export const updateBancaSchema = partialCreateBancaSchema
 
 export type CreateBancaInput = z.infer<typeof createBancaSchema>
 export type UpdateBancaInput = z.infer<typeof updateBancaSchema>

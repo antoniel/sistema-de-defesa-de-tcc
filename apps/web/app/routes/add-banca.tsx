@@ -13,7 +13,6 @@ import apiClient from "@/services/apiClient"
 import { useMutation } from "@tanstack/react-query"
 import type { InsertBanca } from "@tcc/server"
 import { Controller, useForm, useFormContext } from "react-hook-form"
-import type { NavigateFunction } from "react-router"
 import { useNavigate } from "react-router"
 
 type query = RpcType<typeof apiClient.banca.$post>
@@ -22,6 +21,28 @@ type BancaFormData = InsertBanca & {
   visible: boolean
   hora: string
 }
+
+const DEV_SEED_DATA: Partial<BancaFormData> = {
+  tituloTrabalho: "Desenvolvimento de Ferramenta de Teste Automatizado para Formulários",
+  resumo:
+    "Este trabalho descreve o desenvolvimento de uma ferramenta para preenchimento automático de formulários web complexos em ambiente de desenvolvimento, visando agilizar testes e demonstrações.",
+  abstract:
+    "This work describes the development of a tool for automatically filling complex web forms in a development environment, aiming to speed up testing and demonstrations.",
+  visible: true,
+  autor: "Dev Silva",
+  matricula: "123456789",
+  gender: "male",
+  palavrasChave: "teste, desenvolvimento, automação, formulário",
+  turma: "2024/2",
+  cursoId: 1,
+  ano: "2024",
+  dataRealizacao: new Date("2024-01-01"),
+  hora: "14:00",
+  semestreLetivo: "2",
+  modalidade: "local",
+  local: "Sala H-101",
+}
+
 const useAddBancaMutation = () => {
   return useMutation({
     mutationFn: async (data: query["input"]) => rpcReturn(await apiClient.banca.$post(data)),
@@ -32,11 +53,10 @@ export default function AddBancaPage() {
   const navigate = useNavigate()
 
   const form = useForm<BancaFormData>({
-    // Set default values here if needed, especially for controlled components
     defaultValues: {
       visible: false,
-      tipoBanca: "local",
-      pronomeAutor: undefined,
+      modalidade: "local",
+      gender: undefined,
       semestreLetivo: undefined,
       cursoId: undefined,
     },
@@ -44,9 +64,18 @@ export default function AddBancaPage() {
 
   const addBancaMutation = useAddBancaMutation()
 
-  // Combine date and time into a single Date object for submission
   const onSubmit = (data: BancaFormData) => {
-    addBancaMutation.mutate({ json: data })
+    const submissionData: query["input"]["json"] = {
+      ...data,
+      matricula: data.matricula || "",
+      cursoId: Number(data.cursoId),
+      ano: data.ano,
+      gender: data.gender as "male" | "female",
+      visible: Boolean(data.visible),
+    }
+
+    console.log("Submitting data:", submissionData)
+    addBancaMutation.mutate({ json: submissionData })
   }
 
   return (
@@ -62,21 +91,19 @@ export default function AddBancaPage() {
             <WorkMetadataSection />
             <DefenseSchedulingSection />
           </div>
-          <div className="flex justify-end gap-4 pt-4">
-            <Button type="button" variant="outline" onClick={() => navigate("/")}>
-              Cancelar
-            </Button>
-            <Button type="submit">Salvar Defesa</Button>
+          <div className="flex justify-between items-center pt-4">
+            {process.env.NODE_ENV === "development" && <DevFillButton />}
+            <div className="flex gap-4">
+              <Button type="button" variant="outline" onClick={() => navigate("/")}>
+                Cancelar
+              </Button>
+              <Button type="submit">Salvar Defesa</Button>
+            </div>
           </div>
         </form>
       </Form>
     </div>
   )
-}
-
-interface FormActionsProps {
-  navigate: NavigateFunction
-  handleSubmit: () => void
 }
 
 const BasicInfoSection = () => {
@@ -103,7 +130,7 @@ const BasicInfoSection = () => {
           <Controller
             name="visible"
             control={control}
-            defaultValue={false} // Default to private
+            defaultValue={false}
             render={({ field }) => (
               <div className="flex items-center space-x-2 pt-6">
                 <Checkbox id="visible" checked={field.value} onCheckedChange={field.onChange} ref={field.ref} />
@@ -180,7 +207,7 @@ const AuthorInfoSection = () => {
       <div>
         <Label htmlFor="pronomeAutor">Gênero</Label>
         <Controller
-          name="pronomeAutor"
+          name="gender"
           control={control}
           rules={{ required: isUserTeacher ? "Gênero do autor é obrigatório" : false }}
           render={({ field }) => (
@@ -190,17 +217,17 @@ const AuthorInfoSection = () => {
               value={field.value || ""}
               disabled={!isUserTeacher}
             >
-              <SelectTrigger id="pronomeAutor" ref={field.ref} aria-invalid={errors.pronomeAutor ? "true" : "false"}>
+              <SelectTrigger id="gender" ref={field.ref} aria-invalid={errors.gender ? "true" : "false"}>
                 <SelectValue placeholder="Selecione..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="0">Masculino</SelectItem>
-                <SelectItem value="1">Feminino</SelectItem>
+                <SelectItem value="male">Masculino</SelectItem>
+                <SelectItem value="female">Feminino</SelectItem>
               </SelectContent>
             </Select>
           )}
         />
-        {errors.pronomeAutor && <p className="text-sm text-red-600 mt-1">{errors.pronomeAutor.message}</p>}
+        {errors.gender && <p className="text-sm text-red-600 mt-1">{errors.gender.message}</p>}
       </div>
     </div>
   )
@@ -249,8 +276,8 @@ const WorkMetadataSection = () => {
                   <SelectValue placeholder="Selecione o curso..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1">Ciência da Computação</SelectItem> {/* Update placeholder value */}
-                  <SelectItem value="2">Sistemas de Informação</SelectItem> {/* Update placeholder value */}
+                  <SelectItem value="1">Ciência da Computação</SelectItem>
+                  <SelectItem value="2">Sistemas de Informação</SelectItem>
                 </SelectContent>
               </Select>
             )}
@@ -286,7 +313,7 @@ const DefenseSchedulingSection = () => {
     watch,
     formState: { errors },
   } = useFormContext<BancaFormData>()
-  const tipoBancaValue = watch("tipoBanca")
+  const modalidadeValue = watch("modalidade")
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
@@ -340,7 +367,7 @@ const DefenseSchedulingSection = () => {
         <div className="md:col-span-1">
           <Label>Tipo de Banca</Label>
           <Controller
-            name="tipoBanca"
+            name="modalidade"
             control={control}
             rules={{ required: true }}
             render={({ field }) => (
@@ -363,16 +390,38 @@ const DefenseSchedulingSection = () => {
           />
         </div>
         <div className="md:col-span-2">
-          <Label htmlFor="local">{tipoBancaValue === "remoto" ? "Link da Reunião" : "Local Físico"}</Label>
+          <Label htmlFor="local">{modalidadeValue === "remoto" ? "Link da Reunião" : "Local Físico"}</Label>
           <Input
             id="local"
             {...register("local", { required: "Local/Link é obrigatório" })}
             aria-invalid={errors.local ? "true" : "false"}
-            placeholder={tipoBancaValue === "remoto" ? "https://meet.google.com/..." : "Sala, Auditório, etc."}
+            placeholder={modalidadeValue === "remoto" ? "https://meet.google.com/..." : "Sala, Auditório, etc."}
           />
           {errors.local && <p className="text-sm text-red-600 mt-1">{errors.local.message}</p>}
         </div>
       </div>
     </>
+  )
+}
+
+const DevFillButton = () => {
+  const { reset } = useFormContext<BancaFormData>()
+
+  const handleFill = () => {
+    const formDataForReset: Partial<BancaFormData> = {
+      ...DEV_SEED_DATA,
+      ano: DEV_SEED_DATA.ano?.toString(),
+      cursoId: DEV_SEED_DATA.cursoId || 1,
+      gender: DEV_SEED_DATA.gender as "male" | "female",
+      semestreLetivo: DEV_SEED_DATA.semestreLetivo?.toString(),
+      visible: Boolean(DEV_SEED_DATA.visible),
+    }
+    reset(formDataForReset as unknown as BancaFormData)
+  }
+
+  return (
+    <Button type="button" variant="secondary" onClick={handleFill}>
+      Fill Form (Dev)
+    </Button>
   )
 }
