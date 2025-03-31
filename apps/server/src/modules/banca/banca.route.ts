@@ -1,130 +1,266 @@
+import { zValidator } from "@hono/zod-validator"
+import { and, eq } from "drizzle-orm"
 import { Hono } from "hono"
-import { TODO } from "../../todo"
+import { match } from "ts-pattern"
+import { z } from "zod"
+import { usuariosBancas } from "../../database/schema"
+import { AppError } from "../../error"
+import { AppVariables } from "../../types"
+import * as schema from "./banca.schema"
+import * as service from "./banca.service"
 
-export const bancaRoutes = new Hono()
+export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
+  .post("/", zValidator("json", schema.createBancaSchema), async (c) => {
+    const validatedBancaData = c.req.valid("json")
+    const [error, newBanca] = await service.createBanca(c, validatedBancaData)
 
-// --- Gerenciamento de Bancas ---
+    if (error) {
+      throw match(error)
+        .with({ type: "database_error" }, () => new AppError(500, "Erro ao criar banca"))
+        .with({ type: "curso_not_found" }, () => new AppError(404, "Curso não encontrado"))
+        .with({ type: "invalid_input" }, () => new AppError(400, "Dados inválidos"))
+        .exhaustive()
+    }
 
-// POST /banca (Criar banca) - Original: actionCreate
-bancaRoutes.post("/", (c) => TODO({ c, path: "/banca", method: "POST" }))
-
-// GET /banca (Listar bancas) - Original: actionGetBancas
-bancaRoutes.get("/", (c) => TODO({ c, path: "/banca", method: "GET" }))
-
-// GET /banca/:id (Detalhes da banca) - Original: actionGetBanca
-bancaRoutes.get("/:id", (c) => {
-  const id = c.req.param("id")
-  return TODO({ c, path: "/banca/:id", method: "GET", params: { id } })
-})
-
-// GET /banca/usuario/:userId (Listar bancas por usuário) - Original: actionGetBancasByUser
-bancaRoutes.get("/usuario/:userId", (c) => {
-  const userId = c.req.param("userId")
-  return TODO({ c, path: "/banca/usuario/:userId", method: "GET", params: { userId } })
-})
-
-// DELETE /banca/:id (Deletar banca) - Original: actionDeleteBanca
-bancaRoutes.delete("/:id", (c) => {
-  const id = c.req.param("id")
-  return TODO({ c, path: "/banca/:id", method: "DELETE", params: { id } })
-})
-
-// PUT /banca/:id/visibilidade (Atualizar visibilidade) - Original: actionUpdateVisibility
-bancaRoutes.put("/:id/visibilidade", (c) => {
-  const id = c.req.param("id")
-  return TODO({ c, path: "/banca/:id/visibilidade", method: "PUT", params: { id } })
-})
-
-// --- Gerenciamento de Usuários na Banca ---
-
-// GET /banca/:bancaId/usuarios (Listar usuários da banca) - Original: actionGetUsers / actionUsuariosBancaByBanca
-bancaRoutes.get("/:bancaId/usuarios", (c) => {
-  const bancaId = c.req.param("bancaId")
-  return TODO({ c, path: "/banca/:bancaId/usuarios", method: "GET", params: { bancaId } })
-})
-
-// POST /usuario-banca/:inviteId/accept (Adicionar usuário à banca via convite) - Original: actionAdd (using inviteId as :id)
-// Note: Changed path from Yii2's `/usuario-banca/:id` to be more descriptive
-bancaRoutes.post("/usuario-banca/:inviteId/accept", (c) => {
-  const inviteId = c.req.param("inviteId")
-  return TODO({ c, path: "/usuario-banca/:inviteId/accept", method: "POST", params: { inviteId } })
-})
-
-// POST /banca/convites/email (Enviar email de convite) - Original: actionSendEmail
-bancaRoutes.post("/convites/email", (c) => TODO({ c, path: "/banca/convites/email", method: "POST" }))
-
-// DELETE /banca/:bancaId/usuarios/:userId (Remover usuário da banca) - Original: actionDeleteUserBanca
-bancaRoutes.delete("/:bancaId/usuarios/:userId", (c) => {
-  const bancaId = c.req.param("bancaId")
-  const userId = c.req.param("userId")
-  return TODO({ c, path: "/banca/:bancaId/usuarios/:userId", method: "DELETE", params: { bancaId, userId } })
-})
-
-// GET /usuario-banca/relacao/banca/:bancaId/usuario/:userId (Obter ID da relação UB) - Original: actionId
-// Note: Changed path from Yii2's `/usuario-banca/id/<id_banca>/<id_usuario>`
-bancaRoutes.get("/usuario-banca/relacao/banca/:bancaId/usuario/:userId", (c) => {
-  const bancaId = c.req.param("bancaId")
-  const userId = c.req.param("userId")
-  return TODO({
-    c,
-    path: "/usuario-banca/relacao/banca/:bancaId/usuario/:userId",
-    method: "GET",
-    params: { bancaId, userId },
+    return c.json(newBanca, 201)
   })
-})
+  .get("/", async (c) => {
+    const [error, bancas] = await service.getAllBancas(c)
 
-// --- Gerenciamento de Notas ---
+    if (error) {
+      throw match(error)
+        .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar bancas"))
+        .exhaustive()
+    }
 
-// POST /banca/:bancaId/usuarios/:userId/nota (Atribuir nota individual) - Original: actionGiveScore
-bancaRoutes.post("/:bancaId/usuarios/:userId/nota", (c) => {
-  const bancaId = c.req.param("bancaId")
-  const userId = c.req.param("userId")
-  return TODO({ c, path: "/banca/:bancaId/usuarios/:userId/nota", method: "POST", params: { bancaId, userId } })
-})
+    return c.json(bancas)
+  })
+  .get("/:id", async (c) => {
+    const id = Number(c.req.param("id"))
+    const [error, banca] = await service.getBancaById(c, id)
 
-// POST /banca/:bancaId/notas (Atribuir notas em lote) - Original: actionGiveScoreInBatch
-bancaRoutes.post("/:bancaId/notas", (c) => {
-  const bancaId = c.req.param("bancaId")
-  return TODO({ c, path: "/banca/:bancaId/notas", method: "POST", params: { bancaId } })
-})
+    if (error) {
+      throw match(error)
+        .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar banca"))
+        .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
+        .exhaustive()
+    }
 
-// GET /banca/:bancaId/nota (Obter nota final) - Original: actionNota
-bancaRoutes.get("/:bancaId/nota", (c) => {
-  const bancaId = c.req.param("bancaId")
-  return TODO({ c, path: "/banca/:bancaId/nota", method: "GET", params: { bancaId } })
-})
+    return c.json(banca)
+  })
+  .get("/usuario/:userId", async (c) => {
+    const userId = Number(c.req.param("userId"))
+    const [error, bancas] = await service.getBancasByUser(c, userId)
 
-// --- Gerenciamento de Documentos da Banca ---
+    if (error) {
+      throw match(error)
+        .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar bancas"))
+        .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))
+        .exhaustive()
+    }
 
-// GET /banca/:bancaId/documentos (Listar documentos) - Original: actionGetDocuments (BancaController)
-bancaRoutes.get("/:bancaId/documentos", (c) => {
-  const bancaId = c.req.param("bancaId")
-  return TODO({ c, path: "/banca/:bancaId/documentos", method: "GET", params: { bancaId } })
-})
+    return c.json(bancas)
+  })
+  .delete("/:id", async (c) => {
+    const id = Number(c.req.param("id"))
+    const [error] = await service.deleteBanca(c, id)
 
-// POST /banca/:bancaId/documentos (Adicionar documento) - Original: actionAddDocument (BancaController)
-bancaRoutes.post("/:bancaId/documentos", (c) => {
-  const bancaId = c.req.param("bancaId")
-  return TODO({ c, path: "/banca/:bancaId/documentos", method: "POST", params: { bancaId } })
-})
+    if (error) {
+      throw match(error)
+        .with({ type: "database_error" }, () => new AppError(500, "Erro ao excluir banca"))
+        .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
+        .with({ type: "unauthorized" }, () => new AppError(403, "Não autorizado a excluir esta banca"))
+        .exhaustive()
+    }
 
-// GET /banca/:bancaId/documentos/:docId (Detalhes do documento) - Original: actionGetDocument (BancaController)
-bancaRoutes.get("/:bancaId/documentos/:docId", (c) => {
-  const bancaId = c.req.param("bancaId")
-  const docId = c.req.param("docId")
-  return TODO({ c, path: "/banca/:bancaId/documentos/:docId", method: "GET", params: { bancaId, docId } })
-})
+    return c.body(null, 204)
+  })
+  .put("/:id/visibilidade", async (c) => {
+    const id = Number(c.req.param("id"))
+    const [error, banca] = await service.toggleBancaVisibility(c, id)
 
-// GET /banca/:bancaId/documentos/:docId/view (Visualizar/Baixar documento) - Original: actionViewDocument (BancaController)
-bancaRoutes.get("/:bancaId/documentos/:docId/view", (c) => {
-  const bancaId = c.req.param("bancaId")
-  const docId = c.req.param("docId")
-  return TODO({ c, path: "/banca/:bancaId/documentos/:docId/view", method: "GET", params: { bancaId, docId } })
-})
+    if (error) {
+      throw match(error)
+        .with({ type: "database_error" }, () => new AppError(500, "Erro ao atualizar visibilidade"))
+        .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
+        .exhaustive()
+    }
 
-// DELETE /banca/:bancaId/documentos/:docId (Deletar documento) - Original: actionDeleteDocument (BancaController)
-bancaRoutes.delete("/:bancaId/documentos/:docId", (c) => {
-  const bancaId = c.req.param("bancaId")
-  const docId = c.req.param("docId")
-  return TODO({ c, path: "/banca/:bancaId/documentos/:docId", method: "DELETE", params: { bancaId, docId } })
-})
+    return c.json(banca)
+  })
+  .get("/:bancaId/usuarios", async (c) => {
+    const bancaId = Number(c.req.param("bancaId"))
+    const [error, usuarios] = await service.getUsersByBanca(c, bancaId)
+
+    if (error) {
+      throw match(error)
+        .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar usuários"))
+        .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
+        .exhaustive()
+    }
+
+    return c.json(usuarios)
+  })
+  .post("/usuario-banca/:inviteId/accept", async (c) => {
+    const inviteId = Number(c.req.param("inviteId"))
+    const [error, usuarioBanca] = await service.addUserToBanca(c, inviteId)
+
+    if (error) {
+      throw match(error)
+        .with({ type: "database_error" }, () => new AppError(500, "Erro ao adicionar usuário"))
+        .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
+        .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))
+        .with({ type: "invite_not_found" }, () => new AppError(404, "Convite não encontrado"))
+        .with({ type: "already_member" }, () => new AppError(400, "Usuário já é membro desta banca"))
+        .exhaustive()
+    }
+
+    return c.json(usuarioBanca, 201)
+  })
+  .post(
+    "/convites/email",
+    zValidator(
+      "json",
+      z.object({
+        bancaId: z.number(),
+        email: z.string().email(),
+        role: z.string(),
+      })
+    ),
+    async (c) => {
+      const { bancaId, email, role } = c.req.valid("json")
+      const [error, invite] = await service.sendInviteEmail(c, bancaId, email, role)
+
+      if (error) {
+        throw match(error)
+          .with({ type: "database_error" }, () => new AppError(500, "Erro ao enviar convite"))
+          .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
+          .exhaustive()
+      }
+
+      return c.json(invite, 201)
+    }
+  )
+  .delete("/:bancaId/usuarios/:userId", async (c) => {
+    const bancaId = Number(c.req.param("bancaId"))
+    const userId = Number(c.req.param("userId"))
+    const [error] = await service.removeUserFromBanca(c, bancaId, userId)
+
+    if (error) {
+      throw match(error)
+        .with({ type: "database_error" }, () => new AppError(500, "Erro ao remover usuário"))
+        .with({ type: "relation_not_found" }, () => new AppError(404, "Relação usuário-banca não encontrada"))
+        .exhaustive()
+    }
+
+    return c.body(null, 204)
+  })
+  .get("/usuario-banca/relacao/banca/:bancaId/usuario/:userId", async (c) => {
+    const bancaId = Number(c.req.param("bancaId"))
+    const userId = Number(c.req.param("userId"))
+
+    const dbInstance = c.get("db")
+    try {
+      const relation = await dbInstance
+        .select({ id: usuariosBancas.id })
+        .from(usuariosBancas)
+        .where(and(eq(usuariosBancas.bancaId, bancaId), eq(usuariosBancas.usuarioId, userId)))
+        .limit(1)
+
+      if (relation.length === 0) {
+        throw new AppError(404, "Relação não encontrada")
+      }
+
+      return c.json({ id: relation[0].id })
+    } catch (error) {
+      if (error instanceof AppError) throw error
+      throw new AppError(500, "Erro ao buscar relação")
+    }
+  })
+  .post(
+    "/:bancaId/usuarios/:userId/nota",
+    zValidator(
+      "json",
+      z.object({
+        nota: z.string(),
+      })
+    ),
+    async (c) => {
+      const bancaId = Number(c.req.param("bancaId"))
+      const userId = Number(c.req.param("userId"))
+      const { nota } = c.req.valid("json")
+
+      const [error, usuarioBanca] = await service.setEvaluatorGrade(c, bancaId, userId, nota)
+
+      if (error) {
+        throw match(error)
+          .with({ type: "database_error" }, () => new AppError(500, "Erro ao atribuir nota"))
+          .with({ type: "relation_not_found" }, () => new AppError(404, "Relação usuário-banca não encontrada"))
+          .exhaustive()
+      }
+
+      return c.json(usuarioBanca)
+    }
+  )
+  .post(
+    "/:bancaId/notas",
+    zValidator(
+      "json",
+      z.object({
+        notaFinal: z.string(),
+      })
+    ),
+    async (c) => {
+      const bancaId = Number(c.req.param("bancaId"))
+      const { notaFinal } = c.req.valid("json")
+
+      const [error, banca] = await service.setBancaGrade(c, bancaId, notaFinal)
+
+      if (error) {
+        throw match(error)
+          .with({ type: "database_error" }, () => new AppError(500, "Erro ao atribuir nota final"))
+          .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
+          .exhaustive()
+      }
+
+      return c.json(banca)
+    }
+  )
+  .get("/:bancaId/nota", async (c) => {
+    const bancaId = Number(c.req.param("bancaId"))
+    const [error, banca] = await service.getBancaById(c, bancaId)
+
+    if (error) {
+      throw match(error)
+        .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar nota"))
+        .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
+        .exhaustive()
+    }
+
+    return c.json({ nota: banca.notaFinal })
+  })
+  .get("/:bancaId/documentos", async (c) => {
+    const bancaId = Number(c.req.param("bancaId"))
+    const [error, documentos] = await service.getBancaDocuments(c, bancaId)
+
+    if (error) {
+      throw match(error)
+        .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar documentos"))
+        .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
+        .exhaustive()
+    }
+
+    return c.json(documentos)
+  })
+  .post("/:bancaId/documentos", async (c) => {
+    throw new AppError(501, "Não implementado: upload de documentos")
+  })
+  .get("/:bancaId/documentos/:docId", async (c) => {
+    throw new AppError(501, "Não implementado: detalhes do documento")
+  })
+  .get("/:bancaId/documentos/:docId/view", async (c) => {
+    throw new AppError(501, "Não implementado: visualização de documentos")
+  })
+  .delete("/:bancaId/documentos/:docId", async (c) => {
+    throw new AppError(501, "Não implementado: exclusão de documentos")
+  })

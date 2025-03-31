@@ -46,7 +46,7 @@ export const cursos = pgTable(
 )
 
 // --- Tabela de Bancas ---
-export const bancas = pgTable("banca", {
+export const Bancas = pgTable("banca", {
   id: serial("id").primaryKey(),
   // user_id no dump original parece redundante se temos a relação N:N em usuario_banca
   // Mantendo por ora para refletir o dump, mas pode ser removido.
@@ -68,7 +68,8 @@ export const bancas = pgTable("banca", {
   palavrasChave: text("palavras_chave").notNull(),
   dataRealizacao: timestamp("data_realizacao").notNull(),
   notaFinal: varchar("nota_final", { length: 10 }),
-  local: varchar("local", { length: 255 }),
+  local: varchar("local", { length: 255 }), // Room or Meeting Link
+  modalidade: varchar("modalidade", { length: 10 }).notNull(), // 'remoto' or 'local'
   visible: boolean("visible").notNull().default(true),
 })
 
@@ -89,7 +90,7 @@ export const invites = pgTable(
     userId: integer("user_id").references(() => Users.id), // Quem foi convidado (opcional até aceitar?)
     bancaId: integer("banca_id")
       .notNull()
-      .references(() => bancas.id), // Para qual banca
+      .references(() => Bancas.id), // Para qual banca
     emailConvidado: varchar("email_convidado", { length: 64 }).notNull(), // Email para onde o convite foi enviado
     roleConvidado: varchar("role_convidado", { length: 64 }).notNull(), // Papel oferecido (orientador, avaliador)
     inviteHash: varchar("invite_hash", { length: 255 }).unique(), // Hash único do convite
@@ -139,7 +140,7 @@ export const usuariosBancas = pgTable("usuario_banca", {
     .references(() => Users.id),
   bancaId: integer("id_banca")
     .notNull()
-    .references(() => bancas.id),
+    .references(() => Bancas.id),
   role: varchar("role", { length: 64 }).notNull(), // Ex: 'orientador', 'co-orientador', 'discente', 'avaliador'
   nota: varchar("nota", { length: 10 }),
   // Adicionar unique constraint para (usuarioId, bancaId) ?
@@ -151,7 +152,7 @@ export const bancasDocumentos = pgTable("banca_documento", {
   bancaId: integer("id_banca")
     .notNull()
     .$type<number>() // Explicitly cast to integer
-    .references(() => bancas.id, { onDelete: "cascade" }), // Ensure cascading deletes
+    .references(() => Bancas.id, { onDelete: "cascade" }), // Ensure cascading deletes
   documentoId: integer("id_documento")
     .notNull()
     .references(() => documentos.id),
@@ -168,12 +169,12 @@ export const usuariosRelations = relations(Users, ({ one, many }) => ({
 }))
 
 export const cursosRelations = relations(cursos, ({ many }) => ({
-  bancas: many(bancas),
+  bancas: many(Bancas),
 }))
 
-export const bancasRelations = relations(bancas, ({ one, many }) => ({
+export const bancasRelations = relations(Bancas, ({ one, many }) => ({
   curso: one(cursos, {
-    fields: [bancas.cursoId],
+    fields: [Bancas.cursoId],
     references: [cursos.id],
   }),
   // criador: one(usuarios, { // Descomentar se banca.userId for mantido
@@ -194,9 +195,9 @@ export const invitesRelations = relations(invites, ({ one }) => ({
     fields: [invites.userId],
     references: [Users.id],
   }),
-  banca: one(bancas, {
+  banca: one(Bancas, {
     fields: [invites.bancaId],
-    references: [bancas.id],
+    references: [Bancas.id],
   }),
 }))
 
@@ -220,17 +221,17 @@ export const usuariosBancasRelations = relations(usuariosBancas, ({ one }) => ({
     fields: [usuariosBancas.usuarioId],
     references: [Users.id],
   }),
-  banca: one(bancas, {
+  banca: one(Bancas, {
     fields: [usuariosBancas.bancaId],
-    references: [bancas.id],
+    references: [Bancas.id],
   }),
 }))
 
 // Relações para a tabela de junção banca_documento
 export const bancasDocumentosRelations = relations(bancasDocumentos, ({ one }) => ({
-  banca: one(bancas, {
+  banca: one(Bancas, {
     fields: [bancasDocumentos.bancaId],
-    references: [bancas.id],
+    references: [Bancas.id],
   }),
   documento: one(documentos, {
     fields: [bancasDocumentos.documentoId],

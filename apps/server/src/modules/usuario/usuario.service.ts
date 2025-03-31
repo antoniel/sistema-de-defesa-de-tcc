@@ -2,7 +2,7 @@ import * as bcrypt from "bcryptjs"
 import { and, eq, or } from "drizzle-orm"
 import { Context } from "hono"
 import { z } from "zod"
-import { bancas, SelectUser, Users } from "../../database/schema"
+import { Bancas, SelectUser, Users } from "../../database/schema"
 import { AppResult, err, ok } from "../../result"
 import { AppVariables } from "../../types"
 import { createUserSchema, updateUserSchema } from "./usuario.schema"
@@ -238,7 +238,7 @@ export const getUserBancas = async (
       return err({ type: "user_not_found" })
     }
 
-    const relatedBancas = await dbInstance.select().from(bancas)
+    const relatedBancas = await dbInstance.select().from(Bancas)
 
     return ok(relatedBancas)
   } catch (error) {
