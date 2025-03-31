@@ -863,7 +863,6 @@ const bancasData: InsertBanca[] = [
     dataRealizacao: new Date("2024-03-11 08:30:22"),
     notaFinal: null,
     local: "Salvador",
-    gender: "male", // from pronome_autor = 0
     visible: true, // from visible = 1
   },
   {
@@ -884,7 +883,6 @@ const bancasData: InsertBanca[] = [
     dataRealizacao: new Date("2024-06-10 11:00:25"),
     notaFinal: null,
     local: "https://meet.google.com/mxk-uuof-tza",
-    gender: "male", // from pronome_autor = 0
     visible: false, // from visible = 0
   },
   {
@@ -904,7 +902,6 @@ const bancasData: InsertBanca[] = [
     dataRealizacao: new Date("2024-06-10 09:30:07"),
     notaFinal: null,
     local: "https://meet.google.com/mgx-mtri-gne?hs=224",
-    gender: "male", // from pronome_autor = 0
     visible: false, // from visible = 0
   },
   {
@@ -926,7 +923,6 @@ const bancasData: InsertBanca[] = [
     dataRealizacao: new Date("2024-06-21 09:00:16"),
     notaFinal: null,
     local: "meet.google.com/nhq-jmmg-czu",
-    gender: "female", // from pronome_autor = 1
     visible: false, // from visible = 0
   },
   {
@@ -945,7 +941,6 @@ const bancasData: InsertBanca[] = [
     dataRealizacao: new Date("2024-07-18 20:35:46"),
     notaFinal: null,
     local: "http://www.google.com.br/teste",
-    gender: "male", // from pronome_autor = 0
     visible: false, // from visible = 0
   },
 ]

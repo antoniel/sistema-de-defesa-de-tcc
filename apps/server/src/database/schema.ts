@@ -30,7 +30,6 @@ export const cursos = pgTable("cursos", {
 export type InsertCurso = typeof cursos.$inferInsert
 export type SelectCurso = typeof cursos.$inferSelect
 
-export const genderEnum = pgEnum("gender", ["male", "female"])
 export const modalidadeEnum = pgEnum("modalidade", ["remoto", "local"])
 export const Bancas = pgTable("banca", {
   id: serial("id").primaryKey(),
@@ -42,7 +41,6 @@ export const Bancas = pgTable("banca", {
     .references(() => cursos.id), // FK para curso (ajustado de text)
   autor: text("autor").notNull(), // Nome do autor/aluno principal
   matricula: text("matricula"), // Matrícula do autor/aluno principal
-  gender: genderEnum("gender"),
   turma: text("turma").notNull(),
   ano: text("ano").notNull(),
   semestreLetivo: text("semestre_letivo"), // Ex: '1', '2'

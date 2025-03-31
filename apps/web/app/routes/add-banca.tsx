@@ -31,7 +31,6 @@ const DEV_SEED_DATA: Partial<BancaFormData> = {
   visible: true,
   autor: "Dev Silva",
   matricula: "123456789",
-  gender: "male",
   palavrasChave: "teste, desenvolvimento, automação, formulário",
   turma: "2024/2",
   cursoId: 1,
@@ -56,7 +55,6 @@ export default function AddBancaPage() {
     defaultValues: {
       visible: false,
       modalidade: "local",
-      gender: undefined,
       semestreLetivo: undefined,
       cursoId: undefined,
     },
@@ -70,7 +68,6 @@ export default function AddBancaPage() {
       matricula: data.matricula || "",
       cursoId: Number(data.cursoId),
       ano: data.ano,
-      gender: data.gender as "male" | "female",
       visible: Boolean(data.visible),
     }
 
@@ -203,31 +200,6 @@ const AuthorInfoSection = () => {
           disabled={!isUserTeacher}
         />
         {errors.matricula && <p className="text-sm text-red-600 mt-1">{errors.matricula.message}</p>}
-      </div>
-      <div>
-        <Label htmlFor="pronomeAutor">Gênero</Label>
-        <Controller
-          name="gender"
-          control={control}
-          rules={{ required: isUserTeacher ? "Gênero do autor é obrigatório" : false }}
-          render={({ field }) => (
-            <Select
-              onValueChange={field.onChange}
-              defaultValue={field.value || ""}
-              value={field.value || ""}
-              disabled={!isUserTeacher}
-            >
-              <SelectTrigger id="gender" ref={field.ref} aria-invalid={errors.gender ? "true" : "false"}>
-                <SelectValue placeholder="Selecione..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="male">Masculino</SelectItem>
-                <SelectItem value="female">Feminino</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-        />
-        {errors.gender && <p className="text-sm text-red-600 mt-1">{errors.gender.message}</p>}
       </div>
     </div>
   )
@@ -412,7 +384,6 @@ const DevFillButton = () => {
       ...DEV_SEED_DATA,
       ano: DEV_SEED_DATA.ano?.toString(),
       cursoId: DEV_SEED_DATA.cursoId || 1,
-      gender: DEV_SEED_DATA.gender as "male" | "female",
       semestreLetivo: DEV_SEED_DATA.semestreLetivo?.toString(),
       visible: Boolean(DEV_SEED_DATA.visible),
     }
