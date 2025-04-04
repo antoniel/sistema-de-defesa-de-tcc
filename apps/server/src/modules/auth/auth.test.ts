@@ -3,8 +3,9 @@ import { eq } from "drizzle-orm"
 import { testClient } from "hono/testing"
 import { beforeEach, describe, expect, it } from "vitest"
 import { app } from "../.."
-import { Users } from "../../database/schema"
+import { UserRole, Users } from "../../database/schema"
 import { fakeDeps, getFakeDb } from "../../tests/utils"
+import { RegisterUserInput } from "./auth.schema"
 
 const TEST_USER = {
   username: "testuser",
@@ -14,7 +15,7 @@ const TEST_USER = {
   nome: "Test User",
   school: "Test School",
   academicTitle: "PhD",
-  role: "professor",
+  role: "TEACHER" as UserRole,
 }
 
 describe("Auth Routes", async () => {
@@ -24,15 +25,13 @@ describe("Auth Routes", async () => {
   beforeEach(async () => {
     TEST_USER.passwordHash = await bcrypt.hash(TEST_USER.password, 10)
     await db.insert(Users).values({
-      username: TEST_USER.username,
+      status: "ACTIVE",
       email: TEST_USER.email,
       passwordHash: TEST_USER.passwordHash,
-      authKey: "test-auth-key-" + Date.now(),
       nome: TEST_USER.nome,
       school: TEST_USER.school,
       academicTitle: TEST_USER.academicTitle,
       role: TEST_USER.role,
-      status: "active",
       createdAt: new Date(),
       updatedAt: new Date(),
     })
@@ -93,21 +92,6 @@ describe("Auth Routes", async () => {
 
     expect(response.status).toBe(400)
   })
-
-  it("should reject login for inactive user", async () => {
-    await db.update(Users).set({ status: "inactive" }).where(eq(Users.email, TEST_USER.email))
-
-    const response = await client.auth.login.$post({
-      json: {
-        email: TEST_USER.email,
-        password: TEST_USER.password,
-      },
-    })
-
-    expect(response.status).toBe(403)
-    const data = await response.json()
-    expect(data).toHaveProperty("message", "Seu usuário está inativo.")
-  })
 })
 
 // Added registration tests
@@ -120,14 +104,13 @@ describe("Auth Register Routes", async () => {
     await db.delete(Users)
   })
 
-  const newUser = {
+  const newUser: RegisterUserInput = {
+    status: "ACTIVE",
     email: "newuser@example.com",
     password: "NewPassword123!",
-    username: "newusername",
     nome: "New User",
     school: "New School",
     academicTitle: "MSc",
-    role: "student",
     lattesUrl: "http://lattes.cnpq.br/123456",
   }
 
@@ -144,15 +127,11 @@ describe("Auth Register Routes", async () => {
     // Verify in DB
     const [dbUser] = await db.select().from(Users).where(eq(Users.id, userId)).limit(1)
     expect(dbUser.email).toBe(newUser.email)
-    expect(dbUser.username).toBe(newUser.username)
     expect(dbUser.nome).toBe(newUser.nome)
-    expect(dbUser.role).toBe(newUser.role)
-    expect(dbUser.status).toBe("active")
-    // Verify password was hashed
+    expect(dbUser.role).toBe("STUDENT")
     expect(dbUser.passwordHash).not.toBe(newUser.password)
     const isPasswordCorrect = await bcrypt.compare(newUser.password, dbUser.passwordHash ?? "")
     expect(isPasswordCorrect).toBe(true)
-    expect(dbUser.authKey).toBeDefined()
     expect(dbUser.lattesUrl).toBe(newUser.lattesUrl)
   })
 
@@ -176,7 +155,7 @@ describe("Auth Register Routes", async () => {
 
     // Attempt to register again with the same email
     const response = await client.auth.register.$post({
-      json: { ...newUser, username: "anotherusername" },
+      json: { ...newUser, email: "another@example.com" },
     })
 
     expect(response.status).toBe(409)

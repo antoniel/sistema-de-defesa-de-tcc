@@ -1,5 +1,5 @@
 import * as bcrypt from "bcryptjs"
-import { and, eq, or } from "drizzle-orm"
+import { eq } from "drizzle-orm"
 import { Context } from "hono"
 import { z } from "zod"
 import { Bancas, SelectUser, Users } from "../../database/schema"
@@ -49,7 +49,7 @@ export const createUser = async (
     const existingUser = await dbInstance
       .select({ id: Users.id })
       .from(Users)
-      .where(or(eq(Users.email, userData.email), eq(Users.username, userData.username)))
+      .where(eq(Users.email, userData.email))
       .limit(1)
 
     if (existingUser.length > 0) {
@@ -77,9 +77,8 @@ export const createUser = async (
         academicTitle: userData.academicTitle.trim(),
         email: userData.email.trim(),
         passwordHash: passwordHash,
-        username: userData.username.trim(),
         role: userData.role,
-        authKey: crypto.randomUUID(),
+        status: "ACTIVE",
         createdAt: now,
         updatedAt: now,
         school: userData.school,
@@ -125,7 +124,7 @@ export const updateUser = async (
   updateData: UpdateUserInput
 ): Promise<AppResult<SelectUser, UpdateUserError>> => {
   const dbInstance = c.get("db")
-  const { nome, username, school, academicTitle } = updateData
+  const { nome, school, academicTitle } = updateData
 
   try {
     const userCheck = await dbInstance.select({ id: Users.id }).from(Users).where(eq(Users.id, id)).limit(1)
@@ -133,22 +132,10 @@ export const updateUser = async (
       return err({ type: "user_not_found" })
     }
 
-    if (username) {
-      const existingUsername = await dbInstance
-        .select({ id: Users.id })
-        .from(Users)
-        .where(and(eq(Users.username, username), eq(Users.id, id)))
-        .limit(1)
-      if (existingUsername.length > 0) {
-        return err({ type: "duplicate_username" })
-      }
-    }
-
     const [updatedUser] = await dbInstance
       .update(Users)
       .set({
         nome: nome,
-        username: username,
         school: school,
         academicTitle: academicTitle,
         updatedAt: new Date(),

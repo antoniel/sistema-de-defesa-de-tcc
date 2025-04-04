@@ -2,19 +2,18 @@ import { relations, sql } from "drizzle-orm"
 import { boolean, integer, pgEnum, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core"
 
 export const userRole = pgEnum("user_role", ["STUDENT", "TEACHER", "ADMIN"])
+export const userStatus = pgEnum("user_status", ["ACTIVE", "INACTIVE"])
 export type UserRole = (typeof userRole.enumValues)[number]
 export const Users = pgTable("usuario", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
   passwordHash: text("password_has").notNull(), // Nome da coluna original era password_has
-  authKey: text("auth_key").notNull().unique(),
   email: text("email").notNull().unique(),
   nome: text("nome").notNull(),
   school: text("school").notNull(), // Ex: Instituto de Computação
   academicTitle: text("academic_title").notNull(), // Ex: Doutorado
   lattesUrl: text("lattesUrl"), // Aumentado tamanho para URL
-  status: text("status").notNull().default("active"), // Ex: active, inactive
   createdAt: timestamp("created_at").notNull(),
+  status: userStatus("status").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
   role: userRole("role").notNull(),
 })

@@ -33,8 +33,6 @@ export default function RegisterPage() {
         json: {
           email,
           password,
-          role: "student",
-          username,
           nome,
           school: universidade,
           academicTitle,

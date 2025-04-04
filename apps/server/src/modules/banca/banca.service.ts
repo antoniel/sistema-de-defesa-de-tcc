@@ -3,6 +3,7 @@ import { Context } from "hono"
 import {
   Bancas,
   SelectUser,
+  UserRole,
   Users,
   bancasDocumentos,
   cursos,
@@ -240,7 +241,7 @@ export const getUsersByBanca = async (
 
     const users = usersWithRole.map((row) => ({
       ...row.user,
-      role: row.role,
+      role: row.role as UserRole,
     }))
 
     return ok(users)

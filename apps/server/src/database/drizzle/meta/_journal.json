@@ -15,6 +15,13 @@
       "when": 1743729861343,
       "tag": "0001_slimy_runaways",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1743732673246,
+      "tag": "0002_third_pet_avengers",
+      "breakpoints": true
     }
   ]
 }

@@ -5,6 +5,7 @@ import { z } from "zod"
 import { AppError } from "../../error"
 import { AppVariables } from "../../types"
 
+import { insertUserSchema } from "./auth.schema"
 import {
   loginUserService,
   registerUserService,
@@ -26,17 +27,6 @@ const requestResetSchema = z.object({
 const resetPasswordSchema = z.object({
   hash: z.string().min(1, { message: "Token de reset é obrigatório." }),
   newPassword: z.string().min(6, { message: "Nova senha deve ter pelo menos 6 caracteres." }),
-})
-
-const registerSchema = z.object({
-  email: z.string().email({ message: "Email inválido." }),
-  password: z.string().min(6, { message: "Senha deve ter pelo menos 6 caracteres." }),
-  username: z.string().min(3, { message: "Nome de usuário deve ter pelo menos 3 caracteres." }),
-  nome: z.string().min(1, { message: "Nome é obrigatório." }),
-  school: z.string().min(1, { message: "Instituição é obrigatória." }),
-  academicTitle: z.string().min(1, { message: "Título acadêmico é obrigatório." }),
-  role: z.string().min(1, { message: "Papel é obrigatório." }),
-  lattesUrl: z.string().url({ message: "URL do Lattes inválida." }).optional().or(z.literal("")),
 })
 
 export const authRoutes = new Hono<{ Variables: AppVariables }>()
@@ -101,7 +91,7 @@ export const authRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json({ message: "Senha redefinida com sucesso." }, 200)
   })
-  .post("/register", zValidator("json", registerSchema), async (c) => {
+  .post("/register", zValidator("json", insertUserSchema), async (c) => {
     const userData = c.req.valid("json")
     const [error, result] = await registerUserService(c, userData)
 

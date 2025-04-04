@@ -34,7 +34,7 @@ export default function Home() {
     },
   })
 
-  const isTeacher = user?.role === "teacher"
+  const isTeacher = user?.role === "TEACHER"
 
   if (isLoading) {
     return (
@@ -76,7 +76,7 @@ export default function Home() {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="max-w-lg w-full"
         />
-        {isTeacher && <Button onClick={() => navigate("/add-banca")}>Cadastrar Defesa de TCC</Button>}
+        <Button onClick={() => navigate("/add-banca")}>Cadastrar Defesa de TCC</Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

@@ -27,7 +27,6 @@ export const updateUserSchema = z.object({
   body: createUserSchema
     .pick({
       nome: true,
-      username: true,
       school: true,
       academicTitle: true,
       role: true,

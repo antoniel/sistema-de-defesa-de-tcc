@@ -6,6 +6,7 @@ import { sign } from "hono/jwt"
 import { invites, resetPasswords, Users } from "../../database/schema"
 import { AppResult, err, ok } from "../../result"
 import { AppVariables } from "../../types"
+import { RegisterUserInput } from "./auth.schema"
 import { JWT_AUDIENCE, JWT_EXPIRY_SECONDS, JWT_ISSUER, JWT_SECRET } from "./jwt"
 
 interface LoginResponse {
@@ -31,13 +32,14 @@ export const loginUserService = async (
 
   try {
     const [user] = await dbInstance.select().from(Users).where(eq(Users.email, email)).limit(1)
+    console.log(email)
 
     if (!user) {
       console.log(`Login attempt failed: User not found for email ${email}`)
       return err({ type: "invalid_credentials" })
     }
 
-    if (user.status !== "active") {
+    if (user.status !== "ACTIVE") {
       console.log(`Login attempt failed: User ${email} is inactive.`)
       return err({ type: "inactive_user" })
     }
@@ -100,7 +102,7 @@ export const requestPasswordResetService = async (
       .limit(1)
     const user = potentialUsers[0]
 
-    if (!user || user.status !== "active") {
+    if (!user || user.status !== "ACTIVE") {
       console.log(`Password reset request failed: User not found or inactive for email ${email}`)
 
       return ok(undefined)
@@ -309,18 +311,6 @@ export const verifyInviteHashService = async (
   }
 }
 
-// --- Register Types ---
-interface RegisterUserInput {
-  email: string
-  password: string
-  username: string
-  nome: string
-  school: string
-  academicTitle: string
-  role: string
-  lattesUrl?: string | null // Adjusted to match schema
-}
-
 interface RegisterUserResponse {
   userId: number
 }
@@ -337,7 +327,7 @@ export const registerUserService = async (
   userData: RegisterUserInput
 ): Promise<AppResult<RegisterUserResponse, RegisterUserServiceError>> => {
   const dbInstance = c.get("db")
-  const { email, password, username, nome, school, academicTitle, role, lattesUrl } = userData
+  const { email, password, nome, school, academicTitle, lattesUrl } = userData
 
   try {
     // Check for duplicate email
@@ -352,11 +342,11 @@ export const registerUserService = async (
     const existingUsername = await dbInstance
       .select({ id: Users.id })
       .from(Users)
-      .where(eq(Users.username, username))
+      .where(eq(Users.email, email))
       .limit(1)
 
     if (existingUsername.length > 0) {
-      console.log(`Registration failed: Username ${username} already exists.`)
+      console.log(`Registration failed: Username ${email} already exists.`)
       return err({ type: "duplicate_username" })
     }
 
@@ -377,18 +367,16 @@ export const registerUserService = async (
     const newUserResult = await dbInstance
       .insert(Users)
       .values({
-        username: username,
         passwordHash: passwordHash,
-        authKey: authKey,
         email: email,
         nome: nome,
         school: school,
         academicTitle: academicTitle,
         lattesUrl: lattesUrl || null, // Ensure null if empty or undefined
-        status: "active", // Default status
+        status: "ACTIVE", // Default status
         createdAt: now,
         updatedAt: now,
-        role: role,
+        role: "STUDENT",
       })
       .returning({ insertedId: Users.id })
 
