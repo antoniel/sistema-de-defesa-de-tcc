@@ -5,7 +5,7 @@ import { match } from "ts-pattern"
 import { z } from "zod"
 import { usuariosBancas } from "../../database/schema"
 import { AppError } from "../../error"
-import { AppVariables } from "../../types"
+import { type AppVariables } from "../../types"
 import * as schema from "./banca.schema"
 import * as service from "./banca.service"
 

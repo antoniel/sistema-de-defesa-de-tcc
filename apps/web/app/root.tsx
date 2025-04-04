@@ -4,6 +4,7 @@ import { useState } from "react"
 import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router"
 import type { Route } from "./+types/root"
 import "./app.css"
+import { Toaster } from "./components/ui/toaster"
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -41,6 +42,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <QueryClientProvider client={queryClient}>
           <ReactQueryDevtools initialIsOpen={false} />
           {children}
+          <Toaster />
         </QueryClientProvider>
         <ScrollRestoration />
         <Scripts />

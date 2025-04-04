@@ -1,8 +1,8 @@
 import type { Context } from "hono"
 import { createMiddleware } from "hono/factory"
-import { SignatureKey } from "hono/utils/jwt/jws"
+import { type SignatureKey } from "hono/utils/jwt/jws"
 import { match } from "ts-pattern"
-import { UserRole } from "../../database"
+import { type UserRole } from "../../database"
 import { AppError } from "../../error"
 import { getUserById } from "../usuario/usuario.service"
 

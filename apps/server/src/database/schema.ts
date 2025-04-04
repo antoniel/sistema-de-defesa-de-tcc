@@ -11,7 +11,6 @@ export const Users = pgTable("usuario", {
   nome: text("nome").notNull(),
   school: text("school").notNull(), // Ex: Instituto de Computação
   academicTitle: text("academic_title").notNull(), // Ex: Doutorado
-  lattesUrl: text("lattesUrl"), // Aumentado tamanho para URL
   createdAt: timestamp("created_at").notNull(),
   status: userStatus("status").notNull(),
   updatedAt: timestamp("updated_at").notNull(),

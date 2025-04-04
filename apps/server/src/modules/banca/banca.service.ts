@@ -1,9 +1,9 @@
 import { and, eq } from "drizzle-orm"
-import { Context } from "hono"
+import { type Context } from "hono"
 import {
   Bancas,
-  SelectUser,
-  UserRole,
+  type SelectUser,
+  type UserRole,
   Users,
   bancasDocumentos,
   cursos,
@@ -11,9 +11,9 @@ import {
   invites,
   usuariosBancas,
 } from "../../database/schema"
-import { AppResult, err, ok } from "../../result"
-import { AppVariables } from "../../types"
-import { CreateBancaInput, UpdateBancaInput } from "./banca.schema"
+import { type AppResult, err, ok } from "../../result"
+import { type AppVariables } from "../../types"
+import { type CreateBancaInput, type UpdateBancaInput } from "./banca.schema"
 
 type GetAllBancasError = { type: "database_error"; error: unknown }
 

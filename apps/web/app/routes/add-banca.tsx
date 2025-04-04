@@ -8,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import useIsTeacher from "@/hooks/use-role"
+import { useToast } from "@/hooks/use-toast"
 import { rpcReturn, type RpcType } from "@/lib/utils"
 import apiClient from "@/services/apiClient"
 import { useMutation } from "@tanstack/react-query"
@@ -59,7 +60,6 @@ const FORM_STEPS = [
   { id: 4, name: "Revisão e Confirmação" },
 ]
 
-// Define a type that includes orientadorId for the submission payload
 type SubmissionPayload = query["input"]["json"] & {
   orientadorId?: number
 }
@@ -67,6 +67,7 @@ type SubmissionPayload = query["input"]["json"] & {
 export default function AddBancaPage() {
   const navigate = useNavigate()
   const [currentStep, setCurrentStep] = useState(0)
+  const { toast } = useToast()
 
   const form = useForm<BancaFormData>({
     defaultValues: {
@@ -81,20 +82,32 @@ export default function AddBancaPage() {
   const addBancaMutation = useAddBancaMutation()
 
   const onSubmit = (data: BancaFormData) => {
-    // Use the extended SubmissionPayload type here
     const submissionData: SubmissionPayload = {
       ...data,
       matricula: data.matricula || "",
       cursoId: Number(data.cursoId),
       ano: data.ano,
       visible: Boolean(data.visible),
-      orientadorId: Number(data.orientadorId), // Now type-safe
+      orientadorId: Number(data.orientadorId),
     }
-
-    console.log("Submitting data:", submissionData)
-    // Cast back to the expected type for the API call if necessary,
-    // assuming the backend handles the extra field gracefully or it's defined in the API spec implicitly.
-    addBancaMutation.mutate({ json: submissionData as query["input"]["json"] })
+    addBancaMutation.mutate(
+      { json: submissionData as query["input"]["json"] },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Defesa cadastrada com sucesso ✅",
+            description: "A defesa foi cadastrada com sucesso",
+          })
+          navigate("/")
+        },
+        onError: () => {
+          toast({
+            title: "Erro ao cadastrar defesa ❌",
+            description: "Ocorreu um erro ao cadastrar a defesa",
+          })
+        },
+      }
+    )
   }
 
   const nextStep = async () => {

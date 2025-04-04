@@ -1,12 +1,12 @@
 import * as bcrypt from "bcryptjs"
 import crypto from "crypto"
 import { and, eq, gte } from "drizzle-orm"
-import { Context } from "hono"
+import { type Context } from "hono"
 import { sign } from "hono/jwt"
-import { invites, resetPasswords, Users } from "../../database/schema"
-import { AppResult, err, ok } from "../../result"
-import { AppVariables } from "../../types"
-import { RegisterUserInput } from "./auth.schema"
+import { invites, resetPasswords, Users, type SelectUser } from "../../database/schema"
+import { err, ok, type AppResult } from "../../result"
+import { type AppVariables } from "../../types"
+import { type RegisterUserInput } from "./auth.schema"
 import { JWT_AUDIENCE, JWT_EXPIRY_SECONDS, JWT_ISSUER, JWT_SECRET } from "./jwt"
 
 interface LoginResponse {
@@ -14,6 +14,7 @@ interface LoginResponse {
   token: string
   role: string
   name: string
+  user: SelectUser
 }
 
 type LoginUserServiceError =
@@ -32,7 +33,6 @@ export const loginUserService = async (
 
   try {
     const [user] = await dbInstance.select().from(Users).where(eq(Users.email, email)).limit(1)
-    console.log(email)
 
     if (!user) {
       console.log(`Login attempt failed: User not found for email ${email}`)
@@ -78,6 +78,7 @@ export const loginUserService = async (
       token: token,
       role: user.role,
       name: user.nome,
+      user: user,
     })
   } catch (dbError) {
     console.error("Database error during login:", dbError)
@@ -327,7 +328,7 @@ export const registerUserService = async (
   userData: RegisterUserInput
 ): Promise<AppResult<RegisterUserResponse, RegisterUserServiceError>> => {
   const dbInstance = c.get("db")
-  const { email, password, nome, school, academicTitle, lattesUrl } = userData
+  const { email, password, nome, school, academicTitle } = userData
 
   try {
     // Check for duplicate email
@@ -372,7 +373,6 @@ export const registerUserService = async (
         nome: nome,
         school: school,
         academicTitle: academicTitle,
-        lattesUrl: lattesUrl || null, // Ensure null if empty or undefined
         status: "ACTIVE", // Default status
         createdAt: now,
         updatedAt: now,

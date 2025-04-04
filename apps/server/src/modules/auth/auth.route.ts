@@ -3,7 +3,7 @@ import { Hono } from "hono"
 import { match } from "ts-pattern"
 import { z } from "zod"
 import { AppError } from "../../error"
-import { AppVariables } from "../../types"
+import { type AppVariables } from "../../types"
 
 import { insertUserSchema } from "./auth.schema"
 import {

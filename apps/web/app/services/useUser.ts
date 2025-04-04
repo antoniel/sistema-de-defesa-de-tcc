@@ -24,7 +24,7 @@ export const useUser = () => {
     refetchOnWindowFocus: false,
   })
 }
-useUser.queryKey = () => ["user", getAuthToken()]
+useUser.queryKey = () => ["user"]
 useUser.setData = (
   queryClient: QueryClient,
   data: Updater<ReturnType<typeof useUser>["data"], ReturnType<typeof useUser>["data"]>
@@ -32,5 +32,5 @@ useUser.setData = (
   return queryClient.setQueryData(useUser.queryKey(), data)
 }
 useUser.removeQueries = (queryClient: QueryClient) => {
-  return queryClient.removeQueries({ queryKey: useUser.queryKey() })
+  return queryClient.setQueryData(useUser.queryKey(), null)
 }

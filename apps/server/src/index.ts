@@ -1,4 +1,4 @@
-import { Hono, MiddlewareHandler } from "hono"
+import { Hono, type MiddlewareHandler } from "hono"
 import { cors } from "hono/cors"
 import { logger } from "hono/logger"
 import { poweredBy } from "hono/powered-by"
@@ -12,7 +12,7 @@ import { calendarRoutes } from "./modules/calendar/calendar.route"
 import { cursoRoutes } from "./modules/curso/curso.route"
 import { documentoRoutes } from "./modules/documento/documento.route"
 import { usuarioRoutes } from "./modules/usuario/usuario.route"
-import { AppVariables } from "./types"
+import { type AppVariables } from "./types"
 
 export const app = (depsMiddleware: MiddlewareHandler<{ Variables: AppVariables }>) =>
   new Hono<{ Variables: AppVariables }>()

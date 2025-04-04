@@ -1,6 +1,5 @@
 import { AUTH_TOKEN_KEY } from "@/config/env"
 import { useMutation } from "@tanstack/react-query"
-import { useNavigate } from "react-router"
 import { rpcReturn, type RpcType } from "../lib/utils"
 import apiClient from "./apiClient"
 
@@ -22,15 +21,10 @@ export const useLoginMutation = () => {
 
 export const useRegisterMutation = () => {
   type Query = RpcType<typeof apiClient.auth.register.$post>
-  const navigate = useNavigate()
-
   return useMutation({
     mutationFn: async (request: Query["input"]) => {
       const response = await apiClient.auth.register.$post(request)
       return rpcReturn(response)
-    },
-    onSuccess: () => {
-      navigate("/login")
     },
   })
 }

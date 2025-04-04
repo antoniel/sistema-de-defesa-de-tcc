@@ -76,7 +76,7 @@ export default function Home() {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="max-w-lg w-full"
         />
-        <Button onClick={() => navigate("/add-banca")}>Cadastrar Defesa de TCC</Button>
+        {!!user && <Button onClick={() => navigate("/add-banca")}>Cadastrar Defesa de TCC</Button>}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

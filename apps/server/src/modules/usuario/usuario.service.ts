@@ -1,10 +1,10 @@
 import * as bcrypt from "bcryptjs"
 import { eq } from "drizzle-orm"
-import { Context } from "hono"
+import { type Context } from "hono"
 import { z } from "zod"
-import { Bancas, SelectUser, Users } from "../../database/schema"
-import { AppResult, err, ok } from "../../result"
-import { AppVariables } from "../../types"
+import { Bancas, type SelectUser, Users } from "../../database/schema"
+import { type AppResult, err, ok } from "../../result"
+import { type AppVariables } from "../../types"
 import { createUserSchema, updateUserSchema } from "./usuario.schema"
 
 type GetUserByIdError = { type: "user_not_found" } | { type: "database_error"; error: unknown }
