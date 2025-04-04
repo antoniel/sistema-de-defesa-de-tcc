@@ -21,6 +21,7 @@ type query = RpcType<typeof apiClient.banca.$post>
 type BancaFormData = InsertBanca & {
   visible: boolean
   hora: string
+  orientadorId?: number
 }
 
 const DEV_SEED_DATA: Partial<BancaFormData> = {
@@ -41,6 +42,7 @@ const DEV_SEED_DATA: Partial<BancaFormData> = {
   semestreLetivo: "2",
   modalidade: "local",
   local: "Sala H-101",
+  orientadorId: 1,
 }
 
 const useAddBancaMutation = () => {
@@ -56,6 +58,11 @@ const FORM_STEPS = [
   { id: 3, name: "Agendamento da Defesa" },
   { id: 4, name: "Revisão e Confirmação" },
 ]
+
+// Define a type that includes orientadorId for the submission payload
+type SubmissionPayload = query["input"]["json"] & {
+  orientadorId?: number
+}
 
 export default function AddBancaPage() {
   const navigate = useNavigate()
@@ -74,16 +81,20 @@ export default function AddBancaPage() {
   const addBancaMutation = useAddBancaMutation()
 
   const onSubmit = (data: BancaFormData) => {
-    const submissionData: query["input"]["json"] = {
+    // Use the extended SubmissionPayload type here
+    const submissionData: SubmissionPayload = {
       ...data,
       matricula: data.matricula || "",
       cursoId: Number(data.cursoId),
       ano: data.ano,
       visible: Boolean(data.visible),
+      orientadorId: Number(data.orientadorId), // Now type-safe
     }
 
     console.log("Submitting data:", submissionData)
-    addBancaMutation.mutate({ json: submissionData })
+    // Cast back to the expected type for the API call if necessary,
+    // assuming the backend handles the extra field gracefully or it's defined in the API spec implicitly.
+    addBancaMutation.mutate({ json: submissionData as query["input"]["json"] })
   }
 
   const nextStep = async () => {
@@ -106,7 +117,7 @@ export default function AddBancaPage() {
       case 0:
         return ["tituloTrabalho", "resumo", "abstract"]
       case 1:
-        return ["autor", "matricula"]
+        return ["autor", "matricula", "orientadorId"]
       case 2:
         return ["palavrasChave", "turma", "cursoId", "ano"]
       case 3:
@@ -299,6 +310,27 @@ const AuthorInfoSection = () => {
           />
           {errors.matricula && <p className="text-sm text-red-600 mt-1">{errors.matricula.message}</p>}
         </div>
+        <div>
+          <Label htmlFor="orientadorId">Orientador</Label>
+          <Controller
+            name="orientadorId"
+            control={control}
+            rules={{ required: "Orientador é obrigatório" }}
+            render={({ field }) => (
+              <Select onValueChange={(value) => field.onChange(Number(value))} value={field.value?.toString() ?? ""}>
+                <SelectTrigger id="orientadorId" ref={field.ref} aria-invalid={errors.orientadorId ? "true" : "false"}>
+                  <SelectValue placeholder="Selecione o orientador..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">Professor Orientador A</SelectItem>
+                  <SelectItem value="2">Professora Orientadora B</SelectItem>
+                  <SelectItem value="3">Professor Orientador C</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          />
+          {errors.orientadorId && <p className="text-sm text-red-600 mt-1">{errors.orientadorId.message}</p>}
+        </div>
       </div>
     </>
   )
@@ -484,6 +516,11 @@ const ReviewSection = () => {
     "1": "Ciência da Computação",
     "2": "Sistemas de Informação",
   }
+  const orientadorNomes = {
+    1: "Professor Orientador A",
+    2: "Professora Orientadora B",
+    3: "Professor Orientador C",
+  }
 
   return (
     <>
@@ -522,6 +559,12 @@ const ReviewSection = () => {
             <div>
               <p className="text-sm text-muted-foreground">Matrícula</p>
               <p className="font-medium">{values.matricula}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Orientador</p>
+              <p className="font-medium">
+                {values.orientadorId ? orientadorNomes[values.orientadorId as keyof typeof orientadorNomes] : "N/A"}
+              </p>
             </div>
           </div>
         </div>
@@ -598,6 +641,7 @@ const DevFillButton = () => {
       cursoId: DEV_SEED_DATA.cursoId || 1,
       semestreLetivo: DEV_SEED_DATA.semestreLetivo?.toString(),
       visible: Boolean(DEV_SEED_DATA.visible),
+      orientadorId: DEV_SEED_DATA.orientadorId,
     }
     reset(formDataForReset as unknown as BancaFormData)
   }
