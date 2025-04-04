@@ -1,8 +1,8 @@
 import { and, eq } from "drizzle-orm"
 import { type Context } from "hono"
+import type { InferResultType } from "../../database"
 import {
   Bancas,
-  type SelectBanca,
   type SelectUser,
   type UserRole,
   Users,
@@ -52,11 +52,27 @@ type SetBancaGradeError = { type: "banca_not_found" } | { type: "database_error"
 
 export const getAllBancasVisible = async (
   c: Context<{ Variables: AppVariables }>
-): Promise<AppResult<SelectBanca[], GetAllBancasError>> => {
+): Promise<
+  AppResult<
+    InferResultType<"Bancas", { curso: true; orientador: true; membros: { with: { usuario: true } } }>[],
+    GetAllBancasError
+  >
+> => {
   const dbInstance = c.get("db")
   try {
-    const allBancas = await dbInstance.select().from(Bancas).where(eq(Bancas.visible, true))
-    return ok(allBancas)
+    const result = await dbInstance.query.Bancas.findMany({
+      where: eq(Bancas.visible, true),
+      with: {
+        orientador: true,
+        curso: true,
+        membros: {
+          with: {
+            usuario: true,
+          },
+        },
+      },
+    })
+    return ok(result)
   } catch (error) {
     console.error("Error fetching all bancas:", error)
     return err({ type: "database_error", error })
@@ -66,17 +82,28 @@ export const getAllBancasVisible = async (
 export const getBancaById = async (
   c: Context<{ Variables: AppVariables }>,
   id: number
-): Promise<AppResult<typeof Bancas.$inferSelect, GetBancaByIdError>> => {
+): Promise<
+  AppResult<InferResultType<"Bancas", { curso: true; membros: { with: { usuario: true } } }>, GetBancaByIdError>
+> => {
   const dbInstance = c.get("db")
   try {
-    const result = await dbInstance.select().from(Bancas).where(eq(Bancas.id, id)).limit(1)
+    const result = await dbInstance.query.Bancas.findFirst({
+      where: and(eq(Bancas.id, id), eq(Bancas.visible, true)),
+      with: {
+        curso: true,
+        membros: {
+          with: {
+            usuario: true,
+          },
+        },
+      },
+    })
 
-    const banca = result[0]
-    if (!banca) {
+    if (!result) {
       return err({ type: "banca_not_found" })
     }
 
-    return ok(banca)
+    return ok(result)
   } catch (error) {
     console.error(`Error fetching banca with ID ${id}:`, error)
     return err({ type: "database_error", error })

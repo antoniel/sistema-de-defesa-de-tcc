@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { useUser } from "@/services/useUser"
 import { useQueryClient } from "@tanstack/react-query"
-import { GraduationCap, LogOut } from "lucide-react"
+import { LogOut } from "lucide-react"
 import React from "react"
 import { Link } from "react-router"
 import { match } from "ts-pattern"
@@ -27,7 +27,7 @@ export function Header(props: HeaderProps) {
       <div className="container flex h-14 items-center justify-between">
         {/* Left Side: Logo and Title */}
         <Link to="/" className="mr-6 flex items-center space-x-2">
-          <GraduationCap className="h-6 w-6" />
+          <img src="/icc-ufba.png" alt="Computação UFBA" className="h-9 w-6" />
           <span className="font-bold sm:inline-block">Sistema de Defesas de TCC</span>
         </Link>
 

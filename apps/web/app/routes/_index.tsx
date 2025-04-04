@@ -13,7 +13,7 @@ import { useUser } from "@/services/useUser"
 import { useQuery } from "@tanstack/react-query"
 import type { SelectBanca } from "@tcc/server"
 import { useState } from "react"
-import { useNavigate } from "react-router"
+import { href, useNavigate } from "react-router"
 import { match } from "ts-pattern"
 
 const useBancasDefesa = () => {
@@ -25,6 +25,7 @@ const useBancasDefesa = () => {
     },
   })
 }
+type BancasDefesa = (ReturnType<typeof useBancasDefesa>["data"] & {})["past"]
 
 export default function Home() {
   const navigate = useNavigate()
@@ -102,7 +103,7 @@ export default function Home() {
 }
 
 interface HomeTableProps {
-  data: Dry<SelectBanca>[]
+  data: BancasDefesa
   searchQuery: string
 }
 
@@ -113,14 +114,17 @@ const columns = [
   { key: "nomeOrientador", header: "Orientador", minWidth: "150px" },
   { key: "siglaCurso", header: "Curso", minWidth: "80px" },
   { key: "local", header: "Virtual", minWidth: "200px" },
-  { key: "actions", header: "Ações", minWidth: "100px" },
 ] as const
 
 function HomeTable(props: HomeTableProps) {
   const navigate = useNavigate()
 
   const goToViewBanca = (bancaId: string | number) => {
-    navigate(`/verbanca?id=${bancaId}`)
+    navigate(href("/banca/:id", { id: String(bancaId) }))
+  }
+
+  const getNomeOrientador = (banca: Dry<SelectBanca>) => {
+    return banca.orientador.nome
   }
 
   const renderCellContent = (banca: Dry<SelectBanca>, columnKey: (typeof columns)[number]["key"]) => {
@@ -130,22 +134,9 @@ function HomeTable(props: HomeTableProps) {
       ))
       .with("tituloTrabalho", () => <span className="whitespace-nowrap">{banca.tituloTrabalho}</span>)
       .with("autor", () => <span className="whitespace-nowrap">{banca.autor}</span>)
-      .with("nomeOrientador", () => <span className="whitespace-nowrap">{banca.ano}</span>)
+      .with("nomeOrientador", () => <span className="whitespace-nowrap">{banca.membros[0].usuario.nome}</span>)
       .with("siglaCurso", () => <span className="whitespace-nowrap">{banca.cursoId}</span>)
       .with("local", () => <span className="whitespace-nowrap">{banca.local}</span>)
-      .with("actions", () => (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation()
-            goToViewBanca(banca.id)
-          }}
-          aria-label={`Ver detalhes da banca ${banca.tituloTrabalho}`}
-        >
-          Ver
-        </Button>
-      ))
       .otherwise(() => null)
   }
 
@@ -165,14 +156,8 @@ function HomeTable(props: HomeTableProps) {
           props.data.map((banca) => (
             <TableRow
               key={banca.id}
-              onDoubleClick={() => goToViewBanca(banca.id)}
+              onClick={() => goToViewBanca(banca.id)}
               className="cursor-pointer hover:bg-muted/50"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  goToViewBanca(banca.id)
-                }
-              }}
             >
               {columns.map((col) => (
                 <TableCell key={`${banca.id}-${col.key}`}>{renderCellContent(banca, col.key)}</TableCell>

@@ -35,6 +35,9 @@ export const Bancas = pgTable("banca", {
   // user_id no dump original parece redundante se temos a relação N:N em usuario_banca
   // Mantendo por ora para refletir o dump, mas pode ser removido.
   // userId: int('user_id').notNull().references(() => usuarios.id), // FK para usuario (Proprietário?)
+  orientadorId: integer("orientador_id")
+    .notNull()
+    .references(() => Users.id),
   cursoId: integer("curso_id")
     .notNull()
     .references(() => cursos.id), // FK para curso (ajustado de text)
@@ -140,6 +143,10 @@ export const cursosRelations = relations(cursos, ({ many }) => ({
 }))
 
 export const bancasRelations = relations(Bancas, ({ one, many }) => ({
+  orientador: one(Users, {
+    fields: [Bancas.orientadorId],
+    references: [Users.id],
+  }),
   curso: one(cursos, {
     fields: [Bancas.cursoId],
     references: [cursos.id],
