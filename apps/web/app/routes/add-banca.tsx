@@ -12,6 +12,7 @@ import { rpcReturn, type RpcType } from "@/lib/utils"
 import apiClient from "@/services/apiClient"
 import { useMutation } from "@tanstack/react-query"
 import type { InsertBanca } from "@tcc/server"
+import { useState } from "react"
 import { Controller, useForm, useFormContext } from "react-hook-form"
 import { useNavigate } from "react-router"
 
@@ -48,8 +49,17 @@ const useAddBancaMutation = () => {
   })
 }
 
+const FORM_STEPS = [
+  { id: 0, name: "Informações Básicas" },
+  { id: 1, name: "Informações do Autor" },
+  { id: 2, name: "Metadados do Trabalho" },
+  { id: 3, name: "Agendamento da Defesa" },
+  { id: 4, name: "Revisão e Confirmação" },
+]
+
 export default function AddBancaPage() {
   const navigate = useNavigate()
+  const [currentStep, setCurrentStep] = useState(0)
 
   const form = useForm<BancaFormData>({
     defaultValues: {
@@ -58,6 +68,7 @@ export default function AddBancaPage() {
       semestreLetivo: undefined,
       cursoId: undefined,
     },
+    mode: "onBlur",
   })
 
   const addBancaMutation = useAddBancaMutation()
@@ -75,30 +86,114 @@ export default function AddBancaPage() {
     addBancaMutation.mutate({ json: submissionData })
   }
 
+  const nextStep = async () => {
+    const fieldsToValidate = getFieldsToValidate(currentStep)
+    const result = await form.trigger(fieldsToValidate as any)
+
+    if (result) {
+      setCurrentStep((prev) => Math.min(prev + 1, FORM_STEPS.length - 1))
+      window.scrollTo(0, 0)
+    }
+  }
+
+  const prevStep = () => {
+    setCurrentStep((prev) => Math.max(prev - 1, 0))
+    window.scrollTo(0, 0)
+  }
+
+  const getFieldsToValidate = (step: number): (keyof BancaFormData)[] => {
+    switch (step) {
+      case 0:
+        return ["tituloTrabalho", "resumo", "abstract"]
+      case 1:
+        return ["autor", "matricula"]
+      case 2:
+        return ["palavrasChave", "turma", "cursoId", "ano"]
+      case 3:
+        return ["dataRealizacao", "hora", "semestreLetivo", "modalidade", "local"]
+      default:
+        return []
+    }
+  }
+
+  const renderFormStep = () => {
+    switch (currentStep) {
+      case 0:
+        return <BasicInfoSection />
+      case 1:
+        return <AuthorInfoSection />
+      case 2:
+        return <WorkMetadataSection />
+      case 3:
+        return <DefenseSchedulingSection />
+      case 4:
+        return <ReviewSection />
+      default:
+        return null
+    }
+  }
+
   return (
     <div className="container mx-auto p-4 md:p-8">
       <Header className="mb-6" />
-      <h1 className="text-2xl font-bold mb-6">Cadastrar Nova Defesa de TCC</h1>
+      <div className="mb-8 flex justify-center">
+        <StepIndicator currentStep={currentStep} steps={FORM_STEPS} />
+      </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-w-3xl mx-auto">
-          <div className="space-y-4">
-            <BasicInfoSection />
-            <AuthorInfoSection />
-            <WorkMetadataSection />
-            <DefenseSchedulingSection />
-          </div>
+          <div className="space-y-4">{renderFormStep()}</div>
           <div className="flex justify-between items-center pt-4">
             {process.env.NODE_ENV === "development" && <DevFillButton />}
             <div className="flex gap-4">
-              <Button type="button" variant="outline" onClick={() => navigate("/")}>
-                Cancelar
-              </Button>
-              <Button type="submit">Salvar Defesa</Button>
+              {currentStep > 0 && (
+                <Button type="button" variant="outline" onClick={prevStep}>
+                  Voltar
+                </Button>
+              )}
+
+              {currentStep < FORM_STEPS.length - 1 && (
+                <Button type="button" onClick={nextStep}>
+                  Próximo
+                </Button>
+              )}
+
+              {currentStep === FORM_STEPS.length - 1 && (
+                <>
+                  <Button type="button" variant="outline" onClick={() => navigate("/")}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit">Salvar Defesa</Button>
+                </>
+              )}
             </div>
           </div>
         </form>
       </Form>
+    </div>
+  )
+}
+
+const StepIndicator = ({ currentStep, steps }: { currentStep: number; steps: typeof FORM_STEPS }) => {
+  return (
+    <div className="flex items-center ">
+      {steps.map((step, index) => (
+        <div key={step.id} className="flex items-center">
+          <div
+            className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+              index <= currentStep ? "bg-primary text-primary-foreground border-primary" : "bg-background border-muted"
+            }`}
+          >
+            {index + 1}
+          </div>
+          {index < steps.length - 1 && (
+            <div
+              className={`h-1 w-full flex-1 ${index < currentStep ? "bg-primary" : "bg-muted"}`}
+              style={{ width: "100px" }}
+            />
+          )}
+        </div>
+      ))}
     </div>
   )
 }
@@ -112,6 +207,7 @@ const BasicInfoSection = () => {
   } = useFormContext<BancaFormData>()
   return (
     <>
+      <h2 className="text-xl font-semibold mb-4">Informações Básicas</h2>
       <div className="flex items-center gap-4">
         <div className="flex-grow">
           <Label htmlFor="tituloTrabalho">Título do Trabalho</Label>
@@ -178,30 +274,33 @@ const AuthorInfoSection = () => {
     formState: { errors },
   } = useFormContext<BancaFormData>()
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div>
-        <Label htmlFor="autor">Autor</Label>
-        <Input
-          id="autor"
-          {...register("autor", { required: isUserTeacher ? "Autor é obrigatório" : false })}
-          placeholder="Nome do Aluno"
-          aria-invalid={errors.autor ? "true" : "false"}
-          disabled={!isUserTeacher}
-        />
-        {errors.autor && <p className="text-sm text-red-600 mt-1">{errors.autor.message}</p>}
+    <>
+      <h2 className="text-xl font-semibold mb-4">Informações do Autor</h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <Label htmlFor="autor">Autor</Label>
+          <Input
+            id="autor"
+            {...register("autor", { required: isUserTeacher ? "Autor é obrigatório" : false })}
+            placeholder="Nome do Aluno"
+            aria-invalid={errors.autor ? "true" : "false"}
+            disabled={!isUserTeacher}
+          />
+          {errors.autor && <p className="text-sm text-red-600 mt-1">{errors.autor.message}</p>}
+        </div>
+        <div>
+          <Label htmlFor="matricula">Matrícula</Label>
+          <Input
+            id="matricula"
+            {...register("matricula", { required: isUserTeacher ? "Matrícula é obrigatória" : false })}
+            placeholder="Matrícula"
+            aria-invalid={errors.matricula ? "true" : "false"}
+            disabled={!isUserTeacher}
+          />
+          {errors.matricula && <p className="text-sm text-red-600 mt-1">{errors.matricula.message}</p>}
+        </div>
       </div>
-      <div>
-        <Label htmlFor="matricula">Matrícula</Label>
-        <Input
-          id="matricula"
-          {...register("matricula", { required: isUserTeacher ? "Matrícula é obrigatória" : false })}
-          placeholder="Matrícula"
-          aria-invalid={errors.matricula ? "true" : "false"}
-          disabled={!isUserTeacher}
-        />
-        {errors.matricula && <p className="text-sm text-red-600 mt-1">{errors.matricula.message}</p>}
-      </div>
-    </div>
+    </>
   )
 }
 
@@ -213,6 +312,7 @@ const WorkMetadataSection = () => {
   } = useFormContext<BancaFormData>()
   return (
     <>
+      <h2 className="text-xl font-semibold mb-4">Metadados do Trabalho</h2>
       <div>
         <Label htmlFor="palavrasChave">Palavras Chave</Label>
         <Input
@@ -288,6 +388,7 @@ const DefenseSchedulingSection = () => {
   const modalidadeValue = watch("modalidade")
   return (
     <>
+      <h2 className="text-xl font-semibold mb-4">Agendamento da Defesa</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
         <div>
           <Label htmlFor="data_realizacao">Data da Defesa</Label>
@@ -372,6 +473,117 @@ const DefenseSchedulingSection = () => {
           {errors.local && <p className="text-sm text-red-600 mt-1">{errors.local.message}</p>}
         </div>
       </div>
+    </>
+  )
+}
+
+const ReviewSection = () => {
+  const { getValues } = useFormContext<BancaFormData>()
+  const values = getValues()
+  const cursoNomes = {
+    "1": "Ciência da Computação",
+    "2": "Sistemas de Informação",
+  }
+
+  return (
+    <>
+      <h2 className="text-xl font-semibold mb-4">Revisão e Confirmação</h2>
+
+      <div className="space-y-6 border rounded-lg p-4">
+        <div>
+          <h3 className="text-lg font-medium border-b pb-2 mb-2">Informações Básicas</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Título do Trabalho</p>
+              <p className="font-medium">{values.tituloTrabalho}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Visibilidade</p>
+              <p className="font-medium">{values.visible ? "Pública" : "Privada"}</p>
+            </div>
+          </div>
+          <div className="mt-2">
+            <p className="text-sm text-muted-foreground">Resumo</p>
+            <p className="text-sm">{values.resumo}</p>
+          </div>
+          <div className="mt-2">
+            <p className="text-sm text-muted-foreground">Abstract</p>
+            <p className="text-sm">{values.abstract}</p>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-lg font-medium border-b pb-2 mb-2">Informações do Autor</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Autor</p>
+              <p className="font-medium">{values.autor}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Matrícula</p>
+              <p className="font-medium">{values.matricula}</p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-lg font-medium border-b pb-2 mb-2">Metadados do Trabalho</h3>
+          <div>
+            <p className="text-sm text-muted-foreground">Palavras-chave</p>
+            <p className="font-medium">{values.palavrasChave}</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+            <div>
+              <p className="text-sm text-muted-foreground">Turma</p>
+              <p className="font-medium">{values.turma}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Curso</p>
+              <p className="font-medium">{cursoNomes[String(values.cursoId) as keyof typeof cursoNomes]}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Ano</p>
+              <p className="font-medium">{values.ano}</p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-lg font-medium border-b pb-2 mb-2">Agendamento da Defesa</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Data</p>
+              <p className="font-medium">
+                {values.dataRealizacao instanceof Date
+                  ? values.dataRealizacao.toLocaleDateString("pt-BR")
+                  : new Date(values.dataRealizacao as any).toLocaleDateString("pt-BR")}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Hora</p>
+              <p className="font-medium">{values.hora}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Semestre Letivo</p>
+              <p className="font-medium">{values.semestreLetivo}º Semestre</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+            <div>
+              <p className="text-sm text-muted-foreground">Modalidade</p>
+              <p className="font-medium">{values.modalidade === "local" ? "Presencial" : "Remoto"}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">{values.modalidade === "local" ? "Local" : "Link"}</p>
+              <p className="font-medium">{values.local}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p className="text-center text-muted-foreground mt-4">
+        Verifique as informações acima e clique em "Salvar Defesa" para confirmar.
+      </p>
     </>
   )
 }
