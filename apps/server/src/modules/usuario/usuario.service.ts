@@ -1,5 +1,5 @@
 import * as bcrypt from "bcryptjs"
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { type Context } from "hono"
 import { z } from "zod"
 import { Bancas, type SelectUser, Users } from "../../database/schema"
@@ -30,6 +30,25 @@ export const getAllUsers = async (
     return ok(allUsers)
   } catch (error) {
     console.error("Error fetching all users:", error)
+    return err({ type: "database_error", error })
+  }
+}
+
+type GetTeachersError = { type: "database_error"; error: unknown }
+export const getTeachers = async (
+  c: Context<{ Variables: AppVariables }>
+): Promise<AppResult<SelectUser[], GetTeachersError>> => {
+  const dbInstance = c.get("db")
+  try {
+    const teachers = await dbInstance
+      .select()
+      .from(Users)
+      .where(and(eq(Users.role, "TEACHER"), eq(Users.status, "ACTIVE")))
+      .orderBy(Users.nome)
+
+    return ok(teachers)
+  } catch (error) {
+    console.error("Error fetching teachers:", error)
     return err({ type: "database_error", error })
   }
 }

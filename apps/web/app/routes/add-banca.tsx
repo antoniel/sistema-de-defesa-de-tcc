@@ -12,11 +12,12 @@ import { useToast } from "@/hooks/use-toast"
 import { rpcReturn, type RpcType } from "@/lib/utils"
 import apiClient from "@/services/apiClient"
 import { useUser } from "@/services/useUser"
-import { useMutation } from "@tanstack/react-query"
-import type { InsertBanca } from "@tcc/server"
+import { useMutation, useQuery } from "@tanstack/react-query"
+import type { InsertBanca, SelectUser } from "@tcc/server"
 import React, { useState } from "react"
 import { Controller, useForm, useFormContext } from "react-hook-form"
 import { href, Navigate, useNavigate } from "react-router"
+import { match } from "ts-pattern"
 
 type query = RpcType<typeof apiClient.banca.$post>
 
@@ -47,6 +48,17 @@ const DEV_SEED_DATA: Partial<BancaFormData> = {
   orientadorId: 1,
 }
 
+// Hook para buscar professores da API
+const useTeachers = () => {
+  return useQuery({
+    queryKey: ["teachers"],
+    queryFn: async () => {
+      const response = await apiClient.usuario.teachers.$get()
+      return rpcReturn(response) as unknown as SelectUser[]
+    },
+  })
+}
+
 const useAddBancaMutation = () => {
   return useMutation({
     mutationFn: async (data: query["input"]) => rpcReturn(await apiClient.banca.$post(data)),
@@ -68,7 +80,7 @@ type SubmissionPayload = query["input"]["json"] & {
 export default function AddBancaPage() {
   const { data: user, isLoading } = useUser()
   const navigate = useNavigate()
-  const [currentStep, setCurrentStep] = useState(0)
+  const [currentStep, setCurrentStep] = useState<0 | 1 | 2 | 3 | 4 | (number & {})>(0)
   const { toast } = useToast()
 
   const form = useForm<BancaFormData>({
@@ -185,7 +197,18 @@ export default function AddBancaPage() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-w-3xl mx-auto">
-          <div className="space-y-4">{renderFormStep()}</div>
+          <div className="space-y-4">
+            {
+              // renderFormStep()
+              match(currentStep)
+                .with(0, () => <BasicInfoSection />)
+                .with(1, () => <AuthorInfoSection />)
+                .with(2, () => <WorkMetadataSection />)
+                .with(3, () => <DefenseSchedulingSection />)
+                .with(4, () => <ReviewSection />)
+                .otherwise(() => null)
+            }
+          </div>
           <div className="flex justify-between items-center pt-4">
             {process.env.NODE_ENV === "development" && <DevFillButton />}
             <div className="flex gap-4">
@@ -334,6 +357,10 @@ const AuthorInfoSection = () => {
     control,
     formState: { errors },
   } = useFormContext<BancaFormData>()
+
+  // Buscar a lista de professores do servidor
+  const { data: teachers, isLoading: isLoadingTeachers, error: teachersError } = useTeachers()
+
   return (
     <>
       <h2 className="text-xl font-semibold mb-4">Informações do Autor</h2>
@@ -367,14 +394,30 @@ const AuthorInfoSection = () => {
             control={control}
             rules={{ required: "Orientador é obrigatório" }}
             render={({ field }) => (
-              <Select onValueChange={(value) => field.onChange(Number(value))} value={field.value?.toString() ?? ""}>
-                <SelectTrigger id="orientadorId" ref={field.ref} aria-invalid={errors.orientadorId ? "true" : "false"}>
+              <Select onValueChange={field.onChange}>
+                <SelectTrigger>
                   <SelectValue placeholder="Selecione o orientador..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1">Professor Orientador A</SelectItem>
-                  <SelectItem value="2">Professora Orientadora B</SelectItem>
-                  <SelectItem value="3">Professor Orientador C</SelectItem>
+                  {isLoadingTeachers ? (
+                    <SelectItem value="0" disabled>
+                      Carregando professores...
+                    </SelectItem>
+                  ) : teachersError ? (
+                    <SelectItem value="0" disabled>
+                      Erro ao carregar professores
+                    </SelectItem>
+                  ) : teachers && teachers.length > 0 ? (
+                    teachers.map((teacher) => (
+                      <SelectItem key={teacher.id} value={teacher.id.toString()}>
+                        {teacher.nome}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="0" disabled>
+                      Nenhum professor encontrado
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             )}
@@ -566,11 +609,13 @@ const ReviewSection = () => {
     "1": "Ciência da Computação",
     "2": "Sistemas de Informação",
   }
-  const orientadorNomes = {
-    1: "Professor Orientador A",
-    2: "Professora Orientadora B",
-    3: "Professor Orientador C",
-  }
+
+  // Buscar a lista de professores para mostrar o nome do orientador na revisão
+  const { data: teachers } = useTeachers()
+
+  // Encontrar o nome do orientador a partir do ID
+  const orientador = teachers?.find((teacher) => Number(teacher.id) === Number(values.orientadorId))
+  const orientadorNome = orientador ? `${orientador.nome}` : "Não selecionado"
 
   return (
     <>
@@ -599,7 +644,7 @@ const ReviewSection = () => {
           </div>
         </div>
 
-        <div>
+        <div className="space-y-4">
           <h3 className="text-lg font-medium border-b pb-2 mb-2">Informações do Autor</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -610,12 +655,11 @@ const ReviewSection = () => {
               <p className="text-sm text-muted-foreground">Matrícula</p>
               <p className="font-medium">{values.matricula}</p>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Orientador</p>
-              <p className="font-medium">
-                {values.orientadorId ? orientadorNomes[values.orientadorId as keyof typeof orientadorNomes] : "N/A"}
-              </p>
-            </div>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Orientador</p>
+            <p className="font-medium">{orientadorNome}</p>
+            <p className="text-sm text-muted-foreground">{`(${orientador?.academicTitle})`}</p>
           </div>
         </div>
 
