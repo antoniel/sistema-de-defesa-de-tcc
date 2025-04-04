@@ -16,7 +16,7 @@ export const Users = pgTable("usuario", {
   status: text("status").notNull().default("active"), // Ex: active, inactive
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
-  role: text("role").notNull(), // Papel oferecido (orientador, avaliador)
+  role: userRole("role").notNull(),
 })
 export type InsertUser = typeof Users.$inferInsert
 export type SelectUser = typeof Users.$inferSelect
