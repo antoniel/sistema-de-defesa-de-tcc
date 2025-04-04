@@ -25,7 +25,7 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
     return c.json(newBanca, 201)
   })
   .get("/", async (c) => {
-    const [error, bancas] = await service.getAllBancas(c)
+    const [error, bancas] = await service.getAllBancasVisible(c)
 
     if (error) {
       throw match(error)
@@ -33,7 +33,10 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
         .exhaustive()
     }
 
-    return c.json(bancas)
+    return c.json({
+      past: bancas.filter((banca) => banca.dataRealizacao < new Date()),
+      upcoming: bancas.filter((banca) => banca.dataRealizacao > new Date()),
+    })
   })
   .get("/:id", async (c) => {
     const id = Number(c.req.param("id"))

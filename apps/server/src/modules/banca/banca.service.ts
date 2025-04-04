@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm"
 import { type Context } from "hono"
 import {
   Bancas,
+  type SelectBanca,
   type SelectUser,
   type UserRole,
   Users,
@@ -49,12 +50,12 @@ type RemoveUserFromBancaError = { type: "relation_not_found" } | { type: "databa
 
 type SetBancaGradeError = { type: "banca_not_found" } | { type: "database_error"; error: unknown }
 
-export const getAllBancas = async (
+export const getAllBancasVisible = async (
   c: Context<{ Variables: AppVariables }>
-): Promise<AppResult<(typeof Bancas.$inferSelect)[], GetAllBancasError>> => {
+): Promise<AppResult<SelectBanca[], GetAllBancasError>> => {
   const dbInstance = c.get("db")
   try {
-    const allBancas = await dbInstance.select().from(Bancas)
+    const allBancas = await dbInstance.select().from(Bancas).where(eq(Bancas.visible, true))
     return ok(allBancas)
   } catch (error) {
     console.error("Error fetching all bancas:", error)

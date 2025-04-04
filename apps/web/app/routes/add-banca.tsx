@@ -643,7 +643,7 @@ const ReviewSection = () => {
             <p className="text-sm">{values.abstract}</p>
           </div>
         </div>
-
+        K
         <div className="space-y-4">
           <h3 className="text-lg font-medium border-b pb-2 mb-2">Informações do Autor</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -662,7 +662,6 @@ const ReviewSection = () => {
             <p className="text-sm text-muted-foreground">{`(${orientador?.academicTitle})`}</p>
           </div>
         </div>
-
         <div>
           <h3 className="text-lg font-medium border-b pb-2 mb-2">Metadados do Trabalho</h3>
           <div>
@@ -684,7 +683,6 @@ const ReviewSection = () => {
             </div>
           </div>
         </div>
-
         <div>
           <h3 className="text-lg font-medium border-b pb-2 mb-2">Agendamento da Defesa</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
