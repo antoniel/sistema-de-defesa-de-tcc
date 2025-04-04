@@ -148,7 +148,7 @@ export default function AddBancaPage() {
     <div className="container mx-auto p-4 md:p-8">
       <Header className="mb-6" />
       <div className="mb-8 flex justify-center">
-        <StepIndicator currentStep={currentStep} steps={FORM_STEPS} />
+        <StepIndicator currentStep={currentStep} steps={FORM_STEPS} setCurrentStep={setCurrentStep} />
       </div>
 
       <Form {...form}>
@@ -185,18 +185,28 @@ export default function AddBancaPage() {
   )
 }
 
-const StepIndicator = ({ currentStep, steps }: { currentStep: number; steps: typeof FORM_STEPS }) => {
+const StepIndicator = ({
+  currentStep,
+  steps,
+  setCurrentStep,
+}: {
+  currentStep: number
+  steps: typeof FORM_STEPS
+  setCurrentStep: (step: number) => void
+}) => {
   return (
     <div className="flex items-center ">
       {steps.map((step, index) => (
         <div key={step.id} className="flex items-center">
-          <div
+          <button
+            type="button"
+            onClick={() => setCurrentStep(index)}
             className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
               index <= currentStep ? "bg-primary text-primary-foreground border-primary" : "bg-background border-muted"
             }`}
           >
             {index + 1}
-          </div>
+          </button>
           {index < steps.length - 1 && (
             <div
               className={`h-1 w-full flex-1 ${index < currentStep ? "bg-primary" : "bg-muted"}`}
