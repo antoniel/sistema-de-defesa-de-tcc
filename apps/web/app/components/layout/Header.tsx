@@ -17,9 +17,6 @@ interface HeaderProps {
 }
 
 export function Header(props: HeaderProps) {
-  const queryClient = useQueryClient()
-  const { data: user, isLoading, isError } = useUser()
-
   return (
     <header
       className={cn(

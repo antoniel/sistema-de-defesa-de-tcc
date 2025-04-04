@@ -11,11 +11,12 @@ import useIsTeacher from "@/hooks/use-role"
 import { useToast } from "@/hooks/use-toast"
 import { rpcReturn, type RpcType } from "@/lib/utils"
 import apiClient from "@/services/apiClient"
+import { useUser } from "@/services/useUser"
 import { useMutation } from "@tanstack/react-query"
 import type { InsertBanca } from "@tcc/server"
-import { useState } from "react"
+import React, { useState } from "react"
 import { Controller, useForm, useFormContext } from "react-hook-form"
-import { useNavigate } from "react-router"
+import { href, Navigate, useNavigate } from "react-router"
 
 type query = RpcType<typeof apiClient.banca.$post>
 
@@ -65,6 +66,7 @@ type SubmissionPayload = query["input"]["json"] & {
 }
 
 export default function AddBancaPage() {
+  const { data: user, isLoading } = useUser()
   const navigate = useNavigate()
   const [currentStep, setCurrentStep] = useState(0)
   const { toast } = useToast()
@@ -74,10 +76,19 @@ export default function AddBancaPage() {
       visible: false,
       modalidade: "local",
       semestreLetivo: undefined,
+      autor: user?.nome,
+      matricula: user?.matricula,
       cursoId: undefined,
     },
     mode: "onBlur",
   })
+
+  React.useEffect(() => {
+    if (user) {
+      form.setValue("autor", user.nome)
+      form.setValue("matricula", user.matricula)
+    }
+  }, [user])
 
   const addBancaMutation = useAddBancaMutation()
 
@@ -157,6 +168,14 @@ export default function AddBancaPage() {
     }
   }
 
+  if (isLoading) {
+    return <AddBancaSkeleton />
+  }
+
+  if (!user) {
+    return <Navigate to={href("/")} />
+  }
+
   return (
     <div className="container mx-auto p-4 md:p-8">
       <Header className="mb-6" />
@@ -194,6 +213,14 @@ export default function AddBancaPage() {
           </div>
         </form>
       </Form>
+    </div>
+  )
+}
+
+function AddBancaSkeleton() {
+  return (
+    <div className="container mx-auto p-4 md:p-8">
+      <Header className="mb-6" />
     </div>
   )
 }

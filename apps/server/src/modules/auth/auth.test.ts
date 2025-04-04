@@ -3,9 +3,9 @@ import { eq } from "drizzle-orm"
 import { testClient } from "hono/testing"
 import { beforeEach, describe, expect, it } from "vitest"
 import { app } from "../.."
-import { UserRole, Users } from "../../database/schema"
+import { type UserRole, Users } from "../../database/schema"
 import { fakeDeps, getFakeDb } from "../../tests/utils"
-import { RegisterUserInput } from "./auth.schema"
+import { type RegisterUserInput } from "./auth.schema"
 
 const TEST_USER = {
   username: "testuser",
@@ -15,6 +15,7 @@ const TEST_USER = {
   nome: "Test User",
   school: "Test School",
   academicTitle: "PhD",
+  matricula: "123",
   role: "TEACHER" as UserRole,
 }
 
@@ -27,6 +28,7 @@ describe("Auth Routes", async () => {
     await db.insert(Users).values({
       status: "ACTIVE",
       email: TEST_USER.email,
+      matricula: TEST_USER.matricula,
       passwordHash: TEST_USER.passwordHash,
       nome: TEST_USER.nome,
       school: TEST_USER.school,
@@ -105,13 +107,12 @@ describe("Auth Register Routes", async () => {
   })
 
   const newUser: RegisterUserInput = {
-    status: "ACTIVE",
     email: "newuser@example.com",
     password: "NewPassword123!",
     nome: "New User",
     school: "New School",
     academicTitle: "MSc",
-    lattesUrl: "http://lattes.cnpq.br/123456",
+    matricula: "123",
   }
 
   it("should register a new user with valid data", async () => {
@@ -132,21 +133,6 @@ describe("Auth Register Routes", async () => {
     expect(dbUser.passwordHash).not.toBe(newUser.password)
     const isPasswordCorrect = await bcrypt.compare(newUser.password, dbUser.passwordHash ?? "")
     expect(isPasswordCorrect).toBe(true)
-    expect(dbUser.lattesUrl).toBe(newUser.lattesUrl)
-  })
-
-  it("should register a user without optional lattesUrl", async () => {
-    const { lattesUrl, ...userWithoutLattes } = newUser
-    const response = await client.auth.register.$post({
-      json: userWithoutLattes,
-    })
-
-    expect(response.status).toBe(201)
-    const data = await response.json()
-    expect(data).toHaveProperty("userId")
-
-    const [dbUser] = await db.select().from(Users).where(eq(Users.id, data.userId)).limit(1)
-    expect(dbUser.lattesUrl).toBeNull()
   })
 
   it("should reject registration with duplicate email", async () => {

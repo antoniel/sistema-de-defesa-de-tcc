@@ -10,6 +10,7 @@ export const Users = pgTable("usuario", {
   email: text("email").notNull().unique(),
   nome: text("nome").notNull(),
   school: text("school").notNull(), // Ex: Instituto de Computação
+  matricula: text("matricula").notNull(),
   academicTitle: text("academic_title").notNull(), // Ex: Doutorado
   createdAt: timestamp("created_at").notNull(),
   status: userStatus("status").notNull(),
