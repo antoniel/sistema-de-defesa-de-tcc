@@ -19,6 +19,7 @@ export function RegisterForm(p: { onSuccess?: () => void }) {
       school: __DEV__ ? "Universidade Federal da Bahia" : "Universidade Federal da Bahia",
       academicTitle: __DEV__ ? "Doutor" : "",
       password: __DEV__ ? "password" : "",
+      matricula: __DEV__ ? "123456789" : "",
     },
   })
   const {
@@ -36,6 +37,7 @@ export function RegisterForm(p: { onSuccess?: () => void }) {
           nome: data.nome,
           school: data.school,
           academicTitle: data.academicTitle,
+          matricula: data.matricula,
         },
       },
       {
@@ -101,6 +103,17 @@ export function RegisterForm(p: { onSuccess?: () => void }) {
             {...register("school", { required: "Universidade é obrigatória" })}
           />
           {errors.school && <p className="text-sm text-destructive mt-1">{errors.school.message}</p>}
+        </div>
+
+        <div>
+          <Label htmlFor="register-matricula">Matrícula</Label>
+          <Input
+            id="register-matricula"
+            placeholder="Número de matrícula"
+            disabled={isPending}
+            {...register("matricula", { required: "Matrícula é obrigatória" })}
+          />
+          {errors.matricula && <p className="text-sm text-destructive mt-1">{errors.matricula.message}</p>}
         </div>
 
         <div>

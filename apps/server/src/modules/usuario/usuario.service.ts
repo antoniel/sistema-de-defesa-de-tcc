@@ -76,6 +76,7 @@ export const createUser = async (
         nome: userData.nome.trim(),
         academicTitle: userData.academicTitle.trim(),
         email: userData.email.trim(),
+        matricula: userData.matricula.trim(),
         passwordHash: passwordHash,
         role: userData.role,
         status: "ACTIVE",

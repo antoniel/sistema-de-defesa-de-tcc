@@ -360,9 +360,6 @@ export const registerUserService = async (
       return err({ type: "hashing_error" })
     }
 
-    // Generate authKey
-    const authKey = crypto.randomBytes(32).toString("hex")
-
     // Insert new user
     const now = new Date()
     const newUserResult = await dbInstance
@@ -373,6 +370,7 @@ export const registerUserService = async (
         nome: nome,
         school: school,
         academicTitle: academicTitle,
+        matricula: userData.matricula,
         status: "ACTIVE", // Default status
         createdAt: now,
         updatedAt: now,
