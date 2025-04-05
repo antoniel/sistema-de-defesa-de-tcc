@@ -1,10 +1,18 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
+import { removeAuthToken } from "@/services/authService"
 import { useUser } from "@/services/useUser"
 import { useQueryClient } from "@tanstack/react-query"
-import { LogOut } from "lucide-react"
+import { ChevronDown, LogOut, User } from "lucide-react"
 import React from "react"
 import { Link } from "react-router"
 import { match } from "ts-pattern"
@@ -41,6 +49,7 @@ function RightSideButtons() {
   const queryClient = useQueryClient()
   const { data: user, isLoading, isError } = useUser()
   const handleLogout = () => {
+    removeAuthToken()
     useUser.removeQueries(queryClient)
   }
   if (isLoading) {
@@ -54,21 +63,36 @@ function RightSideButtons() {
   }
   return (
     <div className="ml-auto flex items-center gap-2">
-      <div className="flex items-center space-x-2">
-        <span className="font-medium">Olá, {user.nome || "Usuário"}</span>
-        {user.role && (
-          <Badge variant="outline">
-            {match(user.role)
-              .with("TEACHER", () => "Professor")
-              .with("STUDENT", () => "Aluno")
-              .with("ADMIN", () => "Administrador")
-              .exhaustive()}
-          </Badge>
-        )}
-      </div>
-      <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
-        <LogOut className="h-5 w-5" />
-      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="flex items-center gap-2 px-2">
+            <span className="font-medium">Olá, {user.nome || "Usuário"}</span>
+            {user.role && (
+              <Badge variant="outline">
+                {match(user.role)
+                  .with("TEACHER", () => "Professor")
+                  .with("STUDENT", () => "Aluno")
+                  .with("ADMIN", () => "Administrador")
+                  .exhaustive()}
+              </Badge>
+            )}
+            <ChevronDown className="h-4 w-4 opacity-50" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem asChild>
+            <Link to="/profile" className="flex w-full items-center">
+              <User className="mr-2 h-4 w-4" />
+              Meu Perfil
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+            <LogOut className="mr-2 h-4 w-4" />
+            Sair
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   )
 }

@@ -2,6 +2,7 @@
 .vscode
 .cursor
 tsconfig.tsbuildinfo
+data/
 
 # Dependencies
 node_modules

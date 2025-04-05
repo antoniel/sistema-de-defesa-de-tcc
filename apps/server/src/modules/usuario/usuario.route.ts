@@ -10,56 +10,68 @@ import * as service from "./usuario.service"
 
 export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
   .get("/me", async (c) => {
-    const [error, user] = await service.getUserById(c, Number(c.get("jwtPayload").sub))
-    if (error) {
-      throw match(error)
+    const result = await service.getUserById(c, Number(c.get("jwtPayload").sub))
+    if (!result.ok) {
+      throw match(result.error)
         .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar usuário"))
         .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))
         .exhaustive()
     }
-    return c.json(user)
+    return c.json(result.data)
   })
   .get("/", checkRole(["ADMIN"]), async (c) => {
-    const [error, users] = await service.getAllUsers(c)
-    if (error) {
-      throw match(error)
+    const result = await service.getAllUsers(c)
+    if (!result.ok) {
+      throw match(result.error)
         .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar usuários"))
         .exhaustive()
     }
-    return c.json(users)
+    return c.json(result.data)
   })
   .get("/teachers", async (c) => {
-    const [error, teachers] = await service.getTeachers(c)
-    if (error) {
-      throw match(error)
+    const result = await service.getTeachers(c)
+    if (!result.ok) {
+      throw match(result.error)
         .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar professores"))
         .exhaustive()
     }
-    return c.json(teachers)
+    return c.json(result.data)
   })
   .post("/", checkRole(["ADMIN", "TEACHER"]), zValidator("json", schema.createUserSchema), async (c) => {
     const validatedUserData = c.req.valid("json")
-    const [error, newUser] = await service.createUser(c, validatedUserData)
-    if (error) {
-      throw match(error)
+    const result = await service.createUser(c, validatedUserData)
+    if (!result.ok) {
+      throw match(result.error)
         .with({ type: "database_error" }, () => new AppError(500, "Erro ao criar usuário"))
         .with({ type: "duplicate_email" }, () => new AppError(400, "Email já cadastrado"))
         .with({ type: "duplicate_username" }, () => new AppError(400, "Nome de usuário já cadastrado"))
         .with({ type: "hashing_error" }, () => new AppError(500, "Erro ao criar usuário"))
         .exhaustive()
     }
-    return c.json(newUser, 201)
+    return c.json(result.data, 201)
   })
   .get("/:id", zValidator("param", schema.idParamSchema.shape.param), async (c) => {
     const { id } = c.req.valid("param")
-    const [error, user] = await service.getUserById(c, id)
-    if (error) {
-      throw match(error)
+    const result = await service.getUserById(c, id)
+    if (!result.ok) {
+      throw match(result.error)
         .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar usuário"))
         .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))
         .exhaustive()
     }
-    return c.json(user)
+    return c.json(result.data)
+  })
+  .put("/me", zValidator("json", schema.updateUserSchema.shape.body.omit({ role: true })), async (c) => {
+    const validatedUpdateData = c.req.valid("json")
+    const result = await service.updateUser(c, Number(c.get("jwtPayload").sub), validatedUpdateData)
+    if (!result.ok) {
+      throw match(result.error)
+        .with({ type: "database_error" }, () => new AppError(500, "Erro ao atualizar usuário"))
+        .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))
+        .with({ type: "duplicate_username" }, () => new AppError(400, "Nome de usuário já cadastrado"))
+        .exhaustive()
+    }
+    return c.json(result.data)
   })
   .put(
     "/:id",
@@ -69,22 +81,22 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
     async (c) => {
       const { id } = c.req.valid("param")
       const validatedUpdateData = c.req.valid("json")
-      const [error, updatedUser] = await service.updateUser(c, id, validatedUpdateData)
-      if (error) {
-        throw match(error)
+      const result = await service.updateUser(c, id, validatedUpdateData)
+      if (!result.ok) {
+        throw match(result.error)
           .with({ type: "database_error" }, () => new AppError(500, "Erro ao atualizar usuário"))
           .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))
           .with({ type: "duplicate_username" }, () => new AppError(400, "Nome de usuário já cadastrado"))
           .exhaustive()
       }
-      return c.json(updatedUser)
+      return c.json(result.data)
     }
   )
   .delete("/:id", checkRole(["ADMIN"]), zValidator("param", schema.idParamSchema.shape.param), async (c) => {
     const { id } = c.req.valid("param")
-    const [error] = await service.deleteUser(c, id)
-    if (error) {
-      throw match(error)
+    const result = await service.deleteUser(c, id)
+    if (!result.ok) {
+      throw match(result.error)
         .with({ type: "database_error" }, () => new AppError(500, "Erro ao deletar usuário"))
         .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))
         .with({ type: "user_referenced_elsewhere" }, () => new AppError(400, "Usuário referenciado em outro lugar"))
@@ -94,12 +106,12 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
   })
   .get("/:id/bancas", zValidator("param", schema.idParamSchema.shape.param), async (c) => {
     const { id } = c.req.valid("param")
-    const [error, bancas] = await service.getUserBancas(c, id)
-    if (error) {
-      throw match(error)
+    const result = await service.getUserBancas(c, id)
+    if (!result.ok) {
+      throw match(result.error)
         .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar bancas"))
         .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))
         .exhaustive()
     }
-    return c.json(bancas)
+    return c.json(result.data)
   })

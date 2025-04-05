@@ -1,9 +1,9 @@
-export type AppResult<TData, TError> = readonly [never, TData] | readonly [TError, never]
+export type AppResult<TData, TError> = { ok: true; data: TData } | { ok: false; error: TError }
 export function ok<TData, TError>(data: TData): AppResult<TData, TError> {
-  return [undefined as never, data] as const
+  return { ok: true, data }
 }
 export function err<TData, TError>(error: TError): AppResult<TData, TError> {
-  return [error, undefined as never] as const
+  return { ok: false, error }
 }
 export function panic<TError extends { message: string }>(error: TError): void {
   console.error(error.message)

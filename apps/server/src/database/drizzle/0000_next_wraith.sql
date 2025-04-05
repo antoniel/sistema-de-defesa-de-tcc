@@ -1,12 +1,12 @@
-CREATE TYPE "public"."gender" AS ENUM('male', 'female');--> statement-breakpoint
 CREATE TYPE "public"."modalidade" AS ENUM('remoto', 'local');--> statement-breakpoint
 CREATE TYPE "public"."user_role" AS ENUM('STUDENT', 'TEACHER', 'ADMIN');--> statement-breakpoint
+CREATE TYPE "public"."user_status" AS ENUM('ACTIVE', 'INACTIVE');--> statement-breakpoint
 CREATE TABLE "banca" (
 	"id" serial PRIMARY KEY NOT NULL,
+	"orientador_id" integer NOT NULL,
 	"curso_id" integer NOT NULL,
 	"autor" text NOT NULL,
 	"matricula" text,
-	"gender" "gender",
 	"turma" text NOT NULL,
 	"ano" text NOT NULL,
 	"semestre_letivo" text,
@@ -23,20 +23,16 @@ CREATE TABLE "banca" (
 --> statement-breakpoint
 CREATE TABLE "usuario" (
 	"id" serial PRIMARY KEY NOT NULL,
-	"username" text NOT NULL,
 	"password_has" text NOT NULL,
-	"auth_key" text NOT NULL,
 	"email" text NOT NULL,
 	"nome" text NOT NULL,
 	"school" text NOT NULL,
+	"matricula" text NOT NULL,
 	"academic_title" text NOT NULL,
-	"lattesUrl" text,
-	"status" text DEFAULT 'active' NOT NULL,
 	"created_at" timestamp NOT NULL,
+	"status" "user_status" NOT NULL,
 	"updated_at" timestamp NOT NULL,
-	"role" text NOT NULL,
-	CONSTRAINT "usuario_username_unique" UNIQUE("username"),
-	CONSTRAINT "usuario_auth_key_unique" UNIQUE("auth_key"),
+	"role" "user_role" NOT NULL,
 	CONSTRAINT "usuario_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
@@ -97,6 +93,7 @@ CREATE TABLE "usuario_banca" (
 	"nota" text
 );
 --> statement-breakpoint
+ALTER TABLE "banca" ADD CONSTRAINT "banca_orientador_id_usuario_id_fk" FOREIGN KEY ("orientador_id") REFERENCES "public"."usuario"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "banca" ADD CONSTRAINT "banca_curso_id_cursos_id_fk" FOREIGN KEY ("curso_id") REFERENCES "public"."cursos"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "banca_documento" ADD CONSTRAINT "banca_documento_id_banca_banca_id_fk" FOREIGN KEY ("id_banca") REFERENCES "public"."banca"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "banca_documento" ADD CONSTRAINT "banca_documento_id_documento_documento_id_fk" FOREIGN KEY ("id_documento") REFERENCES "public"."documento"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint

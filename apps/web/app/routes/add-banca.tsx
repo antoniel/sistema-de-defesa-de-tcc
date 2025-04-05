@@ -87,7 +87,9 @@ export default function AddBancaPage() {
     defaultValues: {
       visible: false,
       modalidade: "local",
-      semestreLetivo: undefined,
+      ano: new Date().getFullYear().toString(),
+      // If past the 6 month then 2 otherwise 1
+      semestreLetivo: new Date().getMonth() > 6 ? "2" : "1",
       autor: user?.nome,
       matricula: user?.matricula,
       cursoId: undefined,
@@ -520,7 +522,16 @@ const DefenseSchedulingSection = () => {
           <Input
             id="dataRealizacao"
             type="date"
-            {...register("dataRealizacao", { required: "Data é obrigatória" })}
+            {...register("dataRealizacao", {
+              required: "Data é obrigatória",
+              validate: (value) => {
+                if (value) {
+                  const date = new Date(value)
+                  return date < new Date() ? "Data não pode ser no passado" : undefined
+                }
+                return "Data é obrigatória"
+              },
+            })}
             aria-invalid={errors.dataRealizacao ? "true" : "false"}
           />
           {errors.dataRealizacao && <p className="text-sm text-red-600 mt-1">{errors.dataRealizacao.message}</p>}
@@ -643,7 +654,6 @@ const ReviewSection = () => {
             <p className="text-sm">{values.abstract}</p>
           </div>
         </div>
-        K
         <div className="space-y-4">
           <h3 className="text-lg font-medium border-b pb-2 mb-2">Informações do Autor</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -1,5 +1,5 @@
 {
-  "id": "baf68600-b3df-44f6-a45d-ca0c176c762a",
+  "id": "f9cbcec6-cd3a-411e-9d6c-d69046ab6aa8",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -12,6 +12,12 @@
           "name": "id",
           "type": "serial",
           "primaryKey": true,
+          "notNull": true
+        },
+        "orientador_id": {
+          "name": "orientador_id",
+          "type": "integer",
+          "primaryKey": false,
           "notNull": true
         },
         "curso_id": {
@@ -29,13 +35,6 @@
         "matricula": {
           "name": "matricula",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "gender": {
-          "name": "gender",
-          "type": "gender",
-          "typeSchema": "public",
           "primaryKey": false,
           "notNull": false
         },
@@ -116,6 +115,19 @@
       },
       "indexes": {},
       "foreignKeys": {
+        "banca_orientador_id_usuario_id_fk": {
+          "name": "banca_orientador_id_usuario_id_fk",
+          "tableFrom": "banca",
+          "tableTo": "usuario",
+          "columnsFrom": [
+            "orientador_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
         "banca_curso_id_cursos_id_fk": {
           "name": "banca_curso_id_cursos_id_fk",
           "tableFrom": "banca",
@@ -146,20 +158,8 @@
           "primaryKey": true,
           "notNull": true
         },
-        "username": {
-          "name": "username",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "password_has": {
           "name": "password_has",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "auth_key": {
-          "name": "auth_key",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -182,28 +182,28 @@
           "primaryKey": false,
           "notNull": true
         },
+        "matricula": {
+          "name": "matricula",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "academic_title": {
           "name": "academic_title",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "lattesUrl": {
-          "name": "lattesUrl",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'active'"
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "user_status",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
@@ -215,7 +215,8 @@
         },
         "role": {
           "name": "role",
-          "type": "text",
+          "type": "user_role",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         }
@@ -224,20 +225,6 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "usuario_username_unique": {
-          "name": "usuario_username_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "username"
-          ]
-        },
-        "usuario_auth_key_unique": {
-          "name": "usuario_auth_key_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "auth_key"
-          ]
-        },
         "usuario_email_unique": {
           "name": "usuario_email_unique",
           "nullsNotDistinct": false,
@@ -677,14 +664,6 @@
     }
   },
   "enums": {
-    "public.gender": {
-      "name": "gender",
-      "schema": "public",
-      "values": [
-        "male",
-        "female"
-      ]
-    },
     "public.modalidade": {
       "name": "modalidade",
       "schema": "public",
@@ -700,6 +679,14 @@
         "STUDENT",
         "TEACHER",
         "ADMIN"
+      ]
+    },
+    "public.user_status": {
+      "name": "user_status",
+      "schema": "public",
+      "values": [
+        "ACTIVE",
+        "INACTIVE"
       ]
     }
   },

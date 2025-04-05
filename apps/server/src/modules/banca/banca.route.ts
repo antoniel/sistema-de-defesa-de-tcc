@@ -12,26 +12,28 @@ import * as service from "./banca.service"
 export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
   .post("/", zValidator("json", schema.createBancaSchema), async (c) => {
     const validatedBancaData = c.req.valid("json")
-    const [error, newBanca] = await service.createBanca(c, validatedBancaData)
+    const result = await service.createBanca(c, validatedBancaData)
 
-    if (error) {
-      throw match(error)
+    if (!result.ok) {
+      throw match(result.error)
         .with({ type: "database_error" }, () => new AppError(500, "Erro ao criar banca"))
         .with({ type: "curso_not_found" }, () => new AppError(404, "Curso não encontrado"))
         .with({ type: "invalid_input" }, () => new AppError(400, "Dados inválidos"))
         .exhaustive()
     }
 
-    return c.json(newBanca, 201)
+    return c.json(result.data, 201)
   })
   .get("/", async (c) => {
-    const [error, bancas] = await service.getAllBancasVisible(c)
+    const result = await service.getAllBancasVisible(c)
 
-    if (error) {
-      throw match(error)
+    if (!result.ok) {
+      throw match(result.error)
         .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar bancas"))
         .exhaustive()
     }
+
+    const bancas = result.data
 
     return c.json({
       past: bancas.filter((banca) => banca.dataRealizacao < new Date()),
@@ -40,36 +42,36 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
   })
   .get("/:id", async (c) => {
     const id = Number(c.req.param("id"))
-    const [error, banca] = await service.getBancaById(c, id)
+    const result = await service.getBancaById(c, id)
 
-    if (error) {
-      throw match(error)
+    if (!result.ok) {
+      throw match(result.error)
         .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar banca"))
         .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
         .exhaustive()
     }
 
-    return c.json(banca)
+    return c.json(result.data)
   })
   .get("/usuario/:userId", async (c) => {
     const userId = Number(c.req.param("userId"))
-    const [error, bancas] = await service.getBancasByUser(c, userId)
+    const result = await service.getBancasByUser(c, userId)
 
-    if (error) {
-      throw match(error)
+    if (!result.ok) {
+      throw match(result.error)
         .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar bancas"))
         .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))
         .exhaustive()
     }
 
-    return c.json(bancas)
+    return c.json(result.data)
   })
   .delete("/:id", async (c) => {
     const id = Number(c.req.param("id"))
-    const [error] = await service.deleteBanca(c, id)
+    const result = await service.deleteBanca(c, id)
 
-    if (error) {
-      throw match(error)
+    if (!result.ok) {
+      throw match(result.error)
         .with({ type: "database_error" }, () => new AppError(500, "Erro ao excluir banca"))
         .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
         .with({ type: "unauthorized" }, () => new AppError(403, "Não autorizado a excluir esta banca"))
@@ -78,38 +80,25 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
 
     return c.body(null, 204)
   })
-  .put("/:id/visibilidade", async (c) => {
-    const id = Number(c.req.param("id"))
-    const [error, banca] = await service.toggleBancaVisibility(c, id)
-
-    if (error) {
-      throw match(error)
-        .with({ type: "database_error" }, () => new AppError(500, "Erro ao atualizar visibilidade"))
-        .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
-        .exhaustive()
-    }
-
-    return c.json(banca)
-  })
   .get("/:bancaId/usuarios", async (c) => {
     const bancaId = Number(c.req.param("bancaId"))
-    const [error, usuarios] = await service.getUsersByBanca(c, bancaId)
+    const result = await service.getUsersByBanca(c, bancaId)
 
-    if (error) {
-      throw match(error)
+    if (!result.ok) {
+      throw match(result.error)
         .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar usuários"))
         .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
         .exhaustive()
     }
 
-    return c.json(usuarios)
+    return c.json(result.data)
   })
   .post("/usuario-banca/:inviteId/accept", async (c) => {
     const inviteId = Number(c.req.param("inviteId"))
-    const [error, usuarioBanca] = await service.addUserToBanca(c, inviteId)
+    const result = await service.addUserToBanca(c, inviteId)
 
-    if (error) {
-      throw match(error)
+    if (!result.ok) {
+      throw match(result.error)
         .with({ type: "database_error" }, () => new AppError(500, "Erro ao adicionar usuário"))
         .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
         .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))
@@ -118,7 +107,7 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
         .exhaustive()
     }
 
-    return c.json(usuarioBanca, 201)
+    return c.json(result.data, 201)
   })
   .post(
     "/convites/email",
@@ -132,25 +121,25 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
     ),
     async (c) => {
       const { bancaId, email, role } = c.req.valid("json")
-      const [error, invite] = await service.sendInviteEmail(c, bancaId, email, role)
+      const result = await service.sendInviteEmail(c, bancaId, email, role)
 
-      if (error) {
-        throw match(error)
+      if (!result.ok) {
+        throw match(result.error)
           .with({ type: "database_error" }, () => new AppError(500, "Erro ao enviar convite"))
           .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
           .exhaustive()
       }
 
-      return c.json(invite, 201)
+      return c.json(result.data, 201)
     }
   )
   .delete("/:bancaId/usuarios/:userId", async (c) => {
     const bancaId = Number(c.req.param("bancaId"))
     const userId = Number(c.req.param("userId"))
-    const [error] = await service.removeUserFromBanca(c, bancaId, userId)
+    const result = await service.removeUserFromBanca(c, bancaId, userId)
 
-    if (error) {
-      throw match(error)
+    if (!result.ok) {
+      throw match(result.error)
         .with({ type: "database_error" }, () => new AppError(500, "Erro ao remover usuário"))
         .with({ type: "relation_not_found" }, () => new AppError(404, "Relação usuário-banca não encontrada"))
         .exhaustive()
@@ -193,16 +182,16 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
       const userId = Number(c.req.param("userId"))
       const { nota } = c.req.valid("json")
 
-      const [error, usuarioBanca] = await service.setEvaluatorGrade(c, bancaId, userId, nota)
+      const result = await service.setEvaluatorGrade(c, bancaId, userId, nota)
 
-      if (error) {
-        throw match(error)
+      if (!result.ok) {
+        throw match(result.error)
           .with({ type: "database_error" }, () => new AppError(500, "Erro ao atribuir nota"))
           .with({ type: "relation_not_found" }, () => new AppError(404, "Relação usuário-banca não encontrada"))
           .exhaustive()
       }
 
-      return c.json(usuarioBanca)
+      return c.json(result.data)
     }
   )
   .post(
@@ -217,43 +206,43 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
       const bancaId = Number(c.req.param("bancaId"))
       const { notaFinal } = c.req.valid("json")
 
-      const [error, banca] = await service.setBancaGrade(c, bancaId, notaFinal)
+      const result = await service.setBancaGrade(c, bancaId, notaFinal)
 
-      if (error) {
-        throw match(error)
+      if (!result.ok) {
+        throw match(result.error)
           .with({ type: "database_error" }, () => new AppError(500, "Erro ao atribuir nota final"))
           .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
           .exhaustive()
       }
 
-      return c.json(banca)
+      return c.json(result.data)
     }
   )
   .get("/:bancaId/nota", async (c) => {
     const bancaId = Number(c.req.param("bancaId"))
-    const [error, banca] = await service.getBancaById(c, bancaId)
+    const result = await service.getBancaById(c, bancaId)
 
-    if (error) {
-      throw match(error)
+    if (!result.ok) {
+      throw match(result.error)
         .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar nota"))
         .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
         .exhaustive()
     }
 
-    return c.json({ nota: banca.notaFinal })
+    return c.json({ nota: result.data.notaFinal })
   })
   .get("/:bancaId/documentos", async (c) => {
     const bancaId = Number(c.req.param("bancaId"))
-    const [error, documentos] = await service.getBancaDocuments(c, bancaId)
+    const result = await service.getBancaDocuments(c, bancaId)
 
-    if (error) {
-      throw match(error)
+    if (!result.ok) {
+      throw match(result.error)
         .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar documentos"))
         .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
         .exhaustive()
     }
 
-    return c.json(documentos)
+    return c.json(result.data)
   })
   .post("/:bancaId/documentos", async (c) => {
     throw new AppError(501, "Não implementado: upload de documentos")

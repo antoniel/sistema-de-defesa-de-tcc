@@ -102,11 +102,6 @@ export default function Home() {
   )
 }
 
-interface HomeTableProps {
-  data: BancasDefesa
-  searchQuery: string
-}
-
 const columns = [
   { key: "formatedData", header: "Data", minWidth: "160px" },
   { key: "tituloTrabalho", header: "Título do Trabalho", minWidth: "400px" },
@@ -116,29 +111,15 @@ const columns = [
   { key: "local", header: "Virtual", minWidth: "200px" },
 ] as const
 
-function HomeTable(props: HomeTableProps) {
+function HomeTable(props: { data: BancasDefesa; searchQuery: string }) {
+  const bancas = useBancasDefesa()
   const navigate = useNavigate()
 
   const goToViewBanca = (bancaId: string | number) => {
     navigate(href("/banca/:id", { id: String(bancaId) }))
   }
 
-  const getNomeOrientador = (banca: Dry<SelectBanca>) => {
-    return banca.orientador.nome
-  }
-
-  const renderCellContent = (banca: Dry<SelectBanca>, columnKey: (typeof columns)[number]["key"]) => {
-    return match(columnKey)
-      .with("formatedData", () => (
-        <span className="whitespace-nowrap">{new Date(banca.dataRealizacao).toLocaleDateString("pt-BR")}</span>
-      ))
-      .with("tituloTrabalho", () => <span className="whitespace-nowrap">{banca.tituloTrabalho}</span>)
-      .with("autor", () => <span className="whitespace-nowrap">{banca.autor}</span>)
-      .with("nomeOrientador", () => <span className="whitespace-nowrap">{banca.membros[0].usuario.nome}</span>)
-      .with("siglaCurso", () => <span className="whitespace-nowrap">{banca.cursoId}</span>)
-      .with("local", () => <span className="whitespace-nowrap">{banca.local}</span>)
-      .otherwise(() => null)
-  }
+  const renderCellContent = (banca: Dry<SelectBanca>, columnKey: (typeof columns)[number]["key"]) => {}
 
   return (
     <Table>
@@ -160,7 +141,20 @@ function HomeTable(props: HomeTableProps) {
               className="cursor-pointer hover:bg-muted/50"
             >
               {columns.map((col) => (
-                <TableCell key={`${banca.id}-${col.key}`}>{renderCellContent(banca, col.key)}</TableCell>
+                <TableCell key={`${banca.id}-${col.key}`}>
+                  {match(col.key)
+                    .with("formatedData", () => (
+                      <span className="whitespace-nowrap">
+                        {new Date(banca.dataRealizacao).toLocaleDateString("pt-BR")}
+                      </span>
+                    ))
+                    .with("tituloTrabalho", () => <span className="whitespace-nowrap">{banca.tituloTrabalho}</span>)
+                    .with("autor", () => <span className="whitespace-nowrap">{banca.autor}</span>)
+                    .with("nomeOrientador", () => <span className="whitespace-nowrap">{banca.orientador.nome}</span>)
+                    .with("siglaCurso", () => <span className="whitespace-nowrap">{banca.curso.sigla}</span>)
+                    .with("local", () => <span className="whitespace-nowrap">{banca.local}</span>)
+                    .otherwise(() => null)}
+                </TableCell>
               ))}
             </TableRow>
           ))
