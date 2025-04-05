@@ -68,9 +68,8 @@ const useAddBancaMutation = () => {
 const FORM_STEPS = [
   { id: 0, name: "Informações Básicas" },
   { id: 1, name: "Informações do Autor" },
-  { id: 2, name: "Metadados do Trabalho" },
-  { id: 3, name: "Agendamento da Defesa" },
-  { id: 4, name: "Revisão e Confirmação" },
+  { id: 2, name: "Metadados e Agendamento" },
+  { id: 3, name: "Revisão e Confirmação" },
 ]
 
 type SubmissionPayload = query["input"]["json"] & {
@@ -80,7 +79,7 @@ type SubmissionPayload = query["input"]["json"] & {
 export default function AddBancaPage() {
   const { data: user, isLoading } = useUser()
   const navigate = useNavigate()
-  const [currentStep, setCurrentStep] = useState<0 | 1 | 2 | 3 | 4 | (number & {})>(0)
+  const [currentStep, setCurrentStep] = useState<0 | 1 | 2 | 3 | (number & {})>(0)
   const { toast } = useToast()
 
   const form = useForm<BancaFormData>({
@@ -157,28 +156,19 @@ export default function AddBancaPage() {
       case 1:
         return ["autor", "matricula", "orientadorId"]
       case 2:
-        return ["palavrasChave", "turma", "cursoId", "ano"]
-      case 3:
-        return ["dataRealizacao", "hora", "semestreLetivo", "modalidade", "local"]
+        return [
+          "palavrasChave",
+          "turma",
+          "cursoId",
+          "ano",
+          "dataRealizacao",
+          "hora",
+          "semestreLetivo",
+          "modalidade",
+          "local",
+        ]
       default:
         return []
-    }
-  }
-
-  const renderFormStep = () => {
-    switch (currentStep) {
-      case 0:
-        return <BasicInfoSection />
-      case 1:
-        return <AuthorInfoSection />
-      case 2:
-        return <WorkMetadataSection />
-      case 3:
-        return <DefenseSchedulingSection />
-      case 4:
-        return <ReviewSection />
-      default:
-        return null
     }
   }
 
@@ -205,9 +195,8 @@ export default function AddBancaPage() {
               match(currentStep)
                 .with(0, () => <BasicInfoSection />)
                 .with(1, () => <AuthorInfoSection />)
-                .with(2, () => <WorkMetadataSection />)
-                .with(3, () => <DefenseSchedulingSection />)
-                .with(4, () => <ReviewSection />)
+                .with(2, () => <WorkAndDefenseSection />)
+                .with(3, () => <ReviewSection />)
                 .otherwise(() => null)
             }
           </div>
@@ -263,15 +252,13 @@ const StepIndicator = ({
     <div className="flex items-center ">
       {steps.map((step, index) => (
         <div key={step.id} className="flex items-center">
-          <button
-            type="button"
-            onClick={() => setCurrentStep(index)}
+          <div
             className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
               index <= currentStep ? "bg-primary text-primary-foreground border-primary" : "bg-background border-muted"
             }`}
           >
             {index + 1}
-          </button>
+          </div>
           {index < steps.length - 1 && (
             <div
               className={`h-1 w-full flex-1 ${index < currentStep ? "bg-primary" : "bg-muted"}`}
@@ -431,81 +418,7 @@ const AuthorInfoSection = () => {
   )
 }
 
-const WorkMetadataSection = () => {
-  const {
-    register,
-    control,
-    formState: { errors },
-  } = useFormContext<BancaFormData>()
-  return (
-    <>
-      <h2 className="text-xl font-semibold mb-4">Metadados do Trabalho</h2>
-      <div>
-        <Label htmlFor="palavrasChave">Palavras Chave</Label>
-        <Input
-          id="palavrasChave"
-          {...register("palavrasChave", { required: "Palavras-chave são obrigatórias" })}
-          placeholder="Separadas por vírgula"
-          aria-invalid={errors.palavrasChave ? "true" : "false"}
-        />
-        {errors.palavrasChave && <p className="text-sm text-red-600 mt-1">{errors.palavrasChave.message}</p>}
-        <p className="text-sm text-muted-foreground">Separe as palavras-chave por vírgula (,).</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <Label htmlFor="turma">Turma</Label>
-          <Input
-            id="turma"
-            {...register("turma", { required: "Turma é obrigatória" })}
-            placeholder="Ex: 2024/1"
-            aria-invalid={errors.turma ? "true" : "false"}
-          />
-          {errors.turma && <p className="text-sm text-red-600 mt-1">{errors.turma.message}</p>}
-        </div>
-        <div>
-          <Label htmlFor="curso">Curso</Label>
-          <Controller
-            name="cursoId"
-            control={control}
-            rules={{ required: "Curso é obrigatório" }}
-            render={({ field }) => (
-              <Select onValueChange={field.onChange} value={field.value?.toString() ?? ""}>
-                <SelectTrigger id="curso" ref={field.ref} aria-invalid={errors.cursoId ? "true" : "false"}>
-                  <SelectValue placeholder="Selecione o curso..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">Ciência da Computação</SelectItem>
-                  <SelectItem value="2">Sistemas de Informação</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-          />
-          {errors.cursoId && <p className="text-sm text-red-600 mt-1">{errors.cursoId.message}</p>}
-        </div>
-        <div>
-          <Label htmlFor="ano">Ano</Label>
-          <Input
-            id="ano"
-            type="number"
-            {...register("ano", {
-              required: "Ano é obrigatório",
-              pattern: {
-                value: /^\d{4}$/,
-                message: "Ano inválido (ex: 2024)",
-              },
-            })}
-            placeholder="Ex: 2024"
-            aria-invalid={errors.ano ? "true" : "false"}
-          />
-          {errors.ano && <p className="text-sm text-red-600 mt-1">{errors.ano.message}</p>}
-        </div>
-      </div>
-    </>
-  )
-}
-
-const DefenseSchedulingSection = () => {
+const WorkAndDefenseSection = () => {
   const {
     register,
     control,
@@ -513,100 +426,172 @@ const DefenseSchedulingSection = () => {
     formState: { errors },
   } = useFormContext<BancaFormData>()
   const modalidadeValue = watch("modalidade")
+
   return (
     <>
-      <h2 className="text-xl font-semibold mb-4">Agendamento da Defesa</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+      <h2 className="text-xl font-semibold mb-4">Metadados e Agendamento</h2>
+
+      {/* Seção de Metadados */}
+      <div className="mb-6 border-b pb-4">
+        <h3 className="text-lg font-medium mb-3">Metadados do Trabalho</h3>
         <div>
-          <Label htmlFor="data_realizacao">Data da Defesa</Label>
+          <Label htmlFor="palavrasChave">Palavras Chave</Label>
           <Input
-            id="dataRealizacao"
-            type="date"
-            {...register("dataRealizacao", {
-              required: "Data é obrigatória",
-              validate: (value) => {
-                if (value) {
-                  const date = new Date(value)
-                  return date < new Date() ? "Data não pode ser no passado" : undefined
-                }
-                return "Data é obrigatória"
-              },
-            })}
-            aria-invalid={errors.dataRealizacao ? "true" : "false"}
+            id="palavrasChave"
+            {...register("palavrasChave", { required: "Palavras-chave são obrigatórias" })}
+            placeholder="Separadas por vírgula"
+            aria-invalid={errors.palavrasChave ? "true" : "false"}
           />
-          {errors.dataRealizacao && <p className="text-sm text-red-600 mt-1">{errors.dataRealizacao.message}</p>}
+          {errors.palavrasChave && <p className="text-sm text-red-600 mt-1">{errors.palavrasChave.message}</p>}
+          <p className="text-sm text-muted-foreground">Separe as palavras-chave por vírgula (,).</p>
         </div>
-        <div>
-          <Label htmlFor="hora">Hora da Defesa</Label>
-          <Input
-            id="hora"
-            type="time"
-            {...register("hora", { required: "Hora é obrigatória" })}
-            aria-invalid={errors.hora ? "true" : "false"}
-          />
-          {errors.hora && <p className="text-sm text-red-600 mt-1">{errors.hora.message}</p>}
-        </div>
-        <div>
-          <Label htmlFor="semestre_letivo">Semestre Letivo</Label>
-          <Controller
-            name="semestreLetivo"
-            control={control}
-            rules={{ required: "Semestre letivo é obrigatório" }}
-            render={({ field }) => (
-              <Select onValueChange={field.onChange} value={field.value || ""}>
-                <SelectTrigger
-                  id="semestre_letivo"
-                  ref={field.ref}
-                  aria-invalid={errors.semestreLetivo ? "true" : "false"}
-                >
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1º Semestre</SelectItem>
-                  <SelectItem value="2">2º Semestre</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-          />
-          {errors.semestreLetivo && <p className="text-sm text-red-600 mt-1">{errors.semestreLetivo.message}</p>}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+          <div>
+            <Label htmlFor="turma">Turma</Label>
+            <Input
+              id="turma"
+              {...register("turma", { required: "Turma é obrigatória" })}
+              placeholder="Ex: 2024/1"
+              aria-invalid={errors.turma ? "true" : "false"}
+            />
+            {errors.turma && <p className="text-sm text-red-600 mt-1">{errors.turma.message}</p>}
+          </div>
+          <div>
+            <Label htmlFor="curso">Curso</Label>
+            <Controller
+              name="cursoId"
+              control={control}
+              rules={{ required: "Curso é obrigatório" }}
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value?.toString() ?? ""}>
+                  <SelectTrigger id="curso" ref={field.ref} aria-invalid={errors.cursoId ? "true" : "false"}>
+                    <SelectValue placeholder="Selecione o curso..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Ciência da Computação</SelectItem>
+                    <SelectItem value="2">Sistemas de Informação</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.cursoId && <p className="text-sm text-red-600 mt-1">{errors.cursoId.message}</p>}
+          </div>
+          <div>
+            <Label htmlFor="ano">Ano</Label>
+            <Input
+              id="ano"
+              type="number"
+              {...register("ano", {
+                required: "Ano é obrigatório",
+                pattern: {
+                  value: /^\d{4}$/,
+                  message: "Ano inválido (ex: 2024)",
+                },
+              })}
+              placeholder="Ex: 2024"
+              aria-invalid={errors.ano ? "true" : "false"}
+            />
+            {errors.ano && <p className="text-sm text-red-600 mt-1">{errors.ano.message}</p>}
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-        <div className="md:col-span-1">
-          <Label>Tipo de Banca</Label>
-          <Controller
-            name="modalidade"
-            control={control}
-            rules={{ required: true }}
-            render={({ field }) => (
-              <RadioGroup
-                onValueChange={field.onChange}
-                value={field.value}
-                className="flex space-x-4 pt-2"
-                ref={field.ref}
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="local" id="local" />
-                  <Label htmlFor="local">Presencial</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="remoto" id="remoto" />
-                  <Label htmlFor="remoto">Remoto</Label>
-                </div>
-              </RadioGroup>
-            )}
-          />
+      {/* Seção de Agendamento */}
+      <div>
+        <h3 className="text-lg font-medium mb-3">Agendamento da Defesa</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          <div>
+            <Label htmlFor="data_realizacao">Data da Defesa</Label>
+            <Input
+              id="dataRealizacao"
+              type="date"
+              {...register("dataRealizacao", {
+                required: "Data é obrigatória",
+                validate: (value) => {
+                  if (value) {
+                    const date = new Date(value)
+                    return date < new Date() ? "Data não pode ser no passado" : undefined
+                  }
+                  return "Data é obrigatória"
+                },
+              })}
+              aria-invalid={errors.dataRealizacao ? "true" : "false"}
+            />
+            {errors.dataRealizacao && <p className="text-sm text-red-600 mt-1">{errors.dataRealizacao.message}</p>}
+          </div>
+          <div>
+            <Label htmlFor="hora">Hora da Defesa</Label>
+            <Input
+              id="hora"
+              type="time"
+              {...register("hora", { required: "Hora é obrigatória" })}
+              aria-invalid={errors.hora ? "true" : "false"}
+            />
+            {errors.hora && <p className="text-sm text-red-600 mt-1">{errors.hora.message}</p>}
+          </div>
+          <div>
+            <Label htmlFor="semestre_letivo">Semestre Letivo</Label>
+            <Controller
+              name="semestreLetivo"
+              control={control}
+              rules={{ required: "Semestre letivo é obrigatório" }}
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value || ""}>
+                  <SelectTrigger
+                    id="semestre_letivo"
+                    ref={field.ref}
+                    aria-invalid={errors.semestreLetivo ? "true" : "false"}
+                  >
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1º Semestre</SelectItem>
+                    <SelectItem value="2">2º Semestre</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.semestreLetivo && <p className="text-sm text-red-600 mt-1">{errors.semestreLetivo.message}</p>}
+          </div>
         </div>
-        <div className="md:col-span-2">
-          <Label htmlFor="local">{modalidadeValue === "remoto" ? "Link da Reunião" : "Local Físico"}</Label>
-          <Input
-            id="local"
-            {...register("local", { required: "Local/Link é obrigatório" })}
-            aria-invalid={errors.local ? "true" : "false"}
-            placeholder={modalidadeValue === "remoto" ? "https://meet.google.com/..." : "Sala, Auditório, etc."}
-          />
-          {errors.local && <p className="text-sm text-red-600 mt-1">{errors.local.message}</p>}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center mt-4">
+          <div className="md:col-span-1">
+            <Label>Tipo de Banca</Label>
+            <Controller
+              name="modalidade"
+              control={control}
+              rules={{ required: true }}
+              render={({ field }) => (
+                <RadioGroup
+                  onValueChange={field.onChange}
+                  value={field.value}
+                  className="flex space-x-4 pt-2"
+                  ref={field.ref}
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="local" id="local" />
+                    <Label htmlFor="local">Presencial</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="remoto" id="remoto" />
+                    <Label htmlFor="remoto">Remoto</Label>
+                  </div>
+                </RadioGroup>
+              )}
+            />
+          </div>
+          <div className="md:col-span-2">
+            <Label htmlFor="local">{modalidadeValue === "remoto" ? "Link da Reunião" : "Local Físico"}</Label>
+            <Input
+              id="local"
+              {...register("local", { required: "Local/Link é obrigatório" })}
+              aria-invalid={errors.local ? "true" : "false"}
+              placeholder={modalidadeValue === "remoto" ? "https://meet.google.com/..." : "Sala, Auditório, etc."}
+            />
+            {errors.local && <p className="text-sm text-red-600 mt-1">{errors.local.message}</p>}
+          </div>
         </div>
       </div>
     </>
