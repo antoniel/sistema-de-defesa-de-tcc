@@ -21,10 +21,11 @@ import { match } from "ts-pattern"
 
 type query = RpcType<typeof apiClient.banca.$post>
 
-type BancaFormData = InsertBanca & {
+type BancaFormData = Omit<InsertBanca, "ano" | "semestreLetivo"> & {
   visible: boolean
   hora: string
   orientadorId?: number
+  periodoAcademico: string // New combined field for ano.semestreLetivo
 }
 
 const DEV_SEED_DATA: Partial<BancaFormData> = {
@@ -39,10 +40,9 @@ const DEV_SEED_DATA: Partial<BancaFormData> = {
   palavrasChave: "teste, desenvolvimento, automação, formulário",
   turma: "2024/2",
   cursoId: 1,
-  ano: "2024",
+  periodoAcademico: "2024.2", // Updated to combined format
   dataRealizacao: new Date("2024-01-01"),
   hora: "14:00",
-  semestreLetivo: "2",
   modalidade: "local",
   local: "Sala H-101",
   orientadorId: 1,
@@ -82,13 +82,16 @@ export default function AddBancaPage() {
   const [currentStep, setCurrentStep] = useState<0 | 1 | 2 | 3 | (number & {})>(0)
   const { toast } = useToast()
 
+  const currentYear = new Date().getFullYear()
+  const currentMonth = new Date().getMonth()
+  const currentSemester = currentMonth > 6 ? "2" : "1"
+  const defaultPeriodoAcademico = `${currentYear}.${currentSemester}`
+
   const form = useForm<BancaFormData>({
     defaultValues: {
       visible: false,
       modalidade: "local",
-      ano: new Date().getFullYear().toString(),
-      // If past the 6 month then 2 otherwise 1
-      semestreLetivo: new Date().getMonth() > 6 ? "2" : "1",
+      periodoAcademico: defaultPeriodoAcademico,
       autor: user?.nome,
       matricula: user?.matricula,
       cursoId: undefined,
@@ -106,11 +109,15 @@ export default function AddBancaPage() {
   const addBancaMutation = useAddBancaMutation()
 
   const onSubmit = (data: BancaFormData) => {
+    // Extract year and semester from periodoAcademico (format: YYYY.S)
+    const [ano, semestreLetivo] = data.periodoAcademico.split(".")
+
     const submissionData: SubmissionPayload = {
       ...data,
       matricula: data.matricula || "",
       cursoId: Number(data.cursoId),
-      ano: data.ano,
+      ano: ano,
+      semestreLetivo: semestreLetivo,
       visible: Boolean(data.visible),
       orientadorId: Number(data.orientadorId),
     }
@@ -160,10 +167,9 @@ export default function AddBancaPage() {
           "palavrasChave",
           "turma",
           "cursoId",
-          "ano",
+          "periodoAcademico", // Updated to use combined field
           "dataRealizacao",
           "hora",
-          "semestreLetivo",
           "modalidade",
           "local",
         ]
@@ -423,9 +429,47 @@ const WorkAndDefenseSection = () => {
     register,
     control,
     watch,
+    setValue,
     formState: { errors },
   } = useFormContext<BancaFormData>()
   const modalidadeValue = watch("modalidade")
+
+  // Handler for masking the periodoAcademico input
+  const handlePeriodoAcademicoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/[^\d.]/g, "") // Remove non-digit and non-dot characters
+
+    // Handle backspace correctly (if the dot is the last character, remove it)
+    if (e.nativeEvent instanceof InputEvent && e.nativeEvent.inputType === "deleteContentBackward") {
+      if (value.endsWith(".")) {
+        value = value.slice(0, -1)
+      }
+    }
+
+    // If we have more than 4 digits and no dot yet, insert it
+    if (value.length > 4 && !value.includes(".")) {
+      value = value.slice(0, 4) + "." + value.slice(4)
+    }
+
+    // Limit the input after the dot to one digit
+    if (value.includes(".")) {
+      const [year, semester] = value.split(".")
+      // Keep only first 4 digits for year
+      const formattedYear = year.slice(0, 4)
+      // Keep only first digit for semester
+      const formattedSemester = semester.slice(0, 1)
+      // Only allow 1 or 2 for semester
+      if (formattedSemester && !["1", "2"].includes(formattedSemester)) {
+        value = formattedYear + "."
+      } else {
+        value = formattedYear + (formattedSemester ? "." + formattedSemester : "")
+      }
+    } else {
+      // Limit year to 4 digits
+      value = value.slice(0, 4)
+    }
+
+    setValue("periodoAcademico", value)
+  }
 
   return (
     <>
@@ -478,21 +522,46 @@ const WorkAndDefenseSection = () => {
             {errors.cursoId && <p className="text-sm text-red-600 mt-1">{errors.cursoId.message}</p>}
           </div>
           <div>
-            <Label htmlFor="ano">Ano</Label>
-            <Input
-              id="ano"
-              type="number"
-              {...register("ano", {
-                required: "Ano é obrigatório",
+            <Label htmlFor="periodoAcademico">Período Acadêmico</Label>
+            <Controller
+              name="periodoAcademico"
+              control={control}
+              rules={{
+                required: "Período acadêmico é obrigatório",
                 pattern: {
-                  value: /^\d{4}$/,
-                  message: "Ano inválido (ex: 2024)",
+                  value: /^\d{4}\.[12]$/,
+                  message: "Formato inválido. Use YYYY.S (S=1 ou 2)",
                 },
-              })}
-              placeholder="Ex: 2024"
-              aria-invalid={errors.ano ? "true" : "false"}
+                validate: {
+                  validYear: (value) => {
+                    const year = parseInt(value.split(".")[0])
+                    const currentYear = new Date().getFullYear()
+                    return (
+                      (year >= 2000 && year <= currentYear + 5) || `O ano deve estar entre 2000 e ${currentYear + 5}`
+                    )
+                  },
+                  validSemester: (value) => {
+                    const semester = value.split(".")[1]
+                    return ["1", "2"].includes(semester) || "O semestre deve ser 1 ou 2"
+                  },
+                },
+              }}
+              render={({ field }) => (
+                <Input
+                  id="periodoAcademico"
+                  placeholder="Ex: 2024.2"
+                  value={field.value || ""}
+                  onChange={(e) => {
+                    field.onChange(e)
+                    handlePeriodoAcademicoChange(e)
+                  }}
+                  onBlur={field.onBlur}
+                  aria-invalid={errors.periodoAcademico ? "true" : "false"}
+                />
+              )}
             />
-            {errors.ano && <p className="text-sm text-red-600 mt-1">{errors.ano.message}</p>}
+            {errors.periodoAcademico && <p className="text-sm text-red-600 mt-1">{errors.periodoAcademico.message}</p>}
+            <p className="text-xs text-muted-foreground mt-1">Formato: Ano.Semestre (ex: 2024.2)</p>
           </div>
         </div>
       </div>
@@ -529,30 +598,6 @@ const WorkAndDefenseSection = () => {
               aria-invalid={errors.hora ? "true" : "false"}
             />
             {errors.hora && <p className="text-sm text-red-600 mt-1">{errors.hora.message}</p>}
-          </div>
-          <div>
-            <Label htmlFor="semestre_letivo">Semestre Letivo</Label>
-            <Controller
-              name="semestreLetivo"
-              control={control}
-              rules={{ required: "Semestre letivo é obrigatório" }}
-              render={({ field }) => (
-                <Select onValueChange={field.onChange} value={field.value || ""}>
-                  <SelectTrigger
-                    id="semestre_letivo"
-                    ref={field.ref}
-                    aria-invalid={errors.semestreLetivo ? "true" : "false"}
-                  >
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1º Semestre</SelectItem>
-                    <SelectItem value="2">2º Semestre</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-            />
-            {errors.semestreLetivo && <p className="text-sm text-red-600 mt-1">{errors.semestreLetivo.message}</p>}
           </div>
         </div>
 
@@ -673,8 +718,8 @@ const ReviewSection = () => {
               <p className="font-medium">{cursoNomes[String(values.cursoId) as keyof typeof cursoNomes]}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Ano</p>
-              <p className="font-medium">{values.ano}</p>
+              <p className="text-sm text-muted-foreground">Período Acadêmico</p>
+              <p className="font-medium">{values.periodoAcademico}</p>
             </div>
           </div>
         </div>
@@ -692,10 +737,6 @@ const ReviewSection = () => {
             <div>
               <p className="text-sm text-muted-foreground">Hora</p>
               <p className="font-medium">{values.hora}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Semestre Letivo</p>
-              <p className="font-medium">{values.semestreLetivo}º Semestre</p>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
@@ -724,9 +765,8 @@ const DevFillButton = () => {
   const handleFill = () => {
     const formDataForReset: Partial<BancaFormData> = {
       ...DEV_SEED_DATA,
-      ano: DEV_SEED_DATA.ano?.toString(),
+      periodoAcademico: DEV_SEED_DATA.periodoAcademico,
       cursoId: DEV_SEED_DATA.cursoId || 1,
-      semestreLetivo: DEV_SEED_DATA.semestreLetivo?.toString(),
       visible: Boolean(DEV_SEED_DATA.visible),
       orientadorId: DEV_SEED_DATA.orientadorId,
     }
