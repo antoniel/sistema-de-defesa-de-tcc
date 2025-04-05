@@ -1,3 +1,4 @@
+import { KeywordsList } from "@/components/banca/KeywordsList"
 import { Header } from "@/components/layout/Header"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -720,10 +721,7 @@ const ReviewSection = () => {
         </div>
         <div>
           <h3 className="text-lg font-medium border-b pb-2 mb-2">Metadados do Trabalho</h3>
-          <div>
-            <p className="text-sm text-muted-foreground">Palavras-chave</p>
-            <p className="font-medium">{values.palavrasChave}</p>
-          </div>
+          <KeywordsList keywords={values.palavrasChave} className="mb-4" />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
             <div>
               <p className="text-sm text-muted-foreground">Turma</p>

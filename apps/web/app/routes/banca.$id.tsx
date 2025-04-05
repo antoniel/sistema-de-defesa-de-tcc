@@ -179,12 +179,8 @@ export default function BancaDetalhesPage() {
               <section>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <h3 className="font-semibold">Ano</h3>
-                    <p className="text-muted-foreground">{banca.ano}</p>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Semestre</h3>
-                    <p className="text-muted-foreground">{banca.semestreLetivo}º Semestre</p>
+                    <h3 className="font-semibold">Período Acadêmico</h3>
+                    <p className="text-muted-foreground">{banca.periodoAcademico}</p>
                   </div>
                   <div>
                     <h3 className="font-semibold">Turma</h3>
