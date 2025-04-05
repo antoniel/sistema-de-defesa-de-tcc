@@ -44,8 +44,7 @@ export const Bancas = pgTable("banca", {
   autor: text("autor").notNull(), // Nome do autor/aluno principal
   matricula: text("matricula"), // Matrícula do autor/aluno principal
   turma: text("turma").notNull(),
-  ano: text("ano").notNull(),
-  semestreLetivo: text("semestre_letivo"), // Ex: '1', '2'
+  periodoAcademico: text("periodo_academico").notNull(),
   tituloTrabalho: text("titulo_trabalho").notNull(),
   resumo: text("resumo").notNull(),
   abstract: text("abstract").notNull(),

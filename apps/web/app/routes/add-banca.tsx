@@ -116,8 +116,7 @@ export default function AddBancaPage() {
       ...data,
       matricula: data.matricula || "",
       cursoId: Number(data.cursoId),
-      ano: ano,
-      semestreLetivo: semestreLetivo,
+      periodoAcademico: data.periodoAcademico,
       visible: Boolean(data.visible),
       orientadorId: Number(data.orientadorId),
     }
@@ -434,8 +433,11 @@ const WorkAndDefenseSection = () => {
   } = useFormContext<BancaFormData>()
   const modalidadeValue = watch("modalidade")
 
-  // Handler for masking the periodoAcademico input
-  const handlePeriodoAcademicoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handler for masking inputs with YYYY.S format
+  const handleYearSemesterFormat = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    fieldName: "periodoAcademico" | "turma"
+  ) => {
     let value = e.target.value.replace(/[^\d.]/g, "") // Remove non-digit and non-dot characters
 
     // Handle backspace correctly (if the dot is the last character, remove it)
@@ -468,7 +470,27 @@ const WorkAndDefenseSection = () => {
       value = value.slice(0, 4)
     }
 
-    setValue("periodoAcademico", value)
+    setValue(fieldName, value)
+  }
+
+  // Validation rules for YYYY.S format
+  const yearSemesterValidationRules = {
+    required: "Este campo é obrigatório",
+    pattern: {
+      value: /^\d{4}\.[12]$/,
+      message: "Formato inválido. Use YYYY.S (S=1 ou 2)",
+    },
+    validate: {
+      validYear: (value: string) => {
+        const year = parseInt(value.split(".")[0])
+        const currentYear = new Date().getFullYear()
+        return (year >= 2000 && year <= currentYear + 5) || `O ano deve estar entre 2000 e ${currentYear + 5}`
+      },
+      validSemester: (value: string) => {
+        const semester = value.split(".")[1]
+        return ["1", "2"].includes(semester) || "O semestre deve ser 1 ou 2"
+      },
+    },
   }
 
   return (
@@ -493,13 +515,26 @@ const WorkAndDefenseSection = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
           <div>
             <Label htmlFor="turma">Turma</Label>
-            <Input
-              id="turma"
-              {...register("turma", { required: "Turma é obrigatória" })}
-              placeholder="Ex: 2024/1"
-              aria-invalid={errors.turma ? "true" : "false"}
+            <Controller
+              name="turma"
+              control={control}
+              rules={yearSemesterValidationRules}
+              render={({ field }) => (
+                <Input
+                  id="turma"
+                  placeholder="Ex: 2024.1"
+                  value={field.value || ""}
+                  onChange={(e) => {
+                    field.onChange(e)
+                    handleYearSemesterFormat(e, "turma")
+                  }}
+                  onBlur={field.onBlur}
+                  aria-invalid={errors.turma ? "true" : "false"}
+                />
+              )}
             />
             {errors.turma && <p className="text-sm text-red-600 mt-1">{errors.turma.message}</p>}
+            <p className="text-xs text-muted-foreground mt-1">Formato: Ano.Semestre (ex: 2024.1)</p>
           </div>
           <div>
             <Label htmlFor="curso">Curso</Label>
@@ -526,26 +561,7 @@ const WorkAndDefenseSection = () => {
             <Controller
               name="periodoAcademico"
               control={control}
-              rules={{
-                required: "Período acadêmico é obrigatório",
-                pattern: {
-                  value: /^\d{4}\.[12]$/,
-                  message: "Formato inválido. Use YYYY.S (S=1 ou 2)",
-                },
-                validate: {
-                  validYear: (value) => {
-                    const year = parseInt(value.split(".")[0])
-                    const currentYear = new Date().getFullYear()
-                    return (
-                      (year >= 2000 && year <= currentYear + 5) || `O ano deve estar entre 2000 e ${currentYear + 5}`
-                    )
-                  },
-                  validSemester: (value) => {
-                    const semester = value.split(".")[1]
-                    return ["1", "2"].includes(semester) || "O semestre deve ser 1 ou 2"
-                  },
-                },
-              }}
+              rules={yearSemesterValidationRules}
               render={({ field }) => (
                 <Input
                   id="periodoAcademico"
@@ -553,7 +569,7 @@ const WorkAndDefenseSection = () => {
                   value={field.value || ""}
                   onChange={(e) => {
                     field.onChange(e)
-                    handlePeriodoAcademicoChange(e)
+                    handleYearSemesterFormat(e, "periodoAcademico")
                   }}
                   onBlur={field.onBlur}
                   aria-invalid={errors.periodoAcademico ? "true" : "false"}

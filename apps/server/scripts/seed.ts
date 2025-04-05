@@ -744,8 +744,7 @@ const bancasData: InsertBanca[] = [
     orientadorId: 93,
     autor: "Isaque Santana Copque",
     turma: "2019.1",
-    ano: "2024",
-    semestreLetivo: "1",
+    periodoAcademico: "2019.1",
     matricula: "219120256",
     modalidade: "local", // from tipo_banca
     tituloTrabalho: "EventIC: An Academic Event Recommender System for the Institute of Computing",
@@ -765,8 +764,7 @@ const bancasData: InsertBanca[] = [
     cursoId: 1,
     autor: "Alberto Oliveira Santos",
     turma: "101000 T10",
-    ano: "2024",
-    semestreLetivo: "1",
+    periodoAcademico: "2019.1",
     matricula: "218217201",
     modalidade: "remoto", // from tipo_banca
     tituloTrabalho: "Desenvolvimento e Avaliação de um Sistema Web de Apoio à Gestão de Projetos", // Encoding issues present
@@ -786,8 +784,7 @@ const bancasData: InsertBanca[] = [
     cursoId: 1,
     autor: "Bruno Guardiani",
     turma: "101000",
-    ano: "2024",
-    semestreLetivo: "1",
+    periodoAcademico: "2019.1",
     matricula: "217216759",
     modalidade: "remoto", // from tipo_banca
     tituloTrabalho: "Um Sistema de Recomendação baseado em Conteúdo para Recomendação de Vagas de Emprego", // Encoding issues present
@@ -806,8 +803,7 @@ const bancasData: InsertBanca[] = [
     cursoId: 1,
     autor: "Gabriela Bohana Ferreira Lima",
     turma: "MATA67",
-    ano: "2024",
-    semestreLetivo: "1",
+    periodoAcademico: "2019.1",
     matricula: "216220011",
     modalidade: "remoto", // from tipo_banca
     tituloTrabalho: "Um Sistema de Recomendação de filmes baseado em regras semânticas", // Encoding issues present
@@ -828,8 +824,7 @@ const bancasData: InsertBanca[] = [
     cursoId: 1,
     autor: "João Pedro Brito Silvadadasd",
     turma: "1",
-    ano: "2024",
-    semestreLetivo: "2",
+    periodoAcademico: "2019.1",
     matricula: "214002414",
     modalidade: "remoto", // from tipo_banca
     tituloTrabalho: "Defesa para teste das agendas - Google Calendar",
