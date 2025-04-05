@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils"
 import { removeAuthToken } from "@/services/authService"
 import { useUser } from "@/services/useUser"
 import { useQueryClient } from "@tanstack/react-query"
-import { ChevronDown, LogOut, User } from "lucide-react"
+import { ChevronDown, LogOut, User, Users } from "lucide-react"
 import React from "react"
 import { Link } from "react-router"
 import { match } from "ts-pattern"
@@ -86,6 +86,19 @@ function RightSideButtons() {
               Meu Perfil
             </Link>
           </DropdownMenuItem>
+
+          {user.role === "ADMIN" && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/admin/users" className="flex w-full items-center">
+                  <Users className="mr-2 h-4 w-4" />
+                  Gerenciar Usuários
+                </Link>
+              </DropdownMenuItem>
+            </>
+          )}
+
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
             <LogOut className="mr-2 h-4 w-4" />

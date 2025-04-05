@@ -7,13 +7,14 @@ import { AppError } from "../../error"
 import { getUserById } from "../usuario/usuario.service"
 
 import { verify } from "hono/jwt"
+import type { AppVariables } from "../../types"
 export const checkRole = (roles: UserRole[]) =>
-  createMiddleware(async (c, next) => {
-    const id = c.req.param("id")
-    if (!id) {
+  createMiddleware<{ Variables: AppVariables }>(async (c, next) => {
+    const userId = c.get("jwtPayload")?.sub
+    if (!userId) {
       throw new AppError(400, "ID do usuário não fornecido")
     }
-    const result = await getUserById(c, Number(id))
+    const result = await getUserById(c, Number(userId))
     if (!result.ok) {
       throw match(result.error)
         .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))

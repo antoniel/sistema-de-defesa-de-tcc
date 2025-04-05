@@ -19,7 +19,7 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json(result.data)
   })
-  .get("/", checkRole(["ADMIN"]), async (c) => {
+  .get("/all", checkRole(["ADMIN"]), async (c) => {
     const result = await service.getAllUsers(c)
     if (!result.ok) {
       throw match(result.error)

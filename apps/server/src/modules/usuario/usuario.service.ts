@@ -1,5 +1,5 @@
 import * as bcrypt from "bcryptjs"
-import { and, eq } from "drizzle-orm"
+import { and, desc, eq } from "drizzle-orm"
 import { type Context } from "hono"
 import { z } from "zod"
 import { Bancas, type SelectUser, Users } from "../../database/schema"
@@ -25,7 +25,7 @@ export const getAllUsers = async (
 ): Promise<AppResult<SelectUser[], GetAllUsersError>> => {
   const dbInstance = c.get("db")
   try {
-    const allUsers = await dbInstance.select().from(Users)
+    const allUsers = await dbInstance.select().from(Users).orderBy(desc(Users.role))
 
     return ok(allUsers)
   } catch (error) {
