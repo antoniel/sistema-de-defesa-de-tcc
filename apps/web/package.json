@@ -1,5 +1,6 @@
 {
   "name": "@tcc/web",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -43,7 +44,7 @@
     "@react-router/serve": "^7.2.0",
     "@tanstack/react-query": "^5.70.0",
     "@tanstack/react-query-devtools": "^5.71.0",
-    "@tcc/server": "workspace:*",
+    "@tcc/server": "*",
     "@types/glob": "^8.1.0",
     "axios": "^1.8.4",
     "class-variance-authority": "^0.7.1",
