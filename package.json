@@ -10,7 +10,10 @@
     "docker:down": "docker-compose down",
     "docker:clean": "docker-compose down -v",
     "docker:connect": "docker exec -it sistema-de-banca psql -U postgres -d sistema-de-banca",
-    "db:push": "cd apps/server && drizzle-kit push"
+    "db:push": "cd apps/server && drizzle-kit push",
+    "sync": "git checkout production-web && git merge main && git checkout production-server && git merge main",
+    "push:web": "npm run sync && git checkout production-web && git push dokku-server production-web:master",
+    "push:server": "npm run sync && git checkout production-server && git push dokku-server production-server:master"
   },
   "devDependencies": {
     "dotenv-cli": "7.4.4",
