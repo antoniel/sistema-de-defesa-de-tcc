@@ -22,6 +22,7 @@ RUN npm run build --workspace=@tcc/web
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV PORT=5000
+ENV VITE_API_URL=https://sistema-de-defesas-api.app.ic.ufba.br
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/web ./apps/web
 COPY --from=builder /app/package.json ./package.json
