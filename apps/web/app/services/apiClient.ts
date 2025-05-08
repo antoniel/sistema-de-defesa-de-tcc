@@ -4,7 +4,7 @@ import { hc } from "hono/client"
 
 const client = hc<AppType>(env.VITE_API_URL, {
   headers() {
-    const token = localStorage.getItem(AUTH_TOKEN_KEY)
+    const token = typeof window !== "undefined" ? localStorage.getItem(AUTH_TOKEN_KEY) : null
     return {
       Authorization: `Bearer ${token}`,
     }
