@@ -8,5 +8,6 @@ const TrueDeps = createMiddleware<{ Variables: AppVariables }>(async (c, next) =
   c.set("db", db)
   await next()
 })
-serve({ fetch: app(TrueDeps).fetch, port: 9000 })
-console.log(" ✅ Server starting on port 9000...")
+const PORT = process.env.PORT ? parseInt(process.env.PORT) : 9000
+serve({ fetch: app(TrueDeps).fetch, port: process.env.PORT ? parseInt(process.env.PORT) : 9000 })
+console.log(` ✅ Server starting on port ${process.env.PORT}...`)
