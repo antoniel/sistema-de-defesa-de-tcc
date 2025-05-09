@@ -1,7 +1,7 @@
-import { NodePgDatabase } from "drizzle-orm/node-postgres"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
+import type { db } from "."
 
-const runDatabaseMigrations = async (database: NodePgDatabase, migrationsFolder: string) => {
+const runDatabaseMigrations = async (database: typeof db, migrationsFolder: string) => {
   await migrate(database, {
     migrationsFolder,
     migrationsTable: "migrations",
