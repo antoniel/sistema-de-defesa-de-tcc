@@ -3,6 +3,6 @@ WORKDIR /app
 COPY . .
 RUN npm install --legacy-peer-deps
 WORKDIR /app/apps/server
-ENV PORT=80
-EXPOSE 80
+ENV PORT=9000
+EXPOSE 9000
 CMD ["npm", "run", "dev", "--workspace=@tcc/server"] 
