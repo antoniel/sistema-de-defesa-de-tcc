@@ -1,5 +1,5 @@
 {
-  "id": "f9cbcec6-cd3a-411e-9d6c-d69046ab6aa8",
+  "id": "8a360aa4-a7f4-46e4-8006-bb123e7beae3",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -44,17 +44,11 @@
           "primaryKey": false,
           "notNull": true
         },
-        "ano": {
-          "name": "ano",
+        "periodo_academico": {
+          "name": "periodo_academico",
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "semestre_letivo": {
-          "name": "semestre_letivo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "titulo_trabalho": {
           "name": "titulo_trabalho",
