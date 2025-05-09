@@ -38,6 +38,8 @@ export const storeAuthToken = (token: string): void => {
 }
 
 export const getAuthToken = (): string | null => {
+  const isServer = typeof window === "undefined"
+  if (isServer) return null
   try {
     return localStorage.getItem(AUTH_TOKEN_KEY)
   } catch (error) {
