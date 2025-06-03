@@ -1,4 +1,3 @@
-
 -- Migrate data for `cursos`
 -- INSERT statements from 'curso' table
 INSERT INTO cursos (id, nome, sigla) VALUES
@@ -286,13 +285,13 @@ SELECT setval('usuario_banca_id_seq', (SELECT MAX(id) FROM usuario_banca), true)
 -- Migrate data for `banca_documento`
 -- No data in dump, so just ensure sequence starts correctly.
 -- If there were data, it would be inserted here.
-SELECT setval('banca_documento_id_seq', (SELECT COALESCE(MAX(id), 1) FROM banca_documento), true);
+SELECT setval('banca_documento_id_seq', (SELECT COALESCE(MAX(id::integer), 1) FROM banca_documento), true);
 
 -- For tables with no data in the dump, ensure sequences start from 1
-SELECT setval('documento_id_seq', (SELECT COALESCE(MAX(id), 1) FROM documento), true);
-SELECT setval('invite_id_seq', (SELECT COALESCE(MAX(id), 1) FROM invite), true);
-SELECT setval('reset_password_id_seq', (SELECT COALESCE(MAX(id), 1) FROM reset_password), true);
-SELECT setval('session_id_seq', (SELECT COALESCE(MAX(id), 1) FROM session), true);
+SELECT setval('documento_id_seq', (SELECT COALESCE(MAX(id::integer), 1) FROM documento), true);
+SELECT setval('invite_id_seq', (SELECT COALESCE(MAX(id::integer), 1) FROM invite), true);
+SELECT setval('reset_password_id_seq', (SELECT COALESCE(MAX(id::integer), 1) FROM reset_password), true);
+SELECT setval('session_id_seq', (SELECT COALESCE(MAX(id::integer), 1) FROM session), true);
 
 -- Add Foreign Key Constraints (after all data is inserted)
 ALTER TABLE banca ADD CONSTRAINT fk_orientador FOREIGN KEY (orientador_id) REFERENCES usuario(id);
