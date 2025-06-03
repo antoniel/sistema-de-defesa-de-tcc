@@ -291,7 +291,6 @@ SELECT setval('banca_documento_id_seq', (SELECT COALESCE(MAX(id::integer), 1) FR
 SELECT setval('documento_id_seq', (SELECT COALESCE(MAX(id::integer), 1) FROM documento), true);
 SELECT setval('invite_id_seq', (SELECT COALESCE(MAX(id::integer), 1) FROM invite), true);
 SELECT setval('reset_password_id_seq', (SELECT COALESCE(MAX(id::integer), 1) FROM reset_password), true);
-SELECT setval('session_id_seq', (SELECT COALESCE(MAX(id::integer), 1) FROM session), true);
 
 -- Add Foreign Key Constraints (after all data is inserted)
 ALTER TABLE banca ADD CONSTRAINT fk_orientador FOREIGN KEY (orientador_id) REFERENCES usuario(id);
@@ -302,7 +301,6 @@ ALTER TABLE invite ADD CONSTRAINT fk_invite_banca FOREIGN KEY (banca_id) REFEREN
 
 ALTER TABLE reset_password ADD CONSTRAINT fk_reset_password_user FOREIGN KEY (user_id) REFERENCES usuario(id);
 
-ALTER TABLE session ADD CONSTRAINT fk_session_user FOREIGN KEY (user_id) REFERENCES usuario(id);
 
 ALTER TABLE usuario_banca ADD CONSTRAINT fk_usuario_banca_usuario FOREIGN KEY (id_usuario) REFERENCES usuario(id);
 ALTER TABLE usuario_banca ADD CONSTRAINT fk_usuario_banca_banca FOREIGN KEY (id_banca) REFERENCES banca(id);
@@ -310,10 +308,3 @@ ALTER TABLE usuario_banca ADD CONSTRAINT fk_usuario_banca_banca FOREIGN KEY (id_
 ALTER TABLE banca_documento ADD CONSTRAINT fk_banca_documento_banca FOREIGN KEY (id_banca) REFERENCES banca(id) ON DELETE CASCADE;
 ALTER TABLE banca_documento ADD CONSTRAINT fk_banca_documento_documento FOREIGN KEY (id_documento) REFERENCES documento(id);
 
-
--- Re-enable foreign key checks
-SET session_replication_role = default;
-
--- Optional: Add unique constraint to usuario_banca as suggested in the Drizzle schema comments
--- This should only be added if it truly represents a business rule.
--- ALTER TABLE usuario_banca ADD CONSTRAINT unique_usuario_banca UNIQUE (id_usuario, id_banca);
