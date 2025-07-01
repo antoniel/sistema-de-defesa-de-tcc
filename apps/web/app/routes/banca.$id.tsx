@@ -290,7 +290,7 @@ export const BancaSkeleton = () => {
   )
 }
 
-const useBanca = (id: string) => {
+export const useBanca = (id: string) => {
   return useQuery({
     queryKey: ["banca", id],
     queryFn: async () => {

@@ -143,27 +143,54 @@ export const createBanca = async (
 export const updateBanca = async (
   c: Context<{ Variables: AppVariables }>,
   id: number,
-  updateData: UpdateBancaInput
+  data: UpdateBancaInput
 ): Promise<AppResult<typeof Bancas.$inferSelect, UpdateBancaError>> => {
   const dbInstance = c.get("db")
-
   try {
-    const bancaExists = await dbInstance.select({ id: Bancas.id }).from(Bancas).where(eq(Bancas.id, id)).limit(1)
+    // Convert the data format from frontend to database format
+    const bancaUpdateData = {
+      tituloTrabalho: data.tituloTrabalho,
+      palavrasChave: data.palavrasChave,
+      resumo: data.resumo,
+      abstract: data.abstract,
+      dataRealizacao: data.dataRealizacao,
+      local: data.local,
+      turma: data.turma || "",
+      periodoAcademico: data.periodoAcademico || "",
+      orientadorId: Number(data.orientadorId),
+      cursoId: Number(data.cursoId),
+    }
 
-    if (bancaExists.length === 0) {
+    const [updatedBanca] = await dbInstance.update(Bancas).set(bancaUpdateData).where(eq(Bancas.id, id)).returning()
+
+    if (!updatedBanca) {
       return err({ type: "banca_not_found" })
     }
 
-    const [updatedBanca] = await dbInstance.update(Bancas).set(updateData).where(eq(Bancas.id, id)).returning()
+    // Update the banca members (orientador and avaliadores)
+    await dbInstance.delete(usuariosBancas).where(eq(usuariosBancas.bancaId, id))
 
-    if (!updatedBanca) {
-      return err({ type: "database_error", error: "Failed to update banca" })
+    // Add orientador
+    await dbInstance.insert(usuariosBancas).values({
+      bancaId: updatedBanca.id,
+      usuarioId: Number(data.orientadorId),
+      role: "orientador",
+    })
+
+    // Add avaliadores
+    if (data.membros && data.membros.length > 0) {
+      const avaliadoresData = data.membros.map((membro) => ({
+        bancaId: updatedBanca.id,
+        usuarioId: Number(membro.id),
+        role: "avaliador" as const,
+      }))
+      await dbInstance.insert(usuariosBancas).values(avaliadoresData)
     }
 
     return ok(updatedBanca)
   } catch (error) {
-    console.error(`Error updating banca with ID ${id}:`, error)
-    return err({ type: "database_error", error })
+    console.error("Error updating banca:", error)
+    return err({ type: "database_error", error: "Failed to update banca" })
   }
 }
 
