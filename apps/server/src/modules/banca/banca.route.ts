@@ -6,6 +6,7 @@ import { z } from "zod"
 import { usuariosBancas } from "../../database/schema"
 import { AppError } from "../../error"
 import { type AppVariables } from "../../types"
+import { checkRole } from "../auth/auth.middleware"
 import * as schema from "./banca.schema"
 import * as service from "./banca.service"
 
@@ -66,7 +67,7 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
 
     return c.json(result.data)
   })
-  .delete("/:id", async (c) => {
+  .delete("/:id", checkRole(["ADMIN"]), async (c) => {
     const id = Number(c.req.param("id"))
     const result = await service.deleteBanca(c, id)
 
@@ -78,7 +79,7 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
         .exhaustive()
     }
 
-    return c.body(null, 204)
+    return c.json({ message: "Banca excluída com sucesso" }, 200)
   })
   .get("/:bancaId/usuarios", async (c) => {
     const bancaId = Number(c.req.param("bancaId"))
@@ -255,4 +256,19 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
   })
   .delete("/:bancaId/documentos/:docId", async (c) => {
     throw new AppError(501, "Não implementado: exclusão de documentos")
+  })
+  .put("/:id", checkRole(["ADMIN", "TEACHER"]), zValidator("json", schema.updateBancaSchema), async (c) => {
+    const id = Number(c.req.param("id"))
+    const validatedBancaData = c.req.valid("json")
+    const result = await service.updateBanca(c, id, validatedBancaData)
+
+    if (!result.ok) {
+      throw match(result.error)
+        .with({ type: "database_error" }, () => new AppError(500, "Erro ao atualizar banca"))
+        .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
+        .with({ type: "invalid_input" }, () => new AppError(403, "Dados inválidos"))
+        .exhaustive()
+    }
+
+    return c.json(result.data)
   })

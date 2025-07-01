@@ -15,6 +15,15 @@ export type RpcType<T extends (...args: any[]) => any> = {
 export const rpcReturn = async <T extends unknown>(clientResponse: ClientResponse<T, any, "json">) => {
   const data = await clientResponse.json()
   if (!clientResponse.ok) {
+    // Handle zod errors
+    if (!(data as any).success) {
+      const error = (data as any).error
+      if (error.name === "ZodError") {
+        throw new Error(error.issues.map((issue: any) => issue.message).join(", "))
+      }
+    }
+
+    // Handle app errors
     throw new Error((data as { message: string })?.message || "Ops, algo deu errado")
   }
   return data
