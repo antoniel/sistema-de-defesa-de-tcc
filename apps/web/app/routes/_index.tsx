@@ -161,7 +161,7 @@ function HomeTable(props: { data: BancasDefesa; searchQuery: string }) {
         ) : (
           <TableRow>
             <TableCell colSpan={columns.length} className="h-24 text-center">
-              Nenhuma defesa encontrada{props.searchQuery ? " para esta busca." : "."}
+              Nenhuma defesa agendada{props.searchQuery ? " para esta busca." : "."}
             </TableCell>
           </TableRow>
         )}
