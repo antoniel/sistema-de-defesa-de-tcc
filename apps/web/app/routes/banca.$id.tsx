@@ -1,16 +1,49 @@
 import { Header } from "@/components/layout/Header"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { rpcReturn } from "@/lib/utils"
 import apiClient from "@/services/apiClient"
-import { useQuery } from "@tanstack/react-query"
+import { useUser } from "@/services/useUser"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { ArrowLeft, Calendar, Clock, MapPin, School, User } from "lucide-react"
 import { useNavigate, useParams } from "react-router"
+
+const useDeleteBanca = () => {
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiClient.banca[":id"].$delete({ param: { id } })
+
+      return rpcReturn(res as any)
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["bancas"] })
+      navigate("/")
+    },
+  })
+}
 
 export default function BancaDetalhesPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
-
+  const userQuery = useUser()
+  const isTeacher = userQuery.data?.role === "TEACHER"
+  const isAdmin = userQuery.data?.role === "ADMIN"
+  const isAbleToDelete = isAdmin || isTeacher
+  const deleteBancaMutation = useDeleteBanca()
   const bancaQuery = useBanca(String(id))
   const banca = bancaQuery.data
   const isLoading = bancaQuery.isLoading
@@ -20,6 +53,11 @@ export default function BancaDetalhesPage() {
 
   if (isLoading) {
     return <BancaSkeleton />
+  }
+
+  const handleDelete = () => {
+    if (!id) return
+    deleteBancaMutation.mutate(id)
   }
 
   if (error || !banca) {
@@ -54,7 +92,30 @@ export default function BancaDetalhesPage() {
           <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
         </Button>
 
-        {/* Se o usuário tiver permissões para editar, pode-se adicionar botão aqui */}
+        {isAbleToDelete && (
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => navigate(`/banca/${id}/edit`)}>
+              Editar
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive">Excluir</Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Essa ação não pode ser desfeita. Isso irá excluir permanentemente a banca de defesa.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete}>Confirmar</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        )}
       </div>
 
       <div className="bg-card shadow-md rounded-lg overflow-hidden">
