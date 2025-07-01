@@ -595,10 +595,6 @@ const WorkAndDefenseSection = () => {
               {...register("dataRealizacao", {
                 required: "Data é obrigatória",
                 validate: (value) => {
-                  if (value) {
-                    const date = new Date(value)
-                    return date < new Date() ? "Data não pode ser no passado" : undefined
-                  }
                   return "Data é obrigatória"
                 },
               })}
