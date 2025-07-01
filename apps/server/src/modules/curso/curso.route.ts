@@ -1,22 +1,15 @@
 import { Hono } from "hono"
-import { TODO } from "../../todo"
+import { match } from "ts-pattern"
+import { AppError } from "../../error"
+import { type AppVariables } from "../../types"
+import * as service from "./curso.service"
 
-export const cursoRoutes = new Hono()
-
-// GET /cursos (Listar cursos) - Original: actionGetCursos
-cursoRoutes.get("/", (c) => TODO({ c, path: "/cursos", method: "GET" }))
-
-// POST /cursos (Criar curso) - Original: actionCreateCurso
-cursoRoutes.post("/", (c) => TODO({ c, path: "/cursos", method: "POST" }))
-
-// PUT /cursos/:id (Editar curso) - Original: actionEditCursos
-cursoRoutes.put("/:id", (c) => {
-  const id = c.req.param("id")
-  return TODO({ c, path: "/cursos/:id", method: "PUT", params: { id } })
-})
-
-// DELETE /cursos/:id (Deletar curso) - Original: actionDeleteCurso
-cursoRoutes.delete("/:id", (c) => {
-  const id = c.req.param("id")
-  return TODO({ c, path: "/cursos/:id", method: "DELETE", params: { id } })
+export const cursoRoutes = new Hono<{ Variables: AppVariables }>().get("/", async (c) => {
+  const result = await service.getAllCursos(c)
+  if (!result.ok) {
+    throw match(result.error)
+      .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar cursos"))
+      .exhaustive()
+  }
+  return c.json(result.data)
 })
