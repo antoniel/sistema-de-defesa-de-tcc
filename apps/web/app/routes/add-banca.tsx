@@ -595,7 +595,10 @@ const WorkAndDefenseSection = () => {
               {...register("dataRealizacao", {
                 required: "Data é obrigatória",
                 validate: (value) => {
-                  return "Data é obrigatória"
+                  if (!value) {
+                    return "Data é obrigatória"
+                  }
+                  return true
                 },
               })}
               aria-invalid={errors.dataRealizacao ? "true" : "false"}
