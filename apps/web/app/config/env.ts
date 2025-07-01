@@ -5,6 +5,6 @@ export const envSchema = z.object({
   VITE_API_URL: z.string(),
 })
 
-export const __DEV__ = import.meta.env.MODE
+export const __DEV__ = import.meta.env.PROD
 
 export const env = envSchema.parse(import.meta.env)
