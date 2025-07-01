@@ -257,3 +257,18 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
   .delete("/:bancaId/documentos/:docId", async (c) => {
     throw new AppError(501, "Não implementado: exclusão de documentos")
   })
+  .put("/:id", checkRole(["ADMIN", "TEACHER"]), zValidator("json", schema.updateBancaSchema), async (c) => {
+    const id = Number(c.req.param("id"))
+    const validatedBancaData = c.req.valid("json")
+    const result = await service.updateBanca(c, id, validatedBancaData)
+
+    if (!result.ok) {
+      throw match(result.error)
+        .with({ type: "database_error" }, () => new AppError(500, "Erro ao atualizar banca"))
+        .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
+        .with({ type: "invalid_input" }, () => new AppError(403, "Dados inválidos"))
+        .exhaustive()
+    }
+
+    return c.json(result.data)
+  })
