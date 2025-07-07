@@ -31,6 +31,22 @@ const useBancasDefesa = (orderBy?: string, order?: "asc" | "desc") => {
   })
 }
 
+const useMyDefesas = (orderBy?: string, order?: "asc" | "desc") => {
+  return useQuery({
+    queryKey: ["my-defesas", orderBy, order],
+    queryFn: async () => {
+      const params = new URLSearchParams()
+      if (orderBy) params.set("orderBy", orderBy)
+      if (order) params.set("order", order)
+
+      const res = await apiClient.banca["my-defenses"].$get({
+        query: Object.fromEntries(params),
+      })
+      return rpcReturn(res)
+    },
+  })
+}
+
 type BancasDefesa = (ReturnType<typeof useBancasDefesa>["data"] & {})["past"]
 
 export default function Home() {
@@ -42,8 +58,9 @@ export default function Home() {
 
   const userQuery = useUser()
   const bancasDefesaQuery = useBancasDefesa(sortField || undefined, sortField ? sortOrder : undefined)
+  const myDefesasQuery = useMyDefesas(sortField || undefined, sortField ? sortOrder : undefined)
 
-  const isTeacher = userQuery.data?.role === "TEACHER"
+  const isTeacherOrAdmin = userQuery.data?.role === "TEACHER" || userQuery.data?.role === "ADMIN"
 
   const handleSort = (field: string) => {
     if (sortField === field) {
@@ -62,7 +79,7 @@ export default function Home() {
         <Header className="mb-6" />
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
           <Skeleton className="h-10 w-full sm:w-1/2" />
-          {isTeacher && <Skeleton className="h-10 w-full sm:w-auto px-8" />}
+          {isTeacherOrAdmin && <Skeleton className="h-10 w-full sm:w-auto px-8" />}
         </div>
         <Skeleton className="h-10 w-48 mb-4" />
         <div className="border rounded-md p-4">
@@ -86,6 +103,21 @@ export default function Home() {
     )
   }
 
+  const getTableData = () => {
+    if (activeTab === "my-defesas") {
+      return {
+        upcoming: myDefesasQuery.data?.upcoming || [],
+        past: myDefesasQuery.data?.past || [],
+      }
+    }
+    return {
+      upcoming: bancasDefesaQuery.data?.upcoming || [],
+      past: bancasDefesaQuery.data?.past || [],
+    }
+  }
+
+  const tableData = getTableData()
+
   return (
     <div className="container mx-auto p-4 md:p-8">
       <Header className="mb-6" />
@@ -105,11 +137,12 @@ export default function Home() {
         <TabsList className="mb-4">
           <TabsTrigger value="upcoming">Próximas defesas</TabsTrigger>
           <TabsTrigger value="past">Defesas anteriores</TabsTrigger>
+          {isTeacherOrAdmin && <TabsTrigger value="my-defesas">Minhas Defesas</TabsTrigger>}
         </TabsList>
         <TabsContent value="upcoming">
           <div className="border rounded-md overflow-x-auto">
             <HomeTable
-              data={bancasDefesaQuery.data?.upcoming || []}
+              data={tableData.upcoming}
               searchQuery={searchQuery}
               sortField={sortField}
               sortOrder={sortOrder}
@@ -120,7 +153,7 @@ export default function Home() {
         <TabsContent value="past">
           <div className="border rounded-md overflow-x-auto">
             <HomeTable
-              data={bancasDefesaQuery.data?.past || []}
+              data={tableData.past}
               searchQuery={searchQuery}
               sortField={sortField}
               sortOrder={sortOrder}
@@ -128,6 +161,49 @@ export default function Home() {
             />
           </div>
         </TabsContent>
+        {isTeacherOrAdmin && (
+          <TabsContent value="my-defesas">
+            {myDefesasQuery.isLoading ? (
+              <div className="border rounded-md p-4">
+                <Skeleton className="h-8 w-full mb-2" />
+                <Skeleton className="h-12 w-full mb-2" />
+                <Skeleton className="h-12 w-full mb-2" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ) : myDefesasQuery.isError ? (
+              <div className="text-red-600 p-4">
+                Erro ao carregar suas defesas: {myDefesasQuery.error?.message || "Erro desconhecido"}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="border rounded-md overflow-x-auto">
+                  <div className="p-4 border-b">
+                    <h3 className="text-lg font-semibold">Próximas defesas</h3>
+                  </div>
+                  <HomeTable
+                    data={tableData.upcoming}
+                    searchQuery={searchQuery}
+                    sortField={sortField}
+                    sortOrder={sortOrder}
+                    onSort={handleSort}
+                  />
+                </div>
+                <div className="border rounded-md overflow-x-auto">
+                  <div className="p-4 border-b">
+                    <h3 className="text-lg font-semibold">Defesas anteriores</h3>
+                  </div>
+                  <HomeTable
+                    data={tableData.past}
+                    searchQuery={searchQuery}
+                    sortField={sortField}
+                    sortOrder={sortOrder}
+                    onSort={handleSort}
+                  />
+                </div>
+              </div>
+            )}
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   )
