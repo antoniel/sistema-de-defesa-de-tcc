@@ -16,7 +16,7 @@ export const rpcReturn = async <T extends unknown>(clientResponse: ClientRespons
   const data = await clientResponse.json()
   if (!clientResponse.ok) {
     // Handle zod errors
-    if (!(data as any).success) {
+    if (!(data as any)?.success && (data as any)?.error) {
       const error = (data as any).error
       if (error.name === "ZodError") {
         throw new Error(error.issues.map((issue: any) => issue.message).join(", "))

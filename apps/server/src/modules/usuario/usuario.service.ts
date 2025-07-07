@@ -1,5 +1,5 @@
 import * as bcrypt from "bcryptjs"
-import { and, desc, eq } from "drizzle-orm"
+import { and, desc, eq, or } from "drizzle-orm"
 import { type Context } from "hono"
 import { z } from "zod"
 import { Bancas, type SelectUser, Users } from "../../database/schema"
@@ -43,7 +43,7 @@ export const getTeachers = async (
     const teachers = await dbInstance
       .select()
       .from(Users)
-      .where(and(eq(Users.role, "TEACHER"), eq(Users.status, "ACTIVE")))
+      .where(and(or(eq(Users.role, "TEACHER"), eq(Users.role, "ADMIN")), eq(Users.status, "ACTIVE")))
       .orderBy(Users.nome)
 
     return ok(teachers)
