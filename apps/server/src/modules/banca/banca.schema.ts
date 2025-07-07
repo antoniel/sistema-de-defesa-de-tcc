@@ -14,7 +14,7 @@ export const createBancaSchema = baseBancaSchema.extend({
   autor: z.string().min(1, "Autor é obrigatório"),
   matricula: z.string().min(1, "Matrícula é obrigatória"),
   dataRealizacao: z.coerce.date(),
-  avaliadores: z.array(z.string()).min(1, "Pelo menos um avaliador é necessário"),
+  avaliadores: z.array(z.string()).min(1, "Pelo menos um avaliador é necessário").optional(),
 })
 
 const partialCreateBancaSchema = createBancaSchema.partial()
