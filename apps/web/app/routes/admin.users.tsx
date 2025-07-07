@@ -2,6 +2,14 @@ import { Header } from "@/components/layout/Header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -9,31 +17,30 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useToast } from "@/hooks/use-toast"
 import { rpcReturn } from "@/lib/utils"
 import apiClient from "@/services/apiClient"
 import { useUser } from "@/services/useUser"
-import { useQuery } from "@tanstack/react-query"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import type { SelectUser } from "@tcc/server"
 import { MoreHorizontal, Search } from "lucide-react"
-import { useState } from "react"
+import React, { useState } from "react"
+import { useForm } from "react-hook-form"
 import { Navigate, useNavigate } from "react-router"
 import { match } from "ts-pattern"
-
-const useAllUsers = () => {
-  return useQuery({
-    queryKey: ["users", "all"],
-    queryFn: async () => {
-      const res = await apiClient.usuario.all.$get()
-      return rpcReturn(res)
-    },
-  })
-}
+import { z } from "zod"
 
 export default function AdminUsersPage() {
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState("")
+  const [editingUser, setEditingUser] = useState<UserType | null>(null)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
 
   const userQuery = useUser()
   const allUsersQuery = useAllUsers()
@@ -83,6 +90,11 @@ export default function AdminUsersPage() {
         user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.matricula.toLowerCase().includes(searchQuery.toLowerCase())
     ) || []
+
+  const handleEditUser = (user: UserType) => {
+    setEditingUser(user)
+    setEditDialogOpen(true)
+  }
 
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -147,14 +159,7 @@ export default function AdminUsersPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            // Função para editar um usuário (a ser implementada)
-                            // navigate(`/admin/users/${user.id}/edit`)
-                          }}
-                        >
-                          Editar
-                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEditUser(user)}>Editar</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => {
@@ -178,6 +183,208 @@ export default function AdminUsersPage() {
           </TableBody>
         </Table>
       </div>
+
+      <EditUserDialog user={editingUser} open={editDialogOpen} onOpenChange={setEditDialogOpen} />
     </div>
+  )
+}
+
+type UserType = Omit<SelectUser, "createdAt" | "updatedAt"> & {
+  createdAt: string
+  updatedAt: string
+}
+
+const useAllUsers = () => {
+  return useQuery({
+    queryKey: ["users", "all"],
+    queryFn: async () => {
+      const res = await apiClient.usuario.all.$get()
+      return rpcReturn(res)
+    },
+  })
+}
+
+const updateUserSchema = z.object({
+  nome: z.string().min(1, "Nome é obrigatório"),
+  school: z.string().min(1, "Escola é obrigatória"),
+  academicTitle: z.string().min(1, "Título acadêmico é obrigatório"),
+  role: z.enum(["STUDENT", "TEACHER", "ADMIN"], {
+    required_error: "Função é obrigatória",
+  }),
+})
+
+type UpdateUserFormData = z.infer<typeof updateUserSchema>
+
+const useUpdateUser = () => {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: UpdateUserFormData }) => {
+      const res = await apiClient.usuario[":id"].$put({
+        param: { id: id.toString() },
+        json: data,
+      })
+      return rpcReturn(res)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users", "all"] })
+      toast({
+        title: "Usuário atualizado ✅",
+        description: "Os dados do usuário foram atualizados com sucesso",
+      })
+    },
+    onError: () => {
+      toast({
+        title: "Erro ao atualizar usuário ❌",
+        description: "Ocorreu um erro ao atualizar os dados do usuário",
+        variant: "destructive",
+      })
+    },
+  })
+}
+
+function EditUserDialog({
+  user,
+  open,
+  onOpenChange,
+}: {
+  user: UserType | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const updateUserMutation = useUpdateUser()
+
+  const form = useForm<UpdateUserFormData>({
+    resolver: zodResolver(updateUserSchema),
+    defaultValues: {
+      nome: user?.nome || "",
+      school: user?.school || "",
+      academicTitle: user?.academicTitle || "",
+      role: user?.role || "STUDENT",
+    },
+  })
+
+  // Reset form when user changes
+  React.useEffect(() => {
+    if (user) {
+      form.reset({
+        nome: user.nome,
+        school: user.school,
+        academicTitle: user.academicTitle,
+        role: user.role,
+      })
+    }
+  }, [user, form])
+
+  const onSubmit = (data: UpdateUserFormData) => {
+    if (!user) return
+
+    updateUserMutation.mutate(
+      { id: user.id, data },
+      {
+        onSuccess: () => {
+          onOpenChange(false)
+        },
+      }
+    )
+  }
+
+  const handleCancel = () => {
+    form.reset()
+    onOpenChange(false)
+  }
+
+  if (!user) return null
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>Editar Usuário</DialogTitle>
+          <DialogDescription>
+            Edite as informações do usuário {user.nome}. Clique em salvar quando terminar.
+          </DialogDescription>
+        </DialogHeader>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="nome"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nome</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Nome completo" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="school"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Escola/Instituição</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Nome da escola ou instituição" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="academicTitle"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Título Acadêmico</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ex: Doutor em Ciência da Computação" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Função</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a função" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="STUDENT">Aluno</SelectItem>
+                      <SelectItem value="TEACHER">Professor</SelectItem>
+                      <SelectItem value="ADMIN">Administrador</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={handleCancel}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={updateUserMutation.isPending}>
+                {updateUserMutation.isPending ? "Salvando..." : "Salvar"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
   )
 }
