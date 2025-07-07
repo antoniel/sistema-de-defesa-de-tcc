@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm"
+import { and, asc, desc, eq } from "drizzle-orm"
 import { type Context } from "hono"
 import type { InferResultType } from "../../database"
 import {
@@ -51,7 +51,9 @@ type RemoveUserFromBancaError = { type: "relation_not_found" } | { type: "databa
 type SetBancaGradeError = { type: "banca_not_found" } | { type: "database_error"; error: unknown }
 
 export const getAllBancasVisible = async (
-  c: Context<{ Variables: AppVariables }>
+  c: Context<{ Variables: AppVariables }>,
+  orderBy?: string,
+  order?: "asc" | "desc"
 ): Promise<
   AppResult<
     InferResultType<"Bancas", { curso: true; orientador: true; membros: { with: { usuario: true } } }>[],
@@ -60,19 +62,102 @@ export const getAllBancasVisible = async (
 > => {
   const dbInstance = c.get("db")
   try {
-    const result = await dbInstance.query.Bancas.findMany({
-      where: eq(Bancas.visible, true),
-      with: {
-        orientador: true,
-        curso: true,
-        membros: {
+    // For simple fields, use the query API with orderBy
+    const simpleFields = ["dataRealizacao", "tituloTrabalho", "autor", "local"]
+
+    if (!orderBy || simpleFields.includes(orderBy)) {
+      const fieldMap: Record<string, any> = {
+        dataRealizacao: Bancas.dataRealizacao,
+        tituloTrabalho: Bancas.tituloTrabalho,
+        autor: Bancas.autor,
+        local: Bancas.local,
+      }
+
+      let orderClause
+      if (orderBy && fieldMap[orderBy]) {
+        orderClause = order === "desc" ? desc(fieldMap[orderBy]) : asc(fieldMap[orderBy])
+      } else {
+        // Default order by dataRealizacao ascending
+        orderClause = asc(Bancas.dataRealizacao)
+      }
+
+      const result = await dbInstance.query.Bancas.findMany({
+        where: eq(Bancas.visible, true),
+        with: {
+          orientador: true,
+          curso: true,
+          membros: {
+            with: {
+              usuario: true,
+            },
+          },
+        },
+        orderBy: orderClause,
+      })
+      return ok(result)
+    }
+
+    // For related fields, use manual joins
+    let orderClause
+    if (orderBy === "orientador") {
+      orderClause = order === "desc" ? desc(Users.nome) : asc(Users.nome)
+    } else if (orderBy === "curso") {
+      orderClause = order === "desc" ? desc(cursos.nome) : asc(cursos.nome)
+    } else {
+      orderClause = asc(Bancas.dataRealizacao)
+    }
+
+    const result = await dbInstance
+      .select({
+        id: Bancas.id,
+        tituloTrabalho: Bancas.tituloTrabalho,
+        resumo: Bancas.resumo,
+        abstract: Bancas.abstract,
+        palavrasChave: Bancas.palavrasChave,
+        dataRealizacao: Bancas.dataRealizacao,
+        local: Bancas.local,
+        modalidade: Bancas.modalidade,
+        visible: Bancas.visible,
+        autor: Bancas.autor,
+        matricula: Bancas.matricula,
+        turma: Bancas.turma,
+        periodoAcademico: Bancas.periodoAcademico,
+        notaFinal: Bancas.notaFinal,
+        orientadorId: Bancas.orientadorId,
+        cursoId: Bancas.cursoId,
+      })
+      .from(Bancas)
+      .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
+      .leftJoin(cursos, eq(Bancas.cursoId, cursos.id))
+      .where(eq(Bancas.visible, true))
+      .orderBy(orderClause)
+
+    // Now fetch the related data for each banca
+    const bancasWithRelations = await Promise.all(
+      result.map(async (banca) => {
+        const orientador = await dbInstance.query.Users.findFirst({
+          where: eq(Users.id, banca.orientadorId),
+        })
+        const curso = await dbInstance.query.cursos.findFirst({
+          where: eq(cursos.id, banca.cursoId),
+        })
+        const membros = await dbInstance.query.usuariosBancas.findMany({
+          where: eq(usuariosBancas.bancaId, banca.id),
           with: {
             usuario: true,
           },
-        },
-      },
-    })
-    return ok(result)
+        })
+
+        return {
+          ...banca,
+          orientador,
+          curso,
+          membros,
+        }
+      })
+    )
+
+    return ok(bancasWithRelations as any)
   } catch (error) {
     console.error("Error fetching all bancas:", error)
     return err({ type: "database_error", error })
