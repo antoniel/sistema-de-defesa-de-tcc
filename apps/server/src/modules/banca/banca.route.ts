@@ -44,6 +44,30 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
       upcoming: bancas.filter((banca) => banca.dataRealizacao > new Date()),
     })
   })
+  .get("/my-defenses", checkRole(["TEACHER", "ADMIN"]), async (c) => {
+    const userId = c.get("jwtPayload")?.sub
+    if (!userId) {
+      throw new AppError(400, "ID do usuário não fornecido")
+    }
+
+    const orderBy = c.req.query("orderBy")
+    const order = c.req.query("order") as "asc" | "desc" | undefined
+
+    const result = await service.getBancasByOrientador(c, Number(userId), orderBy, order)
+
+    if (!result.ok) {
+      throw match(result.error)
+        .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar minhas defesas"))
+        .exhaustive()
+    }
+
+    const bancas = result.data
+
+    return c.json({
+      past: bancas.filter((banca) => banca.dataRealizacao < new Date()),
+      upcoming: bancas.filter((banca) => banca.dataRealizacao > new Date()),
+    })
+  })
   .get("/:id", async (c) => {
     const id = Number(c.req.param("id"))
     const result = await service.getBancaById(c, id)
