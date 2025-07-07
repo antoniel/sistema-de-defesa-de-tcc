@@ -50,6 +50,8 @@ type RemoveUserFromBancaError = { type: "relation_not_found" } | { type: "databa
 
 type SetBancaGradeError = { type: "banca_not_found" } | { type: "database_error"; error: unknown }
 
+type GetBancasByOrientadorError = { type: "database_error"; error: unknown }
+
 export const getAllBancasVisible = async (
   c: Context<{ Variables: AppVariables }>,
   orderBy?: string,
@@ -97,7 +99,7 @@ export const getAllBancasVisible = async (
       return ok(result)
     }
 
-    // For related fields, use manual joins
+    // For related fields, use leftJoin
     let orderClause
     if (orderBy === "orientador") {
       orderClause = order === "desc" ? desc(Users.nome) : asc(Users.nome)
@@ -108,56 +110,33 @@ export const getAllBancasVisible = async (
     }
 
     const result = await dbInstance
-      .select({
-        id: Bancas.id,
-        tituloTrabalho: Bancas.tituloTrabalho,
-        resumo: Bancas.resumo,
-        abstract: Bancas.abstract,
-        palavrasChave: Bancas.palavrasChave,
-        dataRealizacao: Bancas.dataRealizacao,
-        local: Bancas.local,
-        modalidade: Bancas.modalidade,
-        visible: Bancas.visible,
-        autor: Bancas.autor,
-        matricula: Bancas.matricula,
-        turma: Bancas.turma,
-        periodoAcademico: Bancas.periodoAcademico,
-        notaFinal: Bancas.notaFinal,
-        orientadorId: Bancas.orientadorId,
-        cursoId: Bancas.cursoId,
-      })
+      .select()
       .from(Bancas)
       .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
       .leftJoin(cursos, eq(Bancas.cursoId, cursos.id))
       .where(eq(Bancas.visible, true))
       .orderBy(orderClause)
 
-    // Now fetch the related data for each banca
-    const bancasWithRelations = await Promise.all(
-      result.map(async (banca) => {
-        const orientador = await dbInstance.query.Users.findFirst({
-          where: eq(Users.id, banca.orientadorId),
-        })
-        const curso = await dbInstance.query.cursos.findFirst({
-          where: eq(cursos.id, banca.cursoId),
-        })
+    // Fetch membros separately for each banca (this is still needed due to the many-to-many relationship)
+    const bancasWithMembros = await Promise.all(
+      result.map(async (row) => {
         const membros = await dbInstance.query.usuariosBancas.findMany({
-          where: eq(usuariosBancas.bancaId, banca.id),
+          where: eq(usuariosBancas.bancaId, row.banca.id),
           with: {
             usuario: true,
           },
         })
 
         return {
-          ...banca,
-          orientador,
-          curso,
+          ...row.banca,
+          orientador: row.usuario,
+          curso: row.cursos,
           membros,
         }
       })
     )
 
-    return ok(bancasWithRelations as any)
+    return ok(bancasWithMembros as any)
   } catch (error) {
     console.error("Error fetching all bancas:", error)
     return err({ type: "database_error", error })
@@ -594,6 +573,48 @@ export const sendInviteEmail = async (
     return ok(newInvite)
   } catch (error) {
     console.error(`Error creating invite for banca ID ${bancaId}:`, error)
+    return err({ type: "database_error", error })
+  }
+}
+
+export const getBancasByOrientador = async (
+  c: Context<{ Variables: AppVariables }>,
+  orientadorId: number,
+  orderBy?: string,
+  order?: "asc" | "desc"
+): Promise<
+  AppResult<
+    InferResultType<"Bancas", { curso: true; orientador: true; membros: { with: { usuario: true } } }>[],
+    GetBancasByOrientadorError
+  >
+> => {
+  const dbInstance = c.get("db")
+  try {
+    let orderClause
+    if (orderBy === "orientador") {
+      orderClause = order === "desc" ? desc(Users.nome) : asc(Users.nome)
+    } else if (orderBy === "curso") {
+      orderClause = order === "desc" ? desc(cursos.nome) : asc(cursos.nome)
+    } else {
+      orderClause = asc(Bancas.dataRealizacao)
+    }
+
+    const resultTest = await dbInstance.query.Bancas.findMany({
+      where: eq(Bancas.orientadorId, orientadorId),
+      with: {
+        orientador: true,
+        curso: true,
+        membros: {
+          with: {
+            usuario: true,
+          },
+        },
+      },
+    })
+
+    return ok(resultTest)
+  } catch (error) {
+    console.error("Error fetching bancas by orientador:", error)
     return err({ type: "database_error", error })
   }
 }
