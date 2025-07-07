@@ -26,7 +26,10 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
     return c.json(result.data, 201)
   })
   .get("/", async (c) => {
-    const result = await service.getAllBancasVisible(c)
+    const orderBy = c.req.query("orderBy")
+    const order = c.req.query("order") as "asc" | "desc" | undefined
+
+    const result = await service.getAllBancasVisible(c, orderBy, order)
 
     if (!result.ok) {
       throw match(result.error)
