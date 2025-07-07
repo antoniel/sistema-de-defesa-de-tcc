@@ -6,36 +6,55 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import type { Dry } from "@/config/type"
 import { rpcReturn } from "@/lib/utils"
 import apiClient from "@/services/apiClient"
 import { useUser } from "@/services/useUser"
 import { useQuery } from "@tanstack/react-query"
-import type { SelectBanca } from "@tcc/server"
+import { ArrowUpDown, ChevronDown, ChevronUp } from "lucide-react"
 import { useState } from "react"
 import { href, useNavigate } from "react-router"
 import { match } from "ts-pattern"
 
-const useBancasDefesa = () => {
+const useBancasDefesa = (orderBy?: string, order?: "asc" | "desc") => {
   return useQuery({
-    queryKey: ["bancas"],
+    queryKey: ["bancas", orderBy, order],
     queryFn: async () => {
-      const res = await apiClient.banca.$get()
+      const params = new URLSearchParams()
+      if (orderBy) params.set("orderBy", orderBy)
+      if (order) params.set("order", order)
+
+      const res = await apiClient.banca.$get({
+        query: Object.fromEntries(params),
+      })
       return rpcReturn(res)
     },
   })
 }
+
 type BancasDefesa = (ReturnType<typeof useBancasDefesa>["data"] & {})["past"]
 
 export default function Home() {
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("upcoming")
+  const [sortField, setSortField] = useState<string>("")
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
 
   const userQuery = useUser()
-  const bancasDefesaQuery = useBancasDefesa()
+  const bancasDefesaQuery = useBancasDefesa(sortField || undefined, sortField ? sortOrder : undefined)
 
   const isTeacher = userQuery.data?.role === "TEACHER"
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      // Toggle order if same field
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+    } else {
+      // New field, default to ascending
+      setSortField(field)
+      setSortOrder("asc")
+    }
+  }
 
   if (bancasDefesaQuery.isLoading) {
     return (
@@ -89,12 +108,24 @@ export default function Home() {
         </TabsList>
         <TabsContent value="upcoming">
           <div className="border rounded-md overflow-x-auto">
-            <HomeTable data={bancasDefesaQuery.data?.upcoming || []} searchQuery={searchQuery} />
+            <HomeTable
+              data={bancasDefesaQuery.data?.upcoming || []}
+              searchQuery={searchQuery}
+              sortField={sortField}
+              sortOrder={sortOrder}
+              onSort={handleSort}
+            />
           </div>
         </TabsContent>
         <TabsContent value="past">
           <div className="border rounded-md overflow-x-auto">
-            <HomeTable data={bancasDefesaQuery.data?.past || []} searchQuery={searchQuery} />
+            <HomeTable
+              data={bancasDefesaQuery.data?.past || []}
+              searchQuery={searchQuery}
+              sortField={sortField}
+              sortOrder={sortOrder}
+              onSort={handleSort}
+            />
           </div>
         </TabsContent>
       </Tabs>
@@ -103,38 +134,65 @@ export default function Home() {
 }
 
 const columns = [
-  { key: "formatedData", header: "Data", minWidth: "160px" },
-  { key: "tituloTrabalho", header: "Título do Trabalho", minWidth: "400px" },
-  { key: "autor", header: "Discente", minWidth: "120px" },
-  { key: "nomeOrientador", header: "Orientador", minWidth: "150px" },
-  { key: "siglaCurso", header: "Curso", minWidth: "80px" },
-  { key: "local", header: "Virtual", minWidth: "200px" },
+  { key: "dataRealizacao", header: "Data", minWidth: "160px", sortable: true },
+  { key: "tituloTrabalho", header: "Título do Trabalho", minWidth: "400px", sortable: true },
+  { key: "autor", header: "Discente", minWidth: "120px", sortable: true },
+  { key: "orientador", header: "Orientador", minWidth: "150px", sortable: true },
+  { key: "curso", header: "Curso", minWidth: "80px", sortable: true },
+  { key: "local", header: "Virtual", minWidth: "200px", sortable: true },
 ] as const
 
-function HomeTable(props: { data: BancasDefesa; searchQuery: string }) {
-  const bancas = useBancasDefesa()
+function HomeTable(props: {
+  data: BancasDefesa
+  searchQuery: string
+  sortField: string
+  sortOrder: "asc" | "desc"
+  onSort: (field: string) => void
+}) {
   const navigate = useNavigate()
 
   const goToViewBanca = (bancaId: string | number) => {
     navigate(href("/banca/:id", { id: String(bancaId) }))
   }
 
-  const renderCellContent = (banca: Dry<SelectBanca>, columnKey: (typeof columns)[number]["key"]) => {}
+  const getSortIcon = (columnKey: string) => {
+    if (props.sortField !== columnKey) {
+      return <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+    }
+    return props.sortOrder === "asc" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+  }
+
+  // Filter data based on search query
+  const filteredData = props.data.filter(
+    (banca) =>
+      banca.tituloTrabalho.toLowerCase().includes(props.searchQuery.toLowerCase()) ||
+      banca.autor.toLowerCase().includes(props.searchQuery.toLowerCase()) ||
+      banca.orientador.nome.toLowerCase().includes(props.searchQuery.toLowerCase()) ||
+      banca.curso.nome.toLowerCase().includes(props.searchQuery.toLowerCase())
+  )
 
   return (
     <Table>
       <TableHeader>
         <TableRow>
           {columns.map((col) => (
-            <TableHead key={col.key} style={{ minWidth: col.minWidth }}>
-              {col.header}
+            <TableHead
+              key={col.key}
+              style={{ minWidth: col.minWidth }}
+              className={col.sortable ? "cursor-pointer select-none hover:bg-muted/50" : ""}
+              onClick={() => col.sortable && props.onSort(col.key)}
+            >
+              <div className="flex items-center gap-2">
+                {col.header}
+                {col.sortable && getSortIcon(col.key)}
+              </div>
             </TableHead>
           ))}
         </TableRow>
       </TableHeader>
       <TableBody>
-        {props.data.length > 0 ? (
-          props.data.map((banca) => (
+        {filteredData.length > 0 ? (
+          filteredData.map((banca) => (
             <TableRow
               key={banca.id}
               onClick={() => goToViewBanca(banca.id)}
@@ -143,15 +201,15 @@ function HomeTable(props: { data: BancasDefesa; searchQuery: string }) {
               {columns.map((col) => (
                 <TableCell key={`${banca.id}-${col.key}`}>
                   {match(col.key)
-                    .with("formatedData", () => (
+                    .with("dataRealizacao", () => (
                       <span className="whitespace-nowrap">
                         {new Date(banca.dataRealizacao).toLocaleDateString("pt-BR")}
                       </span>
                     ))
                     .with("tituloTrabalho", () => <span className="whitespace-nowrap">{banca.tituloTrabalho}</span>)
                     .with("autor", () => <span className="whitespace-nowrap">{banca.autor}</span>)
-                    .with("nomeOrientador", () => <span className="whitespace-nowrap">{banca.orientador.nome}</span>)
-                    .with("siglaCurso", () => <span className="whitespace-nowrap">{banca.curso.sigla}</span>)
+                    .with("orientador", () => <span className="whitespace-nowrap">{banca.orientador.nome}</span>)
+                    .with("curso", () => <span className="whitespace-nowrap">{banca.curso.sigla}</span>)
                     .with("local", () => <span className="whitespace-nowrap">{banca.local}</span>)
                     .otherwise(() => null)}
                 </TableCell>
