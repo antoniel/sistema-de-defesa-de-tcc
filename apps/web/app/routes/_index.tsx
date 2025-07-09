@@ -351,8 +351,8 @@ export default function Home() {
 }
 
 const columns = [
-  { key: "dataRealizacao", header: "Data", minWidth: "160px", sortable: true },
-  { key: "tituloTrabalho", header: "Título do Trabalho", minWidth: "400px", sortable: true },
+  { key: "dataRealizacao", header: "Data", minWidth: "100px", sortable: true },
+  { key: "tituloTrabalho", header: "Título do Trabalho", minWidth: "350px", sortable: true },
   { key: "autor", header: "Discente", minWidth: "120px", sortable: true },
   { key: "orientador", header: "Orientador", minWidth: "150px", sortable: true },
   { key: "curso", header: "Curso", minWidth: "80px", sortable: true },
@@ -378,6 +378,11 @@ function HomeTable(props: {
       return <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
     }
     return props.sortOrder === "asc" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+  }
+
+  const truncateText = (text: string, maxLength: number) => {
+    if (text.length <= maxLength) return text
+    return text.substring(0, maxLength) + "..."
   }
 
   // Data is already filtered and paginated by the backend
@@ -414,11 +419,19 @@ function HomeTable(props: {
                 <TableCell key={`${banca.id}-${col.key}`}>
                   {match(col.key)
                     .with("dataRealizacao", () => (
-                      <span className="whitespace-nowrap">
-                        {new Date(banca.dataRealizacao).toLocaleDateString("pt-BR")}
+                      <span className="whitespace-nowrap text-xs">
+                        {new Date(banca.dataRealizacao).toLocaleDateString("pt-BR", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "2-digit",
+                        })}
                       </span>
                     ))
-                    .with("tituloTrabalho", () => <span className="whitespace-nowrap">{banca.tituloTrabalho}</span>)
+                    .with("tituloTrabalho", () => (
+                      <span className="block" title={banca.tituloTrabalho}>
+                        {truncateText(banca.tituloTrabalho, 80)}
+                      </span>
+                    ))
                     .with("autor", () => <span className="whitespace-nowrap">{banca.autor}</span>)
                     .with("orientador", () => <span className="whitespace-nowrap">{banca.orientador.nome}</span>)
                     .with("curso", () => <span className="whitespace-nowrap">{banca.curso.sigla}</span>)
