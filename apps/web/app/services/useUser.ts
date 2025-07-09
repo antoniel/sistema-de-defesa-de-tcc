@@ -1,4 +1,4 @@
-import { QueryClient, useQuery, useQueryClient, type Updater } from "@tanstack/react-query"
+import { QueryClient, useQuery, useQueryClient, type SetDataOptions, type Updater } from "@tanstack/react-query"
 import React from "react"
 import { rpcReturn } from "../lib/utils"
 import apiClient from "./apiClient"
@@ -21,7 +21,6 @@ export const useUser = () => {
       }
     },
     enabled: !!getAuthToken(),
-    staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
   })
   React.useEffect(() => {
@@ -35,9 +34,10 @@ export const useUser = () => {
 useUser.queryKey = () => ["user"]
 useUser.setData = (
   queryClient: QueryClient,
-  data: Updater<ReturnType<typeof useUser>["data"] | null, ReturnType<typeof useUser>["data"] | null>
+  data: Updater<ReturnType<typeof useUser>["data"] | null, ReturnType<typeof useUser>["data"] | null>,
+  options?: SetDataOptions
 ) => {
-  return queryClient.setQueryData(useUser.queryKey(), data)
+  return queryClient.setQueryData(useUser.queryKey(), data, options)
 }
 useUser.removeQueries = (queryClient: QueryClient) => {
   return queryClient.setQueryData(useUser.queryKey(), null)

@@ -9,12 +9,21 @@ import { type AppVariables } from "../../types"
 import { type RegisterUserInput } from "./auth.schema"
 import { JWT_AUDIENCE, JWT_EXPIRY_SECONDS, JWT_ISSUER, JWT_SECRET } from "./jwt"
 
+export const getUserService = async (c: Context<{ Variables: AppVariables }>) => {
+  const dbInstance = c.get("db")
+  const user = await dbInstance
+    .select()
+    .from(Users)
+    .where(eq(Users.id, Number(c.get("jwtPayload").sub)))
+  return ok(user)
+}
+
 interface LoginResponse {
   id: number
   token: string
   role: string
   name: string
-  user: SelectUser
+  user: Omit<SelectUser, "passwordHash" | "createdAt">
 }
 
 type LoginUserServiceError =
@@ -78,7 +87,17 @@ export const loginUserService = async (
       token: token,
       role: user.role,
       name: user.nome,
-      user: user,
+      user: {
+        id: user.id,
+        nome: user.nome,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+        school: user.school,
+        matricula: user.matricula,
+        academicTitle: user.academicTitle,
+        updatedAt: user.updatedAt,
+      },
     })
   } catch (dbError) {
     console.error("Database error during login:", dbError)
@@ -333,6 +352,7 @@ export const registerUserService = async (
   try {
     // Check for duplicate email
     const existingEmail = await dbInstance.select({ id: Users.id }).from(Users).where(eq(Users.email, email)).limit(1)
+    console.log("existingEmail", existingEmail, email, existingEmail.length)
 
     if (existingEmail.length > 0) {
       console.log(`Registration failed: Email ${email} already exists.`)

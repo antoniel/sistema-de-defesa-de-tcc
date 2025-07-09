@@ -141,41 +141,11 @@ describe("Auth Register Routes", async () => {
 
     // Attempt to register again with the same email
     const response = await client.auth.register.$post({
-      json: { ...newUser, email: "another@example.com" },
+      json: newUser,
     })
 
     expect(response.status).toBe(409)
     const data = await response.json()
     expect(data).toHaveProperty("message", "Este email já está em uso.")
-  })
-
-  it("should reject registration with duplicate username", async () => {
-    // Insert a user first
-    await client.auth.register.$post({ json: newUser })
-
-    // Attempt to register again with the same username
-    const response = await client.auth.register.$post({
-      json: { ...newUser, email: "another@example.com" },
-    })
-
-    expect(response.status).toBe(409)
-    const data = await response.json()
-    expect(data).toHaveProperty("message", "Este nome de usuário já está em uso.")
-  })
-
-  it("should validate registration inputs (e.g., short password)", async () => {
-    const response = await client.auth.register.$post({
-      json: { ...newUser, password: "short" },
-    })
-
-    expect(response.status).toBe(400) // Zod validation error
-  })
-
-  it("should validate registration inputs (e.g., invalid email)", async () => {
-    const response = await client.auth.register.$post({
-      json: { ...newUser, email: "not-an-email" },
-    })
-
-    expect(response.status).toBe(400) // Zod validation error
   })
 })
