@@ -3,6 +3,7 @@
 import { Header } from "@/components/layout/Header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -55,6 +56,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("upcoming")
   const [sortField, setSortField] = useState<string>("")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
+  const [rowsPerPage, setRowsPerPage] = useState<number>(10)
 
   const userQuery = useUser()
   const bancasDefesaQuery = useBancasDefesa(sortField || undefined, sortField ? sortOrder : undefined)
@@ -121,15 +123,31 @@ export default function Home() {
   return (
     <div className="container mx-auto p-4 md:p-8">
       <Header className="mb-6" />
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
-        <Input
-          id="banca-search"
-          type="search"
-          placeholder="Buscar defesas, alunos, orientadores ou avaliadores..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="max-w-lg w-full"
-        />
+      <div className="flex flex-col lg:flex-row justify-between items-center gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
+          <Input
+            id="banca-search"
+            type="search"
+            placeholder="Buscar defesas, alunos, orientadores ou avaliadores..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="max-w-lg w-full"
+          />
+          <div className="flex items-center gap-2 whitespace-nowrap">
+            <span className="text-sm text-muted-foreground">Exibir:</span>
+            <Select value={rowsPerPage.toString()} onValueChange={(value) => setRowsPerPage(Number(value))}>
+              <SelectTrigger className="w-20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="30">30</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-sm text-muted-foreground">linhas</span>
+          </div>
+        </div>
         {!!userQuery.data && <Button onClick={() => navigate("/add-banca")}>Cadastrar Defesa de TCC</Button>}
       </div>
 
@@ -140,26 +158,24 @@ export default function Home() {
           {isTeacherOrAdmin && <TabsTrigger value="my-defesas">Minhas Defesas</TabsTrigger>}
         </TabsList>
         <TabsContent value="upcoming">
-          <div className="border rounded-md overflow-x-auto">
-            <HomeTable
-              data={tableData.upcoming}
-              searchQuery={searchQuery}
-              sortField={sortField}
-              sortOrder={sortOrder}
-              onSort={handleSort}
-            />
-          </div>
+          <TableWithInfo
+            data={tableData.upcoming}
+            searchQuery={searchQuery}
+            sortField={sortField}
+            sortOrder={sortOrder}
+            onSort={handleSort}
+            rowsPerPage={rowsPerPage}
+          />
         </TabsContent>
         <TabsContent value="past">
-          <div className="border rounded-md overflow-x-auto">
-            <HomeTable
-              data={tableData.past}
-              searchQuery={searchQuery}
-              sortField={sortField}
-              sortOrder={sortOrder}
-              onSort={handleSort}
-            />
-          </div>
+          <TableWithInfo
+            data={tableData.past}
+            searchQuery={searchQuery}
+            sortField={sortField}
+            sortOrder={sortOrder}
+            onSort={handleSort}
+            rowsPerPage={rowsPerPage}
+          />
         </TabsContent>
         {isTeacherOrAdmin && (
           <TabsContent value="my-defesas">
@@ -176,29 +192,77 @@ export default function Home() {
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="border rounded-md overflow-x-auto">
-                  <div className="p-4 border-b">
-                    <h3 className="text-lg font-semibold">Próximas defesas</h3>
+                <div>
+                  <div className="border rounded-md">
+                    <div className="p-4 border-b">
+                      <h3 className="text-lg font-semibold">Próximas defesas</h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <HomeTable
+                        data={tableData.upcoming}
+                        searchQuery={searchQuery}
+                        sortField={sortField}
+                        sortOrder={sortOrder}
+                        onSort={handleSort}
+                        rowsPerPage={rowsPerPage}
+                      />
+                    </div>
                   </div>
-                  <HomeTable
-                    data={tableData.upcoming}
-                    searchQuery={searchQuery}
-                    sortField={sortField}
-                    sortOrder={sortOrder}
-                    onSort={handleSort}
-                  />
+                  <div className="text-sm text-muted-foreground px-4 pt-2">
+                    {(() => {
+                      const filteredData = tableData.upcoming.filter(
+                        (banca) =>
+                          banca.tituloTrabalho.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          banca.autor.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          banca.orientador.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          banca.curso.nome.toLowerCase().includes(searchQuery.toLowerCase())
+                      )
+                      const showingCount = Math.min(filteredData.length, rowsPerPage)
+                      return filteredData.length > 0 ? (
+                        <>
+                          Exibindo {showingCount} de {filteredData.length} resultado
+                          {filteredData.length !== 1 ? "s" : ""}
+                          {searchQuery && ` para "${searchQuery}"`}
+                        </>
+                      ) : null
+                    })()}
+                  </div>
                 </div>
-                <div className="border rounded-md overflow-x-auto">
-                  <div className="p-4 border-b">
-                    <h3 className="text-lg font-semibold">Defesas anteriores</h3>
+                <div>
+                  <div className="border rounded-md">
+                    <div className="p-4 border-b">
+                      <h3 className="text-lg font-semibold">Defesas anteriores</h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <HomeTable
+                        data={tableData.past}
+                        searchQuery={searchQuery}
+                        sortField={sortField}
+                        sortOrder={sortOrder}
+                        onSort={handleSort}
+                        rowsPerPage={rowsPerPage}
+                      />
+                    </div>
                   </div>
-                  <HomeTable
-                    data={tableData.past}
-                    searchQuery={searchQuery}
-                    sortField={sortField}
-                    sortOrder={sortOrder}
-                    onSort={handleSort}
-                  />
+                  <div className="text-sm text-muted-foreground px-4 pt-2">
+                    {(() => {
+                      const filteredData = tableData.past.filter(
+                        (banca) =>
+                          banca.tituloTrabalho.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          banca.autor.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          banca.orientador.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          banca.curso.nome.toLowerCase().includes(searchQuery.toLowerCase())
+                      )
+                      const showingCount = Math.min(filteredData.length, rowsPerPage)
+                      return filteredData.length > 0 ? (
+                        <>
+                          Exibindo {showingCount} de {filteredData.length} resultado
+                          {filteredData.length !== 1 ? "s" : ""}
+                          {searchQuery && ` para "${searchQuery}"`}
+                        </>
+                      ) : null
+                    })()}
+                  </div>
                 </div>
               </div>
             )}
@@ -224,6 +288,7 @@ function HomeTable(props: {
   sortField: string
   sortOrder: "asc" | "desc"
   onSort: (field: string) => void
+  rowsPerPage: number
 }) {
   const navigate = useNavigate()
 
@@ -247,6 +312,9 @@ function HomeTable(props: {
       banca.curso.nome.toLowerCase().includes(props.searchQuery.toLowerCase())
   )
 
+  // Apply rows per page limit
+  const paginatedData = filteredData.slice(0, props.rowsPerPage)
+
   return (
     <Table>
       <TableHeader>
@@ -267,8 +335,8 @@ function HomeTable(props: {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {filteredData.length > 0 ? (
-          filteredData.map((banca) => (
+        {paginatedData.length > 0 ? (
+          paginatedData.map((banca) => (
             <TableRow
               key={banca.id}
               onClick={() => goToViewBanca(banca.id)}
@@ -301,5 +369,39 @@ function HomeTable(props: {
         )}
       </TableBody>
     </Table>
+  )
+}
+
+function TableWithInfo(props: {
+  data: BancasDefesa
+  searchQuery: string
+  sortField: string
+  sortOrder: "asc" | "desc"
+  onSort: (field: string) => void
+  rowsPerPage: number
+}) {
+  // Filter data based on search query
+  const filteredData = props.data.filter(
+    (banca) =>
+      banca.tituloTrabalho.toLowerCase().includes(props.searchQuery.toLowerCase()) ||
+      banca.autor.toLowerCase().includes(props.searchQuery.toLowerCase()) ||
+      banca.orientador.nome.toLowerCase().includes(props.searchQuery.toLowerCase()) ||
+      banca.curso.nome.toLowerCase().includes(props.searchQuery.toLowerCase())
+  )
+
+  const showingCount = Math.min(filteredData.length, props.rowsPerPage)
+
+  return (
+    <div>
+      <div className="border rounded-md overflow-x-auto">
+        <HomeTable {...props} />
+      </div>
+      {filteredData.length > 0 && (
+        <div className="text-sm text-muted-foreground px-4 pt-2">
+          Exibindo {showingCount} de {filteredData.length} resultado{filteredData.length !== 1 ? "s" : ""}
+          {props.searchQuery && ` para "${props.searchQuery}"`}
+        </div>
+      )}
+    </div>
   )
 }
