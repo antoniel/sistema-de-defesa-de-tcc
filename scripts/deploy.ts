@@ -82,12 +82,8 @@ async function main() {
   console.log("✅ Type check passed!\n")
 
   console.log("🖥️  Starting server deployment...")
-  const serverResult = await runCommand("npm", ["run", "push:server"])
-  if (serverResult.code !== 0) {
-    console.error("❌ Server deployment failed! Web deployment aborted.")
-    process.exit(1)
-  }
-  console.log("✅ Server deployment completed!\n")
+  const serverDeploy = runCommandBackground("npm", ["run", "push:server"])
+  console.log("✅ Server deployment started!\n")
 
   console.log("⏱️  Waiting 5 seconds before starting web deployment...")
   await sleep(5000)
@@ -103,6 +99,15 @@ async function main() {
     console.error("❌ Web deployment failed!")
     console.error("Web deployment output:")
     console.error(webResult.stderr)
+    process.exit(1)
+  }
+
+  const serverResult = await serverDeploy.promise
+
+  if (serverResult.code !== 0) {
+    console.error("❌ Server deployment failed!")
+    console.error("Server deployment output:")
+    console.error(serverResult.stderr)
     process.exit(1)
   }
 
