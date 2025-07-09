@@ -91,16 +91,6 @@ const useTeachers = () => {
   })
 }
 
-const useAllUsers = () => {
-  return useQuery({
-    queryKey: ["users", "all"],
-    queryFn: async () => {
-      const response = await apiClient.usuario.all.$get()
-      return rpcReturn(response) as unknown as SelectUser[]
-    },
-  })
-}
-
 export default function EditBancaPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -109,7 +99,6 @@ export default function EditBancaPage() {
   const { data: teachers, isLoading: isLoadingTeachers } = useTeachers()
   const { data: banca, isLoading: isBancaLoading } = useBanca(id!)
   const updateBancaMutation = useUpdateBanca(id!)
-  const { data: allUsers, isLoading: isLoadingUsers } = useAllUsers()
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -171,7 +160,7 @@ export default function EditBancaPage() {
     })
   }
 
-  if (isLoadingCursos || isLoadingTeachers || isBancaLoading || isLoadingUsers) {
+  if (isLoadingCursos || isLoadingTeachers || isBancaLoading) {
     return <BancaSkeleton />
   }
 
@@ -259,7 +248,7 @@ export default function EditBancaPage() {
                 <FormItem>
                   <FormLabel>Matrícula</FormLabel>
                   <FormControl>
-                    <Input placeholder="Matrícula do autor" {...field} />
+                    <Input placeholder="Matrícula do autor" {...field} disabled />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -393,13 +382,11 @@ export default function EditBancaPage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {allUsers
-                              ?.filter((user) => user.role === "TEACHER")
-                              .map((user) => (
-                                <SelectItem key={user.id} value={String(user.id)}>
-                                  {user.nome}
-                                </SelectItem>
-                              ))}
+                            {teachers?.map((user) => (
+                              <SelectItem key={user.id} value={String(user.id)}>
+                                {user.nome}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />
