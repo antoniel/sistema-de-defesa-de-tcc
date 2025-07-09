@@ -52,7 +52,7 @@ const TEST_CURSO = {
   // grau property is not in the schema, removing it.
 }
 
-const getTestBancaData = (cursoId: number, orientadorId: number): Omit<InsertBanca, "id"> => ({
+const getTestBancaData = (cursoId: number, orientadorId: number, alunoId: number): Omit<InsertBanca, "id"> => ({
   tituloTrabalho: "Banca de Teste",
   autor: "Aluno Teste",
   matricula: "222",
@@ -67,6 +67,7 @@ const getTestBancaData = (cursoId: number, orientadorId: number): Omit<InsertBan
   cursoId,
   orientadorId,
   visible: true,
+  alunoId,
 })
 
 describe("Rotas de Banca", async () => {
@@ -111,7 +112,10 @@ describe("Rotas de Banca", async () => {
     const [curso] = await db.insert(Cursos).values(TEST_CURSO).returning()
     cursoId = curso.id
 
-    const [banca] = await db.insert(Bancas).values(getTestBancaData(cursoId, teacherId)).returning()
+    const [banca] = await db
+      .insert(Bancas)
+      .values(getTestBancaData(cursoId, teacherId, studentId))
+      .returning()
     bancaId = banca.id
 
     const loginUser = async (user: { email: string; password: string }) => {
@@ -139,6 +143,7 @@ describe("Rotas de Banca", async () => {
         palavrasChave: "tcc, novo",
         cursoId,
         resumo: "Resumo da nova banca",
+        alunoId: studentId,
         dataRealizacao: new Date(),
         local: "Teams",
         orientadorId: teacherId,
@@ -256,6 +261,14 @@ describe("Rotas de Banca", async () => {
   })
 
   describe("GET /bancas/:id", () => {
+    it("retorna semplre pelo menos um membro da banca que é o aluno", async () => {
+      const res = await client.banca[":id"].$get({ param: { id: bancaId.toString() } })
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.id).toBe(bancaId)
+      expect(data.tituloTrabalho).toBe("Banca de Teste")
+    })
+
     it("retorna detalhes de uma banca específica", async () => {
       const res = await client.banca[":id"].$get({ param: { id: bancaId.toString() } })
       expect(res.status).toBe(200)

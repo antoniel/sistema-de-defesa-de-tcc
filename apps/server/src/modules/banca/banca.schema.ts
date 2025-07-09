@@ -13,6 +13,7 @@ const baseBancaSchema = createInsertSchema(Bancas)
 export const createBancaSchema = baseBancaSchema.extend({
   autor: z.string().min(1, "Autor é obrigatório"),
   matricula: z.string().min(1, "Matrícula é obrigatória"),
+  alunoId: z.number().min(1, "Discente é obrigatório"),
   dataRealizacao: z.coerce.date(),
   avaliadores: z.array(z.string()).min(1, "Pelo menos um avaliador é necessário").optional(),
 })
@@ -31,9 +32,7 @@ export const updateBancaSchema = z.object({
   alunoId: z.number().min(1, "Discente é obrigatório"),
   orientadorId: z.number().min(1, "Orientador é obrigatório"),
   cursoId: z.number().min(1, "Curso é obrigatório"),
-  membros: z
-    .array(z.object({ id: z.string().min(1, "Avaliador é obrigatório") }))
-    .min(1, "Pelo menos um avaliador é necessário"),
+  membros: z.array(z.object({ id: z.string().min(1, "Avaliador é obrigatório") })),
 })
 
 export type CreateBancaInput = z.infer<typeof createBancaSchema>
