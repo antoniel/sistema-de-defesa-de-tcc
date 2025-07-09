@@ -14,12 +14,12 @@ export const preRegisterUserSchema = createUserSchema.pick({
 })
 
 export const idParamSchema = z.object({
-  param: z.object({
-    id: z
-      .string()
-      .refine((val) => !isNaN(Number(val)), { message: "ID must be a number" })
-      .transform(Number),
-  }),
+  param: z.object({ id: z.coerce.number() }),
+})
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Senha atual é obrigatória"),
+  newPassword: z.string().min(8, "Nova senha deve ter pelo menos 8 caracteres"),
 })
 
 export const updateUserSchema = z.object({

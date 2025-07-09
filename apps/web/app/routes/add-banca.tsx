@@ -594,6 +594,11 @@ const WorkAndDefenseSection = () => {
               type="date"
               {...register("dataRealizacao", {
                 required: "Data é obrigatória",
+                setValueAs: (value: string) => {
+                  if (!value) return undefined
+                  // Adiciona o T00:00:00 para evitar problemas de fuso horário
+                  return new Date(`${value}T00:00:00`)
+                },
                 validate: (value) => {
                   if (!value) {
                     return "Data é obrigatória"
@@ -742,9 +747,9 @@ const ReviewSection = () => {
             <div>
               <p className="text-sm text-muted-foreground">Data</p>
               <p className="font-medium">
-                {values.dataRealizacao instanceof Date
-                  ? values.dataRealizacao.toLocaleDateString("pt-BR")
-                  : new Date(values.dataRealizacao as any).toLocaleDateString("pt-BR")}
+                {values.dataRealizacao
+                  ? new Date(values.dataRealizacao).toLocaleDateString("pt-BR", { timeZone: "UTC" })
+                  : "Não definida"}
               </p>
             </div>
             <div>

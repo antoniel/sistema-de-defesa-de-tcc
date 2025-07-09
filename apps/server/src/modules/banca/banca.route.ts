@@ -94,20 +94,40 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
 
     return c.json(result.data)
   })
-  .delete("/:id", checkRole(["ADMIN"]), async (c) => {
-    const id = Number(c.req.param("id"))
-    const result = await service.deleteBanca(c, id)
-
-    if (!result.ok) {
-      throw match(result.error)
-        .with({ type: "database_error" }, () => new AppError(500, "Erro ao excluir banca"))
-        .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
-        .with({ type: "unauthorized" }, () => new AppError(403, "Não autorizado a excluir esta banca"))
-        .exhaustive()
+  .delete(
+    "/:id",
+    checkRole(["ADMIN", "TEACHER"]),
+    zValidator("param", z.object({ id: z.coerce.number() })),
+    async (c) => {
+      const { id } = c.req.valid("param")
+      const result = await service.deleteBanca(c, id)
+      if (!result.ok) {
+        throw match(result.error)
+          .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
+          .with({ type: "unauthorized" }, () => new AppError(403, "Não autorizado"))
+          .with({ type: "database_error" }, () => new AppError(500, "Erro ao deletar banca"))
+          .exhaustive()
+      }
+      return c.body(null, 204)
     }
-
-    return c.json({ message: "Banca excluída com sucesso" }, 200)
-  })
+  )
+  .patch(
+    "/:id/toggle-visibility",
+    checkRole(["ADMIN", "TEACHER"]),
+    zValidator("param", z.object({ id: z.coerce.number() })),
+    async (c) => {
+      const { id } = c.req.valid("param")
+      const result = await service.toggleBancaVisibility(c, id)
+      if (!result.ok) {
+        throw match(result.error)
+          .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
+          .with({ type: "unauthorized" }, () => new AppError(403, "Não autorizado"))
+          .with({ type: "database_error" }, () => new AppError(500, "Erro ao alterar visibilidade"))
+          .exhaustive()
+      }
+      return c.json(result.data)
+    }
+  )
   .get("/:bancaId/usuarios", async (c) => {
     const bancaId = Number(c.req.param("bancaId"))
     const result = await service.getUsersByBanca(c, bancaId)
