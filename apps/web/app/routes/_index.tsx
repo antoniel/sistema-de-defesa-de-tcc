@@ -33,8 +33,10 @@ const useBancasDefesa = (orderBy?: string, order?: "asc" | "desc") => {
 }
 
 const useMyDefesas = (orderBy?: string, order?: "asc" | "desc") => {
+  const userQuery = useUser()
+
   return useQuery({
-    queryKey: ["my-defesas", orderBy, order],
+    queryKey: ["user", userQuery.data?.id, "my-defesas", orderBy, order],
     queryFn: async () => {
       const params = new URLSearchParams()
       if (orderBy) params.set("orderBy", orderBy)
@@ -45,6 +47,7 @@ const useMyDefesas = (orderBy?: string, order?: "asc" | "desc") => {
       })
       return rpcReturn(res)
     },
+    enabled: !!userQuery.data && (userQuery.data.role === "TEACHER" || userQuery.data.role === "ADMIN"),
   })
 }
 

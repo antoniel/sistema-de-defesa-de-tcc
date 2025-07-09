@@ -7,6 +7,7 @@ import { type AppVariables } from "../../types"
 
 import { insertUserSchema } from "./auth.schema"
 import {
+  getUserService,
   loginUserService,
   registerUserService,
   requestPasswordResetService,
@@ -30,6 +31,13 @@ const resetPasswordSchema = z.object({
 })
 
 export const authRoutes = new Hono<{ Variables: AppVariables }>()
+  .get("/me", async (c) => {
+    const result = await getUserService(c)
+    if (!result.ok) {
+      throw new AppError(401, "Usuário não autenticado.")
+    }
+    return c.json(result.data, 200)
+  })
   .post("/login", zValidator("json", loginSchema), async (c) => {
     const { email, password } = c.req.valid("json")
     const result = await loginUserService(c, email, password)

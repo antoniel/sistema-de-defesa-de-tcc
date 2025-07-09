@@ -9,12 +9,21 @@ import { type AppVariables } from "../../types"
 import { type RegisterUserInput } from "./auth.schema"
 import { JWT_AUDIENCE, JWT_EXPIRY_SECONDS, JWT_ISSUER, JWT_SECRET } from "./jwt"
 
+export const getUserService = async (c: Context<{ Variables: AppVariables }>) => {
+  const dbInstance = c.get("db")
+  const user = await dbInstance
+    .select()
+    .from(Users)
+    .where(eq(Users.id, Number(c.get("jwtPayload").sub)))
+  return ok(user)
+}
+
 interface LoginResponse {
   id: number
   token: string
   role: string
   name: string
-  user: SelectUser
+  user: Pick<SelectUser, "id" | "nome" | "email" | "role">
 }
 
 type LoginUserServiceError =
@@ -32,7 +41,18 @@ export const loginUserService = async (
   const dbInstance = c.get("db")
 
   try {
-    const [user] = await dbInstance.select().from(Users).where(eq(Users.email, email)).limit(1)
+    const [user] = await dbInstance
+      .select({
+        id: Users.id,
+        nome: Users.nome,
+        email: Users.email,
+        role: Users.role,
+        status: Users.status,
+        passwordHash: Users.passwordHash,
+      })
+      .from(Users)
+      .where(eq(Users.email, email))
+      .limit(1)
 
     if (!user) {
       console.log(`Login attempt failed: User not found for email ${email}`)
@@ -78,7 +98,12 @@ export const loginUserService = async (
       token: token,
       role: user.role,
       name: user.nome,
-      user: user,
+      user: {
+        id: user.id,
+        nome: user.nome,
+        email: user.email,
+        role: user.role,
+      },
     })
   } catch (dbError) {
     console.error("Database error during login:", dbError)
