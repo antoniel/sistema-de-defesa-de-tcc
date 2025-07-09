@@ -1,6 +1,6 @@
 import {
   Bancas,
-  cursos,
+  Cursos,
   db,
   type InsertBanca,
   type InsertCurso,
@@ -15,7 +15,7 @@ async function seed() {
     // --- Seed Cursos ---
     console.log("Seeding cursos...")
     await db
-      .insert(cursos)
+      .insert(Cursos)
       .values({
         id: 1,
         nome: "Ciência da Computação",

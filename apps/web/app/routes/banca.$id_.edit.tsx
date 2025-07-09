@@ -145,6 +145,7 @@ export default function EditBancaPage() {
   })
 
   const onSubmit = (data: FormValues) => {
+    const autor = banca?.membros?.find((m) => m.role === "STUDENT")
     const submitData: updateBanca = {
       tituloTrabalho: data.tituloTrabalho,
       resumo: data.resumo,
@@ -153,10 +154,10 @@ export default function EditBancaPage() {
       dataRealizacao: new Date(data.dataRealizacao),
       local: data.local,
       turma: data.turma,
-      cursoId: data.cursoId,
-      orientadorId: data.orientadorId,
+      cursoId: Number(data.cursoId),
+      orientadorId: Number(data.orientadorId),
       membros: data.avaliadores.map((a) => ({ id: a.usuarioId })),
-      alunoId: data.autor,
+      alunoId: Number(autor?.usuario.id),
     }
 
     updateBancaMutation.mutate(submitData, {
@@ -201,7 +202,7 @@ export default function EditBancaPage() {
               <FormItem>
                 <FormLabel>Resumo</FormLabel>
                 <FormControl>
-                  <Textarea placeholder="Resumo do trabalho" {...field} />
+                  <Textarea rows={8} placeholder="Resumo do trabalho" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -215,7 +216,7 @@ export default function EditBancaPage() {
               <FormItem>
                 <FormLabel>Abstract</FormLabel>
                 <FormControl>
-                  <Textarea placeholder="Abstract" {...field} />
+                  <Textarea rows={8} placeholder="Abstract" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

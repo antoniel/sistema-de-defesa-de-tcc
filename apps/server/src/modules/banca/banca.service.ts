@@ -3,13 +3,13 @@ import { type Context } from "hono"
 import type { InferResultType } from "../../database"
 import {
   Bancas,
+  bancasDocumentos,
+  Cursos,
+  documentos,
+  invites,
   type SelectUser,
   type UserRole,
   Users,
-  bancasDocumentos,
-  cursos,
-  documentos,
-  invites,
   usuariosBancas,
 } from "../../database/schema"
 import { type AppResult, err, ok } from "../../result"
@@ -90,7 +90,7 @@ export const getAllBancasVisible = async (
           ilike(Bancas.tituloTrabalho, `%${searchQuery}%`),
           ilike(Bancas.autor, `%${searchQuery}%`),
           ilike(Users.nome, `%${searchQuery}%`),
-          ilike(cursos.nome, `%${searchQuery}%`)
+          ilike(Cursos.nome, `%${searchQuery}%`)
         )
       : undefined
 
@@ -102,7 +102,7 @@ export const getAllBancasVisible = async (
       .select({ count: Bancas.id })
       .from(Bancas)
       .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
-      .leftJoin(cursos, eq(Bancas.cursoId, cursos.id))
+      .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
       .where(whereCondition)
 
     const total = totalResult.length
@@ -133,11 +133,11 @@ export const getAllBancasVisible = async (
           .select({
             banca: Bancas,
             orientador: Users,
-            curso: cursos,
+            curso: Cursos,
           })
           .from(Bancas)
           .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
-          .leftJoin(cursos, eq(Bancas.cursoId, cursos.id))
+          .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
           .where(whereCondition)
           .orderBy(orderClause)
           .limit(limit)
@@ -209,7 +209,7 @@ export const getAllBancasVisible = async (
     if (orderBy === "orientador") {
       orderClause = order === "desc" ? desc(Users.nome) : asc(Users.nome)
     } else if (orderBy === "curso") {
-      orderClause = order === "desc" ? desc(cursos.nome) : asc(cursos.nome)
+      orderClause = order === "desc" ? desc(Cursos.nome) : asc(Cursos.nome)
     } else {
       orderClause = asc(Bancas.dataRealizacao)
     }
@@ -218,7 +218,7 @@ export const getAllBancasVisible = async (
       .select()
       .from(Bancas)
       .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
-      .leftJoin(cursos, eq(Bancas.cursoId, cursos.id))
+      .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
       .where(whereCondition)
       .orderBy(orderClause)
       .limit(limit)
@@ -325,9 +325,9 @@ export const createBanca = async (
 
   try {
     const cursoExists = await dbInstance
-      .select({ id: cursos.id })
-      .from(cursos)
-      .where(eq(cursos.id, bancaData.cursoId))
+      .select({ id: Cursos.id })
+      .from(Cursos)
+      .where(eq(Cursos.id, bancaData.cursoId))
       .limit(1)
 
     if (cursoExists.length === 0) {
@@ -774,7 +774,7 @@ export const getBancasByOrientador = async (
           ilike(Bancas.tituloTrabalho, `%${searchQuery}%`),
           ilike(Bancas.autor, `%${searchQuery}%`),
           ilike(Users.nome, `%${searchQuery}%`),
-          ilike(cursos.nome, `%${searchQuery}%`)
+          ilike(Cursos.nome, `%${searchQuery}%`)
         )
       : undefined
 
@@ -788,7 +788,7 @@ export const getBancasByOrientador = async (
       .select({ count: Bancas.id })
       .from(Bancas)
       .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
-      .leftJoin(cursos, eq(Bancas.cursoId, cursos.id))
+      .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
       .where(whereCondition)
 
     const total = totalResult.length
@@ -819,11 +819,11 @@ export const getBancasByOrientador = async (
           .select({
             banca: Bancas,
             orientador: Users,
-            curso: cursos,
+            curso: Cursos,
           })
           .from(Bancas)
           .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
-          .leftJoin(cursos, eq(Bancas.cursoId, cursos.id))
+          .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
           .where(whereCondition)
           .orderBy(orderClause)
           .limit(limit)
@@ -895,7 +895,7 @@ export const getBancasByOrientador = async (
     if (orderBy === "orientador") {
       orderClause = order === "desc" ? desc(Users.nome) : asc(Users.nome)
     } else if (orderBy === "curso") {
-      orderClause = order === "desc" ? desc(cursos.nome) : asc(cursos.nome)
+      orderClause = order === "desc" ? desc(Cursos.nome) : asc(Cursos.nome)
     } else {
       orderClause = asc(Bancas.dataRealizacao)
     }
@@ -904,7 +904,7 @@ export const getBancasByOrientador = async (
       .select()
       .from(Bancas)
       .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
-      .leftJoin(cursos, eq(Bancas.cursoId, cursos.id))
+      .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
       .where(whereCondition)
       .orderBy(orderClause)
       .limit(limit)
