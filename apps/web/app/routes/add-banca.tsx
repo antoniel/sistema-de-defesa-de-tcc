@@ -26,6 +26,7 @@ type BancaFormData = Omit<InsertBanca, "ano" | "semestreLetivo"> & {
   visible: boolean
   hora: string
   orientadorId?: number
+  alunoId: number
   periodoAcademico: string // New combined field for ano.semestreLetivo
 }
 
@@ -128,6 +129,7 @@ export default function AddBancaPage() {
       cursoId: Number(data.cursoId),
       periodoAcademico: data.periodoAcademico,
       visible: Boolean(data.visible),
+      alunoId: Number(data.alunoId),
       orientadorId: Number(data.orientadorId),
     }
     addBancaMutation.mutate(
@@ -384,6 +386,7 @@ const AuthorInfoSection = () => {
                   if (student) {
                     field.onChange(student.nome)
                     setValue("matricula", student.matricula)
+                    setValue("alunoId", Number(value))
                   }
                 }}
               >

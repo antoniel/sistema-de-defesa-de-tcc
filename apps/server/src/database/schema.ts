@@ -42,6 +42,9 @@ export const Bancas = pgTable("banca", {
     .notNull()
     .references(() => Cursos.id), // FK para curso (ajustado de text)
   autor: text("autor").notNull(), // Nome do autor/aluno principal
+  alunoId: integer("aluno_id")
+    .notNull()
+    .references(() => Users.id),
   matricula: text("matricula"), // Matrícula do autor/aluno principal
   turma: text("turma").notNull(),
   periodoAcademico: text("periodo_academico").notNull(),

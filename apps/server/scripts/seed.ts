@@ -741,6 +741,7 @@ const bancasData: InsertBanca[] = [
   {
     id: 1,
     cursoId: 1,
+    alunoId: 102,
     orientadorId: 93,
     autor: "Isaque Santana Copque",
     turma: "2019.1",
@@ -759,6 +760,7 @@ const bancasData: InsertBanca[] = [
     visible: true, // from visible = 1
   },
   {
+    alunoId: 103,
     orientadorId: 93,
     id: 2,
     cursoId: 1,
@@ -779,6 +781,7 @@ const bancasData: InsertBanca[] = [
     visible: false, // from visible = 0
   },
   {
+    alunoId: 105,
     orientadorId: 93,
     id: 3,
     cursoId: 1,
@@ -798,6 +801,7 @@ const bancasData: InsertBanca[] = [
     visible: false, // from visible = 0
   },
   {
+    alunoId: 106,
     orientadorId: 93,
     id: 4,
     cursoId: 1,
@@ -819,6 +823,7 @@ const bancasData: InsertBanca[] = [
     visible: false, // from visible = 0
   },
   {
+    alunoId: 107,
     orientadorId: 93,
     id: 6,
     cursoId: 1,

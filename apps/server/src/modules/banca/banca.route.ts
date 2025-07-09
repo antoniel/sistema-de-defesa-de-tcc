@@ -317,8 +317,6 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
   .put("/:id", checkRole(["ADMIN", "TEACHER"]), zValidator("json", schema.updateBancaSchema), async (c) => {
     const id = Number(c.req.param("id"))
     const validatedBancaData = c.req.valid("json")
-    debugger
-    console.log(validatedBancaData)
     const result = await service.updateBanca(c, id, validatedBancaData)
 
     if (!result.ok) {
