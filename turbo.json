@@ -6,7 +6,7 @@
     "dev": {
       "persistent": true,
       "cache": false,
-      "dependsOn": ["^build:package"]
+      "dependsOn": []
     },
     "typecheck": {
       "dependsOn": [],
