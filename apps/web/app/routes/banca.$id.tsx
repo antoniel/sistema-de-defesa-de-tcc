@@ -85,8 +85,9 @@ export default function BancaDetalhesPage() {
   const orientador = banca?.membros?.find((m) => m.role === "orientador")?.usuario
 
   const isAdmin = user?.role === "ADMIN"
-  const isOrientador = user?.id === orientador?.id
+  const isOrientador = !!user?.id && user?.id === orientador?.id
   const canEdit = isAdmin || isOrientador
+  console.log({ isAdmin, isOrientador, canEdit })
 
   const isLoading = bancaQuery.isLoading || userQuery.isLoading
   const error = bancaQuery.error || userQuery.error
@@ -180,7 +181,7 @@ export default function BancaDetalhesPage() {
             <span className="mr-4">{banca.autor}</span>
 
             <School className="h-4 w-4 mr-1" />
-            <span>{banca.curso.nome}</span>
+            <span>{banca.curso?.nome}</span>
           </div>
         </div>
 
