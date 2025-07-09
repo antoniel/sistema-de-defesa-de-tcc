@@ -358,6 +358,7 @@ export const registerUserService = async (
   try {
     // Check for duplicate email
     const existingEmail = await dbInstance.select({ id: Users.id }).from(Users).where(eq(Users.email, email)).limit(1)
+    console.log("existingEmail", existingEmail, email, existingEmail.length)
 
     if (existingEmail.length > 0) {
       console.log(`Registration failed: Email ${email} already exists.`)

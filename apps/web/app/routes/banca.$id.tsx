@@ -11,7 +11,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Switch } from "@/components/ui/switch"
+import { useToast } from "@/hooks/use-toast"
 import { rpcReturn } from "@/lib/utils"
 import apiClient from "@/services/apiClient"
 import { useUser } from "@/services/useUser"
@@ -36,18 +39,57 @@ const useDeleteBanca = () => {
   })
 }
 
+const useToggleBancaVisibility = (bancaId: string) => {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+
+  return useMutation({
+    mutationFn: async () => {
+      const res = await apiClient.banca[":id"]["toggle-visibility"].$patch({
+        param: { id: bancaId },
+      })
+      return rpcReturn(res)
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["banca", bancaId], data)
+      toast({
+        title: "Visibilidade alterada",
+        description: `A banca agora está ${data.visible ? "visível" : "oculta"}.`,
+      })
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao alterar visibilidade",
+        description: error.message,
+        variant: "destructive",
+      })
+    },
+  })
+}
+
 export default function BancaDetalhesPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
+  if (!id) {
+    navigate("/")
+    return
+  }
+
   const userQuery = useUser()
-  const isTeacher = userQuery.data?.role === "TEACHER"
-  const isAdmin = userQuery.data?.role === "ADMIN"
-  const isAbleToDelete = isAdmin || isTeacher
+  const bancaQuery = useBanca(id)
   const deleteBancaMutation = useDeleteBanca()
-  const bancaQuery = useBanca(String(id))
+  const toggleVisibilityMutation = useToggleBancaVisibility(id)
+
   const banca = bancaQuery.data
-  const isLoading = bancaQuery.isLoading
-  const error = bancaQuery.error
+  const user = userQuery.data
+  const orientador = banca?.membros?.find((m) => m.role === "orientador")?.usuario
+
+  const isAdmin = user?.role === "ADMIN"
+  const isOrientador = user?.id === orientador?.id
+  const canEdit = isAdmin || isOrientador
+
+  const isLoading = bancaQuery.isLoading || userQuery.isLoading
+  const error = bancaQuery.error || userQuery.error
 
   const membrosBanca = banca?.membros
 
@@ -79,7 +121,6 @@ export default function BancaDetalhesPage() {
     return membrosBanca?.find((membro) => membro.role === role)?.usuario
   }
 
-  const orientador = getMembroPorPapel("orientador")
   const coorientador = getMembroPorPapel("coorientador")
   const avaliadores = membrosBanca?.filter((membro) => membro.role === "avaliador") || []
 
@@ -92,8 +133,20 @@ export default function BancaDetalhesPage() {
           <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
         </Button>
 
-        {isAbleToDelete && (
-          <div className="flex items-center gap-2">
+        {canEdit && (
+          <div className="flex items-center gap-4">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="visibility-switch"
+                checked={banca.visible}
+                onCheckedChange={() => toggleVisibilityMutation.mutate()}
+                disabled={toggleVisibilityMutation.isPending}
+              />
+              <Label htmlFor="visibility-switch" className="flex flex-col">
+                <span>Visibilidade</span>
+                <span className="text-xs text-muted-foreground">{banca.visible ? "Visível" : "Oculta"}</span>
+              </Label>
+            </div>
             <Button variant="outline" onClick={() => navigate(`/banca/${id}/edit`)}>
               Editar
             </Button>
