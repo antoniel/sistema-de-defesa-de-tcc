@@ -28,8 +28,11 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
   .get("/", async (c) => {
     const orderBy = c.req.query("orderBy")
     const order = c.req.query("order") as "asc" | "desc" | undefined
+    const page = Math.max(1, parseInt(c.req.query("page") || "1", 10))
+    const limit = Math.max(1, Math.min(100, parseInt(c.req.query("limit") || "10", 10)))
+    const searchQuery = c.req.query("searchQuery")
 
-    const result = await service.getAllBancasVisible(c, orderBy, order)
+    const result = await service.getAllBancasVisible(c, orderBy, order, page, limit, searchQuery)
 
     if (!result.ok) {
       throw match(result.error)
@@ -37,11 +40,13 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
         .exhaustive()
     }
 
-    const bancas = result.data
+    const bancas = result.data.data
+    const meta = result.data.meta
 
     return c.json({
       past: bancas.filter((banca) => banca.dataRealizacao < new Date()),
       upcoming: bancas.filter((banca) => banca.dataRealizacao > new Date()),
+      meta,
     })
   })
   .get("/my-defenses", checkRole(["TEACHER", "ADMIN"]), async (c) => {
@@ -52,8 +57,11 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
 
     const orderBy = c.req.query("orderBy")
     const order = c.req.query("order") as "asc" | "desc" | undefined
+    const page = Math.max(1, parseInt(c.req.query("page") || "1", 10))
+    const limit = Math.max(1, Math.min(100, parseInt(c.req.query("limit") || "10", 10)))
+    const searchQuery = c.req.query("searchQuery")
 
-    const result = await service.getBancasByOrientador(c, Number(userId), orderBy, order)
+    const result = await service.getBancasByOrientador(c, Number(userId), orderBy, order, page, limit, searchQuery)
 
     if (!result.ok) {
       throw match(result.error)
@@ -61,11 +69,13 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
         .exhaustive()
     }
 
-    const bancas = result.data
+    const bancas = result.data.data
+    const meta = result.data.meta
 
     return c.json({
       past: bancas.filter((banca) => banca.dataRealizacao < new Date()),
       upcoming: bancas.filter((banca) => banca.dataRealizacao > new Date()),
+      meta,
     })
   })
   .get("/:id", async (c) => {

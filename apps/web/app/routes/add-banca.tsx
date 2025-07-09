@@ -324,7 +324,7 @@ const BasicInfoSection = () => {
           id="resumo"
           {...register("resumo", { required: "Resumo é obrigatório" })}
           placeholder="Resumo em português"
-          rows={4}
+          rows={8}
           aria-invalid={errors.resumo ? "true" : "false"}
         />
         {errors.resumo && <p className="text-sm text-red-600 mt-1">{errors.resumo.message}</p>}
@@ -336,7 +336,7 @@ const BasicInfoSection = () => {
           id="abstract"
           {...register("abstract", { required: "Abstract é obrigatório" })}
           placeholder="Abstract in English"
-          rows={4}
+          rows={8}
           aria-invalid={errors.abstract ? "true" : "false"}
         />
         {errors.abstract && <p className="text-sm text-red-600 mt-1">{errors.abstract.message}</p>}
