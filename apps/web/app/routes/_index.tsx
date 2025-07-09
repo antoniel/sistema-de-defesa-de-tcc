@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useQueryParamsState } from "@/hooks/use-query-param-state"
 import { rpcReturn } from "@/lib/utils"
 import apiClient from "@/services/apiClient"
 import { useUser } from "@/services/useUser"
@@ -55,8 +56,8 @@ type BancasDefesa = (ReturnType<typeof useBancasDefesa>["data"] & {})["past"]
 
 export default function Home() {
   const navigate = useNavigate()
-  const [searchQuery, setSearchQuery] = useState("")
-  const [activeTab, setActiveTab] = useState("upcoming")
+  const [searchQuery, setSearchQuery] = useQueryParamsState("searchQuery", "")
+  const [activeTab, setActiveTab] = useQueryParamsState("activeTab", "upcoming")
   const [sortField, setSortField] = useState<string>("")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
   const [rowsPerPage, setRowsPerPage] = useState<number>(10)
