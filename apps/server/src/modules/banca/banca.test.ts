@@ -174,10 +174,81 @@ describe("Rotas de Banca", async () => {
       expect(data.upcoming[0].id).toBe(bancaId)
     })
 
-    it("não retorna bancas não visíveis na lista principal", async () => {
+    it("não retorna bancas não visíveis para usuários não relacionados", async () => {
       await db.update(Bancas).set({ visible: false }).where(eq(Bancas.id, bancaId))
 
-      const res = await client.banca.$get()
+      // Create an unrelated user
+      const unrelatedUserPasswordHash = await bcrypt.hash("Password123!", 10)
+      const [unrelatedUser] = await db
+        .insert(Users)
+        .values({
+          email: "unrelated@test.com",
+          passwordHash: unrelatedUserPasswordHash,
+          nome: "Unrelated User",
+          role: "TEACHER",
+          matricula: "444",
+          status: "ACTIVE",
+          school: "ICC",
+          academicTitle: "PhD",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning()
+
+      const unrelatedLoginRes = await client.auth.login.$post({
+        json: { email: "unrelated@test.com", password: "Password123!" },
+      })
+      const { token: unrelatedToken } = (await unrelatedLoginRes.json()) as { token: string }
+
+      const res = await client.banca.$get({}, { headers: { Authorization: `Bearer ${unrelatedToken}` } })
+      expect(res.status).toBe(200)
+      const { upcoming } = await res.json()
+      expect(upcoming.find((b) => b.id === bancaId)).toBeUndefined()
+    })
+
+    it("não retorna bancas não visíveis para o orientador na lista", async () => {
+      await db.update(Bancas).set({ visible: false }).where(eq(Bancas.id, bancaId))
+
+      const res = await client.banca.$get({}, { headers: { Authorization: `Bearer ${teacherToken}` } })
+      expect(res.status).toBe(200)
+      const { upcoming } = await res.json()
+      expect(upcoming.find((b) => b.id === bancaId)).toBeUndefined()
+    })
+
+    it("não retorna bancas não visíveis para administradores na lista", async () => {
+      await db.update(Bancas).set({ visible: false }).where(eq(Bancas.id, bancaId))
+
+      const res = await client.banca.$get({}, { headers: { Authorization: `Bearer ${adminToken}` } })
+      expect(res.status).toBe(200)
+      const { upcoming } = await res.json()
+      expect(upcoming.find((b) => b.id === bancaId)).toBeUndefined()
+    })
+
+    it("não retorna bancas não visíveis para o aluno da banca na lista", async () => {
+      // First, update the banca to have the student as the aluno
+      const updateData: UpdateBancaInput = {
+        tituloTrabalho: "Banca de Teste",
+        palavrasChave: "teste, hono, vitest",
+        resumo: "Um resumo da banca de teste.",
+        abstract: "An abstract of the test defense.",
+        dataRealizacao: new Date(new Date().getTime() + 24 * 60 * 60 * 1000),
+        local: "Online",
+        alunoId: studentId.toString(),
+        orientadorId: teacherId.toString(),
+        cursoId: cursoId.toString(),
+        membros: [{ id: teacherId.toString() }],
+      }
+
+      await client.banca[":id"].$put(
+        { param: { id: bancaId.toString() }, json: updateData },
+        { headers: { Authorization: `Bearer ${teacherToken}` } }
+      )
+
+      // Now set the banca as not visible
+      await db.update(Bancas).set({ visible: false }).where(eq(Bancas.id, bancaId))
+
+      // The student should NOT be able to see their banca in the list (only in individual endpoint)
+      const res = await client.banca.$get({}, { headers: { Authorization: `Bearer ${studentToken}` } })
       expect(res.status).toBe(200)
       const { upcoming } = await res.json()
       expect(upcoming.find((b) => b.id === bancaId)).toBeUndefined()
@@ -196,6 +267,96 @@ describe("Rotas de Banca", async () => {
     it("retorna 404 para uma banca inexistente", async () => {
       const res = await client.banca[":id"].$get({ param: { id: "9999" } })
       expect(res.status).toBe(404)
+    })
+
+    it("retorna 404 para uma banca não visível quando usuário não é relacionado", async () => {
+      await db.update(Bancas).set({ visible: false }).where(eq(Bancas.id, bancaId))
+
+      // Create an unrelated user
+      const unrelatedUserPasswordHash = await bcrypt.hash("Password123!", 10)
+      await db
+        .insert(Users)
+        .values({
+          email: "unrelated2@test.com",
+          passwordHash: unrelatedUserPasswordHash,
+          nome: "Unrelated User 2",
+          role: "TEACHER",
+          matricula: "555",
+          status: "ACTIVE",
+          school: "ICC",
+          academicTitle: "PhD",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning()
+
+      const unrelatedLoginRes = await client.auth.login.$post({
+        json: { email: "unrelated2@test.com", password: "Password123!" },
+      })
+      const { token: unrelatedToken } = (await unrelatedLoginRes.json()) as { token: string }
+
+      const res = await client.banca[":id"].$get(
+        { param: { id: bancaId.toString() } },
+        { headers: { Authorization: `Bearer ${unrelatedToken}` } }
+      )
+      expect(res.status).toBe(404)
+    })
+
+    it("retorna banca não visível para o orientador", async () => {
+      await db.update(Bancas).set({ visible: false }).where(eq(Bancas.id, bancaId))
+
+      const res = await client.banca[":id"].$get(
+        { param: { id: bancaId.toString() } },
+        { headers: { Authorization: `Bearer ${teacherToken}` } }
+      )
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.id).toBe(bancaId)
+    })
+
+    it("retorna banca não visível para administrador", async () => {
+      await db.update(Bancas).set({ visible: false }).where(eq(Bancas.id, bancaId))
+
+      const res = await client.banca[":id"].$get(
+        { param: { id: bancaId.toString() } },
+        { headers: { Authorization: `Bearer ${adminToken}` } }
+      )
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.id).toBe(bancaId)
+    })
+
+    it("retorna banca não visível para o aluno da banca", async () => {
+      // First, update the banca to have the student as the aluno
+      const updateData: UpdateBancaInput = {
+        tituloTrabalho: "Banca de Teste",
+        palavrasChave: "teste, hono, vitest",
+        resumo: "Um resumo da banca de teste.",
+        abstract: "An abstract of the test defense.",
+        dataRealizacao: new Date(new Date().getTime() + 24 * 60 * 60 * 1000),
+        local: "Online",
+        alunoId: studentId.toString(),
+        orientadorId: teacherId.toString(),
+        cursoId: cursoId.toString(),
+        membros: [{ id: teacherId.toString() }],
+      }
+
+      await client.banca[":id"].$put(
+        { param: { id: bancaId.toString() }, json: updateData },
+        { headers: { Authorization: `Bearer ${teacherToken}` } }
+      )
+
+      // Now set the banca as not visible
+      await db.update(Bancas).set({ visible: false }).where(eq(Bancas.id, bancaId))
+
+      // The student should still be able to see their banca
+      const res = await client.banca[":id"].$get(
+        { param: { id: bancaId.toString() } },
+        { headers: { Authorization: `Bearer ${studentToken}` } }
+      )
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.id).toBe(bancaId)
     })
   })
 

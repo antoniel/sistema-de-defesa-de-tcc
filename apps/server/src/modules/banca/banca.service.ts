@@ -155,8 +155,21 @@ export const getBancaById = async (
 > => {
   const dbInstance = c.get("db")
   try {
+    // Get current user from JWT if authenticated
+    let currentUserId: number | null = null
+    let isAdmin = false
+    const payload = c.get("jwtPayload")
+    if (payload) {
+      const userResult = await getUserById(c, Number(payload.sub))
+      if (userResult.ok) {
+        currentUserId = userResult.data.id
+        isAdmin = userResult.data.role === "ADMIN"
+      }
+    }
+
+    // First, try to get the banca regardless of visibility
     const result = await dbInstance.query.Bancas.findFirst({
-      where: and(eq(Bancas.id, id), eq(Bancas.visible, true)),
+      where: eq(Bancas.id, id),
       with: {
         curso: true,
         membros: {
@@ -168,6 +181,19 @@ export const getBancaById = async (
     })
 
     if (!result) {
+      return err({ type: "banca_not_found" })
+    }
+
+    // Check visibility rules
+    const canAccess =
+      result.visible || // Always show visible bancas
+      (!currentUserId
+        ? false // If not authenticated, hide non-visible bancas
+        : isAdmin || // Show non-visible bancas to admins
+          result.orientadorId === currentUserId || // Show non-visible bancas to the advisor
+          result.membros.some((membro) => membro.usuario.id === currentUserId)) // Show to members
+
+    if (!canAccess) {
       return err({ type: "banca_not_found" })
     }
 
@@ -235,7 +261,7 @@ export const updateBanca = async (
       return err({ type: "banca_not_found" })
     }
 
-    // Update the banca members (orientador and avaliadores)
+    // Update the banca members (orientador, aluno, and avaliadores)
     await dbInstance.delete(usuariosBancas).where(eq(usuariosBancas.bancaId, id))
 
     // Add orientador
@@ -244,6 +270,15 @@ export const updateBanca = async (
       usuarioId: Number(data.orientadorId),
       role: "orientador",
     })
+
+    // Add aluno (student) if provided
+    if (data.alunoId) {
+      await dbInstance.insert(usuariosBancas).values({
+        bancaId: updatedBanca.id,
+        usuarioId: Number(data.alunoId),
+        role: "aluno",
+      })
+    }
 
     // Add avaliadores
     if (data.membros && data.membros.length > 0) {
