@@ -73,6 +73,22 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json(result.data)
   })
+  .post("/me/change-password", zValidator("json", schema.changePasswordSchema), async (c) => {
+    const { currentPassword, newPassword } = c.req.valid("json")
+    const userId = Number(c.get("jwtPayload").sub)
+
+    const result = await service.changeUserPassword(c, userId, currentPassword, newPassword)
+    if (!result.ok) {
+      throw match(result.error)
+        .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))
+        .with({ type: "invalid_current_password" }, () => new AppError(400, "Senha atual incorreta"))
+        .with({ type: "hashing_error" }, () => new AppError(500, "Erro ao processar senha"))
+        .with({ type: "database_error" }, () => new AppError(500, "Erro ao atualizar senha"))
+        .exhaustive()
+    }
+
+    return c.json({ message: "Senha alterada com sucesso" })
+  })
   .put(
     "/:id",
     checkRole(["ADMIN"]),

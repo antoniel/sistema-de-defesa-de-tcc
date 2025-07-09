@@ -14,6 +14,7 @@ import {
 } from "../../database/schema"
 import { type AppResult, err, ok } from "../../result"
 import { type AppVariables } from "../../types"
+import { getUserById } from "../usuario/usuario.service"
 import { type CreateBancaInput, type UpdateBancaInput } from "./banca.schema"
 
 type GetAllBancasError = { type: "database_error"; error: unknown }
@@ -35,7 +36,10 @@ type DeleteBancaError =
   | { type: "unauthorized" }
   | { type: "database_error"; error: unknown }
 
-type ToggleVisibilityError = { type: "banca_not_found" } | { type: "database_error"; error: unknown }
+type ToggleVisibilityError =
+  | { type: "banca_not_found" }
+  | { type: "unauthorized" }
+  | { type: "database_error"; error: unknown }
 
 type GetBancasByUserError = { type: "user_not_found" } | { type: "database_error"; error: unknown }
 
@@ -282,28 +286,38 @@ export const deleteBanca = async (
 
 export const toggleBancaVisibility = async (
   c: Context<{ Variables: AppVariables }>,
-  id: number
+  bancaId: number
 ): Promise<AppResult<typeof Bancas.$inferSelect, ToggleVisibilityError>> => {
-  const dbInstance = c.get("db")
+  const db = c.get("db")
+  const payload = c.get("jwtPayload")
 
   try {
-    const result = await dbInstance.select({ visible: Bancas.visible }).from(Bancas).where(eq(Bancas.id, id)).limit(1)
-
-    if (result.length === 0) {
+    const [banca] = await db.select().from(Bancas).where(eq(Bancas.id, bancaId))
+    if (!banca) {
       return err({ type: "banca_not_found" })
     }
 
-    const currentVisible = result[0].visible
+    const userResult = await getUserById(c, Number(payload.sub))
+    if (!userResult.ok) {
+      return err({ type: "unauthorized" })
+    }
+    const user = userResult.data
 
-    const [updatedBanca] = await dbInstance
+    if (user.role !== "ADMIN" && banca.orientadorId !== user.id) {
+      return err({ type: "unauthorized" })
+    }
+
+    const newVisibility = !banca.visible
+
+    const [updatedBanca] = await db
       .update(Bancas)
-      .set({ visible: !currentVisible })
-      .where(eq(Bancas.id, id))
+      .set({ visible: newVisibility })
+      .where(eq(Bancas.id, bancaId))
       .returning()
 
     return ok(updatedBanca)
   } catch (error) {
-    console.error(`Error toggling visibility for banca ID ${id}:`, error)
+    console.error(`Error toggling visibility for banca ID ${bancaId}:`, error)
     return err({ type: "database_error", error })
   }
 }
