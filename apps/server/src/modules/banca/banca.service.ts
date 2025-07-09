@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm"
+import { and, asc, desc, eq, ilike, or } from "drizzle-orm"
 import { type Context } from "hono"
 import type { InferResultType } from "../../database"
 import {
@@ -59,15 +59,55 @@ type GetBancasByOrientadorError = { type: "database_error"; error: unknown }
 export const getAllBancasVisible = async (
   c: Context<{ Variables: AppVariables }>,
   orderBy?: string,
-  order?: "asc" | "desc"
+  order?: "asc" | "desc",
+  page: number = 1,
+  limit: number = 10,
+  searchQuery?: string
 ): Promise<
   AppResult<
-    InferResultType<"Bancas", { curso: true; orientador: true; membros: { with: { usuario: true } } }>[],
+    {
+      data: InferResultType<"Bancas", { curso: true; orientador: true; membros: { with: { usuario: true } } }>[]
+      meta: {
+        total: number
+        totalPages: number
+        currentPage: number
+        limit: number
+        hasNext: boolean
+        hasPrev: boolean
+      }
+    },
     GetAllBancasError
   >
 > => {
   const dbInstance = c.get("db")
   try {
+    // Calculate offset for pagination
+    const offset = (page - 1) * limit
+
+    // Build search condition
+    const searchCondition = searchQuery
+      ? or(
+          ilike(Bancas.tituloTrabalho, `%${searchQuery}%`),
+          ilike(Bancas.autor, `%${searchQuery}%`),
+          ilike(Users.nome, `%${searchQuery}%`),
+          ilike(cursos.nome, `%${searchQuery}%`)
+        )
+      : undefined
+
+    // Build where condition
+    const whereCondition = searchCondition ? and(eq(Bancas.visible, true), searchCondition) : eq(Bancas.visible, true)
+
+    // First, get the total count with search
+    const totalResult = await dbInstance
+      .select({ count: Bancas.id })
+      .from(Bancas)
+      .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
+      .leftJoin(cursos, eq(Bancas.cursoId, cursos.id))
+      .where(whereCondition)
+
+    const total = totalResult.length
+    const totalPages = Math.ceil(total / limit)
+
     // For simple fields, use the query API with orderBy
     const simpleFields = ["dataRealizacao", "tituloTrabalho", "autor", "local"]
 
@@ -87,20 +127,81 @@ export const getAllBancasVisible = async (
         orderClause = asc(Bancas.dataRealizacao)
       }
 
-      const result = await dbInstance.query.Bancas.findMany({
-        where: eq(Bancas.visible, true),
-        with: {
-          orientador: true,
-          curso: true,
-          membros: {
-            with: {
-              usuario: true,
+      // For search, we need to use leftJoin even for simple fields
+      if (searchQuery) {
+        const result = await dbInstance
+          .select({
+            banca: Bancas,
+            orientador: Users,
+            curso: cursos,
+          })
+          .from(Bancas)
+          .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
+          .leftJoin(cursos, eq(Bancas.cursoId, cursos.id))
+          .where(whereCondition)
+          .orderBy(orderClause)
+          .limit(limit)
+          .offset(offset)
+
+        // Fetch membros separately for each banca
+        const bancasWithMembros = await Promise.all(
+          result.map(async (row) => {
+            const membros = await dbInstance.query.usuariosBancas.findMany({
+              where: eq(usuariosBancas.bancaId, row.banca.id),
+              with: {
+                usuario: true,
+              },
+            })
+
+            return {
+              ...row.banca,
+              orientador: row.orientador,
+              curso: row.curso,
+              membros,
+            }
+          })
+        )
+
+        return ok({
+          data: bancasWithMembros as any,
+          meta: {
+            total,
+            totalPages,
+            currentPage: page,
+            limit,
+            hasNext: page < totalPages,
+            hasPrev: page > 1,
+          },
+        })
+      } else {
+        const result = await dbInstance.query.Bancas.findMany({
+          where: eq(Bancas.visible, true),
+          with: {
+            orientador: true,
+            curso: true,
+            membros: {
+              with: {
+                usuario: true,
+              },
             },
           },
-        },
-        orderBy: orderClause,
-      })
-      return ok(result)
+          orderBy: orderClause,
+          limit: limit,
+          offset: offset,
+        })
+
+        return ok({
+          data: result,
+          meta: {
+            total,
+            totalPages,
+            currentPage: page,
+            limit,
+            hasNext: page < totalPages,
+            hasPrev: page > 1,
+          },
+        })
+      }
     }
 
     // For related fields, use leftJoin
@@ -118,8 +219,10 @@ export const getAllBancasVisible = async (
       .from(Bancas)
       .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
       .leftJoin(cursos, eq(Bancas.cursoId, cursos.id))
-      .where(eq(Bancas.visible, true))
+      .where(whereCondition)
       .orderBy(orderClause)
+      .limit(limit)
+      .offset(offset)
 
     // Fetch membros separately for each banca (this is still needed due to the many-to-many relationship)
     const bancasWithMembros = await Promise.all(
@@ -140,7 +243,17 @@ export const getAllBancasVisible = async (
       })
     )
 
-    return ok(bancasWithMembros as any)
+    return ok({
+      data: bancasWithMembros as any,
+      meta: {
+        total,
+        totalPages,
+        currentPage: page,
+        limit,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+      },
+    })
   } catch (error) {
     console.error("Error fetching all bancas:", error)
     return err({ type: "database_error", error })
@@ -630,15 +743,154 @@ export const getBancasByOrientador = async (
   c: Context<{ Variables: AppVariables }>,
   orientadorId: number,
   orderBy?: string,
-  order?: "asc" | "desc"
+  order?: "asc" | "desc",
+  page: number = 1,
+  limit: number = 10,
+  searchQuery?: string
 ): Promise<
   AppResult<
-    InferResultType<"Bancas", { curso: true; orientador: true; membros: { with: { usuario: true } } }>[],
+    {
+      data: InferResultType<"Bancas", { curso: true; orientador: true; membros: { with: { usuario: true } } }>[]
+      meta: {
+        total: number
+        totalPages: number
+        currentPage: number
+        limit: number
+        hasNext: boolean
+        hasPrev: boolean
+      }
+    },
     GetBancasByOrientadorError
   >
 > => {
   const dbInstance = c.get("db")
   try {
+    // Calculate offset for pagination
+    const offset = (page - 1) * limit
+
+    // Build search condition
+    const searchCondition = searchQuery
+      ? or(
+          ilike(Bancas.tituloTrabalho, `%${searchQuery}%`),
+          ilike(Bancas.autor, `%${searchQuery}%`),
+          ilike(Users.nome, `%${searchQuery}%`),
+          ilike(cursos.nome, `%${searchQuery}%`)
+        )
+      : undefined
+
+    // Build where condition
+    const whereCondition = searchCondition
+      ? and(eq(Bancas.orientadorId, orientadorId), searchCondition)
+      : eq(Bancas.orientadorId, orientadorId)
+
+    // First, get the total count with search
+    const totalResult = await dbInstance
+      .select({ count: Bancas.id })
+      .from(Bancas)
+      .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
+      .leftJoin(cursos, eq(Bancas.cursoId, cursos.id))
+      .where(whereCondition)
+
+    const total = totalResult.length
+    const totalPages = Math.ceil(total / limit)
+
+    // For simple fields, use the query API with orderBy
+    const simpleFields = ["dataRealizacao", "tituloTrabalho", "autor", "local"]
+
+    if (!orderBy || simpleFields.includes(orderBy)) {
+      const fieldMap: Record<string, any> = {
+        dataRealizacao: Bancas.dataRealizacao,
+        tituloTrabalho: Bancas.tituloTrabalho,
+        autor: Bancas.autor,
+        local: Bancas.local,
+      }
+
+      let orderClause
+      if (orderBy && fieldMap[orderBy]) {
+        orderClause = order === "desc" ? desc(fieldMap[orderBy]) : asc(fieldMap[orderBy])
+      } else {
+        // Default order by dataRealizacao ascending
+        orderClause = asc(Bancas.dataRealizacao)
+      }
+
+      // For search, we need to use leftJoin even for simple fields
+      if (searchQuery) {
+        const result = await dbInstance
+          .select({
+            banca: Bancas,
+            orientador: Users,
+            curso: cursos,
+          })
+          .from(Bancas)
+          .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
+          .leftJoin(cursos, eq(Bancas.cursoId, cursos.id))
+          .where(whereCondition)
+          .orderBy(orderClause)
+          .limit(limit)
+          .offset(offset)
+
+        // Fetch membros separately for each banca
+        const bancasWithMembros = await Promise.all(
+          result.map(async (row) => {
+            const membros = await dbInstance.query.usuariosBancas.findMany({
+              where: eq(usuariosBancas.bancaId, row.banca.id),
+              with: {
+                usuario: true,
+              },
+            })
+
+            return {
+              ...row.banca,
+              orientador: row.orientador,
+              curso: row.curso,
+              membros,
+            }
+          })
+        )
+
+        return ok({
+          data: bancasWithMembros as any,
+          meta: {
+            total,
+            totalPages,
+            currentPage: page,
+            limit,
+            hasNext: page < totalPages,
+            hasPrev: page > 1,
+          },
+        })
+      } else {
+        const result = await dbInstance.query.Bancas.findMany({
+          where: eq(Bancas.orientadorId, orientadorId),
+          with: {
+            orientador: true,
+            curso: true,
+            membros: {
+              with: {
+                usuario: true,
+              },
+            },
+          },
+          orderBy: orderClause,
+          limit: limit,
+          offset: offset,
+        })
+
+        return ok({
+          data: result,
+          meta: {
+            total,
+            totalPages,
+            currentPage: page,
+            limit,
+            hasNext: page < totalPages,
+            hasPrev: page > 1,
+          },
+        })
+      }
+    }
+
+    // For related fields, use leftJoin
     let orderClause
     if (orderBy === "orientador") {
       orderClause = order === "desc" ? desc(Users.nome) : asc(Users.nome)
@@ -648,20 +900,46 @@ export const getBancasByOrientador = async (
       orderClause = asc(Bancas.dataRealizacao)
     }
 
-    const resultTest = await dbInstance.query.Bancas.findMany({
-      where: eq(Bancas.orientadorId, orientadorId),
-      with: {
-        orientador: true,
-        curso: true,
-        membros: {
+    const result = await dbInstance
+      .select()
+      .from(Bancas)
+      .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
+      .leftJoin(cursos, eq(Bancas.cursoId, cursos.id))
+      .where(whereCondition)
+      .orderBy(orderClause)
+      .limit(limit)
+      .offset(offset)
+
+    // Fetch membros separately for each banca (this is still needed due to the many-to-many relationship)
+    const bancasWithMembros = await Promise.all(
+      result.map(async (row) => {
+        const membros = await dbInstance.query.usuariosBancas.findMany({
+          where: eq(usuariosBancas.bancaId, row.banca.id),
           with: {
             usuario: true,
           },
-        },
+        })
+
+        return {
+          ...row.banca,
+          orientador: row.usuario,
+          curso: row.cursos,
+          membros,
+        }
+      })
+    )
+
+    return ok({
+      data: bancasWithMembros as any,
+      meta: {
+        total,
+        totalPages,
+        currentPage: page,
+        limit,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
       },
     })
-
-    return ok(resultTest)
   } catch (error) {
     console.error("Error fetching bancas by orientador:", error)
     return err({ type: "database_error", error })
