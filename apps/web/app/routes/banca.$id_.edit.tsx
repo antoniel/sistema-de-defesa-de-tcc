@@ -118,12 +118,16 @@ export default function EditBancaPage() {
           orientadorId: banca.orientadorId?.toString() || "",
           autor: banca.autor || "",
           matricula: banca.matricula || "",
-          avaliadores:
-            banca.membros
-              ?.filter((m) => m.role === "EVALUATOR")
-              .map((m) => ({
-                usuarioId: m.usuario.id.toString(),
-              })) || [],
+          avaliadores: (() => {
+            const avaliadores =
+              banca.membros
+                ?.filter((m) => m.role === "avaliador")
+                .map((m) => ({
+                  usuarioId: m.usuario.id.toString(),
+                })) || []
+
+            return avaliadores.length > 0 ? avaliadores : [{ usuarioId: "" }]
+          })(),
         }
       : undefined,
   })
@@ -134,7 +138,6 @@ export default function EditBancaPage() {
   })
 
   const onSubmit = (data: FormValues) => {
-    const autor = banca?.membros?.find((m) => m.role === "STUDENT")
     const submitData: updateBanca = {
       tituloTrabalho: data.tituloTrabalho,
       resumo: data.resumo,
@@ -146,7 +149,7 @@ export default function EditBancaPage() {
       cursoId: Number(data.cursoId),
       orientadorId: Number(data.orientadorId),
       membros: data.avaliadores.map((a) => ({ id: a.usuarioId })),
-      alunoId: Number(autor?.usuario.id),
+      alunoId: banca!.alunoId,
     }
 
     updateBancaMutation.mutate(submitData, {

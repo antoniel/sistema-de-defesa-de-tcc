@@ -16,7 +16,7 @@
     "push:web": "npm run sync && git checkout production-web && git push dokku-web production-web:master",
     "push:server": "npm run sync && git checkout production-server && git push dokku-server production-server:master",
     "typecheck": "turbo run typecheck",
-    "test": "turbo run test",
+    "test": "turbo run test --ui=tui",
     "deploy": "bun scripts/deploy.ts"
   },
   "devDependencies": {
