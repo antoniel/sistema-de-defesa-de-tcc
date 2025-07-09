@@ -2,7 +2,7 @@ import { useUser } from "@/services/useUser"
 
 const useIsTeacher = () => {
   const userQuery = useUser()
-  return userQuery.data?.role === "TEACHER"
+  return userQuery.data?.role === "TEACHER" || userQuery.data?.role === "ADMIN"
 }
 
 const useIsStudent = () => {
