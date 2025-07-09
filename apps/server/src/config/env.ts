@@ -1,8 +1,10 @@
 import { z } from "zod"
 
+const mode = process.env.NODE_ENV
+const TEST_MODE = mode === "test"
+
 export const envSchema = z.object({
-  DATABASE_URL: z.string().url(),
+  DATABASE_URL: TEST_MODE ? z.string().url().optional() : z.string().url(),
 })
-console.log(process.env.DATABASE_URL)
 
 export const env = envSchema.parse(process.env)
