@@ -23,7 +23,7 @@ interface LoginResponse {
   token: string
   role: string
   name: string
-  user: Pick<SelectUser, "id" | "nome" | "email" | "role">
+  user: Omit<SelectUser, "passwordHash" | "createdAt">
 }
 
 type LoginUserServiceError =
@@ -41,18 +41,7 @@ export const loginUserService = async (
   const dbInstance = c.get("db")
 
   try {
-    const [user] = await dbInstance
-      .select({
-        id: Users.id,
-        nome: Users.nome,
-        email: Users.email,
-        role: Users.role,
-        status: Users.status,
-        passwordHash: Users.passwordHash,
-      })
-      .from(Users)
-      .where(eq(Users.email, email))
-      .limit(1)
+    const [user] = await dbInstance.select().from(Users).where(eq(Users.email, email)).limit(1)
 
     if (!user) {
       console.log(`Login attempt failed: User not found for email ${email}`)
@@ -103,6 +92,11 @@ export const loginUserService = async (
         nome: user.nome,
         email: user.email,
         role: user.role,
+        status: user.status,
+        school: user.school,
+        matricula: user.matricula,
+        academicTitle: user.academicTitle,
+        updatedAt: user.updatedAt,
       },
     })
   } catch (dbError) {
