@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm"
 import { testClient } from "hono/testing"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { app } from "../.."
-import { Bancas, type InsertBanca, type InsertUser, Users, cursos, usuariosBancas } from "../../database/schema"
+import { Bancas, Cursos, type InsertBanca, type InsertUser, Users, usuariosBancas } from "../../database/schema"
 import { fakeDeps, getFakeDb } from "../../tests/utils"
 import { type CreateBancaInput, type UpdateBancaInput } from "./banca.schema"
 
@@ -87,7 +87,7 @@ describe("Rotas de Banca", async () => {
     await db.delete(usuariosBancas)
     await db.delete(Bancas)
     await db.delete(Users)
-    await db.delete(cursos)
+    await db.delete(Cursos)
 
     const teacherPasswordHash = await bcrypt.hash(TEST_TEACHER.password, 10)
     const studentPasswordHash = await bcrypt.hash(TEST_STUDENT.password, 10)
@@ -108,7 +108,7 @@ describe("Rotas de Banca", async () => {
     teacherId = teacher.id
     studentId = student.id
 
-    const [curso] = await db.insert(cursos).values(TEST_CURSO).returning()
+    const [curso] = await db.insert(Cursos).values(TEST_CURSO).returning()
     cursoId = curso.id
 
     const [banca] = await db.insert(Bancas).values(getTestBancaData(cursoId, teacherId)).returning()
@@ -129,7 +129,7 @@ describe("Rotas de Banca", async () => {
     await db.delete(usuariosBancas)
     await db.delete(Bancas)
     await db.delete(Users)
-    await db.delete(cursos)
+    await db.delete(Cursos)
   })
 
   describe("POST /bancas", () => {
@@ -233,9 +233,9 @@ describe("Rotas de Banca", async () => {
         abstract: "An abstract of the test defense.",
         dataRealizacao: new Date(new Date().getTime() + 24 * 60 * 60 * 1000),
         local: "Online",
-        alunoId: studentId.toString(),
-        orientadorId: teacherId.toString(),
-        cursoId: cursoId.toString(),
+        alunoId: studentId,
+        orientadorId: teacherId,
+        cursoId: cursoId,
         membros: [{ id: teacherId.toString() }],
       }
 
@@ -335,9 +335,9 @@ describe("Rotas de Banca", async () => {
         abstract: "An abstract of the test defense.",
         dataRealizacao: new Date(new Date().getTime() + 24 * 60 * 60 * 1000),
         local: "Online",
-        alunoId: studentId.toString(),
-        orientadorId: teacherId.toString(),
-        cursoId: cursoId.toString(),
+        alunoId: studentId,
+        orientadorId: teacherId,
+        cursoId: cursoId,
         membros: [{ id: teacherId.toString() }],
       }
 
@@ -398,9 +398,9 @@ describe("Rotas de Banca", async () => {
         abstract: "Updated abstract",
         dataRealizacao: new Date(),
         local: "Zoom",
-        alunoId: studentId.toString(),
-        orientadorId: teacherId.toString(),
-        cursoId: cursoId.toString(),
+        alunoId: studentId,
+        orientadorId: teacherId,
+        cursoId: cursoId,
         membros: [{ id: teacherId.toString() }],
       }
       const res = await client.banca[":id"].$put(
@@ -423,9 +423,9 @@ describe("Rotas de Banca", async () => {
         abstract: "hacker",
         dataRealizacao: new Date(),
         local: "hacker",
-        alunoId: studentId.toString(),
-        orientadorId: teacherId.toString(),
-        cursoId: cursoId.toString(),
+        alunoId: studentId,
+        orientadorId: teacherId,
+        cursoId: cursoId,
         membros: [{ id: teacherId.toString() }],
       }
       const res = await client.banca[":id"].$put(

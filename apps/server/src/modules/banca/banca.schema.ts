@@ -28,9 +28,9 @@ export const updateBancaSchema = z.object({
   local: z.string().min(1, "Local é obrigatório"),
   turma: z.string().optional(),
   periodoAcademico: z.string().optional(),
-  alunoId: z.string().min(1, "Discente é obrigatório"),
-  orientadorId: z.string().min(1, "Orientador é obrigatório"),
-  cursoId: z.string().min(1, "Curso é obrigatório"),
+  alunoId: z.number().min(1, "Discente é obrigatório"),
+  orientadorId: z.number().min(1, "Orientador é obrigatório"),
+  cursoId: z.number().min(1, "Curso é obrigatório"),
   membros: z
     .array(z.object({ id: z.string().min(1, "Avaliador é obrigatório") }))
     .min(1, "Pelo menos um avaliador é necessário"),

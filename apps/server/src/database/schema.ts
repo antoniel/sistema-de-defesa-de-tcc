@@ -20,14 +20,14 @@ export const Users = pgTable("usuario", {
 export type InsertUser = typeof Users.$inferInsert
 export type SelectUser = typeof Users.$inferSelect
 
-export const cursos = pgTable("cursos", {
+export const Cursos = pgTable("cursos", {
   id: serial("id").primaryKey(),
   nome: text("nome").notNull(),
   sigla: text("sigla").notNull().unique(), // Ex: 'BCC', 'ENGCOMP'
   // Adicionar outros campos como coordenacao, disciplina principal, etc., se necessário
 })
-export type InsertCurso = typeof cursos.$inferInsert
-export type SelectCurso = typeof cursos.$inferSelect
+export type InsertCurso = typeof Cursos.$inferInsert
+export type SelectCurso = typeof Cursos.$inferSelect
 
 export const modalidadeEnum = pgEnum("modalidade", ["remoto", "local"])
 export const Bancas = pgTable("banca", {
@@ -40,7 +40,7 @@ export const Bancas = pgTable("banca", {
     .references(() => Users.id),
   cursoId: integer("curso_id")
     .notNull()
-    .references(() => cursos.id), // FK para curso (ajustado de text)
+    .references(() => Cursos.id), // FK para curso (ajustado de text)
   autor: text("autor").notNull(), // Nome do autor/aluno principal
   matricula: text("matricula"), // Matrícula do autor/aluno principal
   turma: text("turma").notNull(),
@@ -137,7 +137,7 @@ export const usuariosRelations = relations(Users, ({ one, many }) => ({
   // bancasCriadas: many(bancas), // Descomentar se banca.userId for mantido
 }))
 
-export const cursosRelations = relations(cursos, ({ many }) => ({
+export const cursosRelations = relations(Cursos, ({ many }) => ({
   bancas: many(Bancas),
 }))
 
@@ -146,9 +146,9 @@ export const bancasRelations = relations(Bancas, ({ one, many }) => ({
     fields: [Bancas.orientadorId],
     references: [Users.id],
   }),
-  curso: one(cursos, {
+  curso: one(Cursos, {
     fields: [Bancas.cursoId],
-    references: [cursos.id],
+    references: [Cursos.id],
   }),
   // criador: one(usuarios, { // Descomentar se banca.userId for mantido
   //     fields: [bancas.userId],
