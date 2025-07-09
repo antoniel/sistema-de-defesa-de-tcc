@@ -120,7 +120,7 @@ export const createUser = async (
 export const getUserById = async (
   c: Context<{ Variables: AppVariables }>,
   id: number
-): Promise<AppResult<SelectUser, GetUserByIdError>> => {
+): Promise<AppResult<Omit<SelectUser, "passwordHash" | "createdAt">, GetUserByIdError>> => {
   const dbInstance = c.get("db")
   try {
     const result = await dbInstance.select().from(Users).where(eq(Users.id, id)).limit(1)

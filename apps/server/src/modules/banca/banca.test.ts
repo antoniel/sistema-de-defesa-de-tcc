@@ -69,7 +69,7 @@ const getTestBancaData = (cursoId: number, orientadorId: number): Omit<InsertBan
   visible: true,
 })
 
-describe("Banca Routes", async () => {
+describe("Rotas de Banca", async () => {
   const db = await getFakeDb()
   const client = testClient(app(fakeDeps(db)))
 
@@ -133,7 +133,7 @@ describe("Banca Routes", async () => {
   })
 
   describe("POST /bancas", () => {
-    it("should allow a teacher to create a new banca", async () => {
+    it("permite um professor criar uma nova banca", async () => {
       const newBancaData: CreateBancaInput = {
         tituloTrabalho: "Nova Banca de TCC",
         palavrasChave: "tcc, novo",
@@ -163,7 +163,7 @@ describe("Banca Routes", async () => {
   })
 
   describe("GET /bancas", () => {
-    it("should return a list of visible bancas", async () => {
+    it("retorna uma lista de bancas visíveis", async () => {
       await db.update(Bancas).set({ visible: true }).where(eq(Bancas.id, bancaId))
 
       const res = await client.banca.$get()
@@ -174,7 +174,7 @@ describe("Banca Routes", async () => {
       expect(data.upcoming[0].id).toBe(bancaId)
     })
 
-    it("should not return non-visible bancas in the main list", async () => {
+    it("não retorna bancas não visíveis na lista principal", async () => {
       await db.update(Bancas).set({ visible: false }).where(eq(Bancas.id, bancaId))
 
       const res = await client.banca.$get()
@@ -185,7 +185,7 @@ describe("Banca Routes", async () => {
   })
 
   describe("GET /bancas/:id", () => {
-    it("should return details for a specific banca", async () => {
+    it("retorna detalhes de uma banca específica", async () => {
       const res = await client.banca[":id"].$get({ param: { id: bancaId.toString() } })
       expect(res.status).toBe(200)
       const data = await res.json()
@@ -193,14 +193,14 @@ describe("Banca Routes", async () => {
       expect(data.tituloTrabalho).toBe("Banca de Teste")
     })
 
-    it("should return 404 for a non-existent banca", async () => {
+    it("retorna 404 para uma banca inexistente", async () => {
       const res = await client.banca[":id"].$get({ param: { id: "9999" } })
       expect(res.status).toBe(404)
     })
   })
 
   describe("DELETE /bancas/:id", () => {
-    it("should allow the orientador to delete their banca", async () => {
+    it("permite o orientador deletar sua própria banca", async () => {
       const res = await client.banca[":id"].$delete(
         { param: { id: bancaId.toString() } },
         { headers: { Authorization: `Bearer ${teacherToken}` } }
@@ -211,7 +211,7 @@ describe("Banca Routes", async () => {
       expect(found).toHaveLength(0)
     })
 
-    it("should not allow a student to delete a banca", async () => {
+    it("não permite um estudante deletar uma banca", async () => {
       const res = await client.banca[":id"].$delete(
         { param: { id: bancaId.toString() } },
         { headers: { Authorization: `Bearer ${studentToken}` } }
@@ -219,7 +219,7 @@ describe("Banca Routes", async () => {
       expect(res.status).toBe(403)
     })
 
-    it("should allow an admin to delete a banca", async () => {
+    it("permite um administrador deletar uma banca", async () => {
       const res = await client.banca[":id"].$delete(
         { param: { id: bancaId.toString() } },
         { headers: { Authorization: `Bearer ${adminToken}` } }
@@ -229,7 +229,7 @@ describe("Banca Routes", async () => {
   })
 
   describe("PUT /bancas/:id", () => {
-    it("should allow the orientador to update their banca", async () => {
+    it("permite o orientador atualizar sua própria banca", async () => {
       const updateData: UpdateBancaInput = {
         tituloTrabalho: "Título Atualizado",
         palavrasChave: "atualizado",
@@ -254,7 +254,7 @@ describe("Banca Routes", async () => {
       expect(dbBanca.tituloTrabalho).toBe("Título Atualizado")
     })
 
-    it("should not allow a student to update a banca", async () => {
+    it("não permite um estudante atualizar uma banca", async () => {
       const updateData: UpdateBancaInput = {
         tituloTrabalho: "Título Malicioso",
         palavrasChave: "hacker",
@@ -276,7 +276,7 @@ describe("Banca Routes", async () => {
   })
 
   describe("PATCH /bancas/:id/toggle-visibility", () => {
-    it("should allow the orientador to toggle visibility", async () => {
+    it("permite o orientador alternar a visibilidade", async () => {
       const res = await client.banca[":id"]["toggle-visibility"].$patch(
         { param: { id: bancaId.toString() } },
         { headers: { Authorization: `Bearer ${teacherToken}` } }
