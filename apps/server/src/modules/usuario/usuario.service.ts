@@ -234,6 +234,62 @@ export const updateUserRole = async (
   }
 }
 
+type ChangePasswordServiceError =
+  | { type: "user_not_found" }
+  | { type: "invalid_current_password" }
+  | { type: "hashing_error" }
+  | { type: "database_error" }
+
+export const changeUserPassword = async (
+  c: Context<{ Variables: AppVariables }>,
+  userId: number,
+  currentPassword: string,
+  newPassword: string
+): Promise<AppResult<void, ChangePasswordServiceError>> => {
+  const dbInstance = c.get("db")
+
+  try {
+    const [user] = await dbInstance
+      .select({
+        id: Users.id,
+        passwordHash: Users.passwordHash,
+      })
+      .from(Users)
+      .where(eq(Users.id, userId))
+      .limit(1)
+
+    if (!user) {
+      return err({ type: "user_not_found" })
+    }
+
+    const passwordIsValid = await bcrypt.compare(currentPassword, user.passwordHash)
+    if (!passwordIsValid) {
+      return err({ type: "invalid_current_password" })
+    }
+
+    let newPasswordHash: string
+    try {
+      newPasswordHash = await bcrypt.hash(newPassword, 10)
+    } catch (hashError) {
+      console.error("Password hashing failed during password change:", hashError)
+      return err({ type: "hashing_error" })
+    }
+
+    await dbInstance
+      .update(Users)
+      .set({
+        passwordHash: newPasswordHash,
+        updatedAt: new Date(),
+      })
+      .where(eq(Users.id, userId))
+
+    return ok(undefined)
+  } catch (error) {
+    console.error("Error changing user password:", error)
+    return err({ type: "database_error" })
+  }
+}
+
 export const getUserBancas = async (
   c: Context<{ Variables: AppVariables }>,
   id: number
