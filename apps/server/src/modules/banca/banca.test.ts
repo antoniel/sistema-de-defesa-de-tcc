@@ -467,4 +467,383 @@ describe("Rotas de Banca", async () => {
       expect(data2.visible).toBe(true)
     })
   })
+
+  describe("GET /bancas - Paginação e Ordenação", () => {
+    const createTestBancas = async () => {
+      // Clear existing bancas first
+      await db.delete(usuariosBancas)
+      await db.delete(Bancas)
+
+      const now = new Date()
+      const bancas = [
+        {
+          ...getTestBancaData(cursoId, teacherId, studentId),
+          tituloTrabalho: "Alpha Project",
+          autor: "Alice Silva",
+          local: "Sala 101",
+          dataRealizacao: new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000), // +1 day (future)
+          visible: true,
+        },
+        {
+          ...getTestBancaData(cursoId, teacherId, studentId),
+          tituloTrabalho: "Beta Analysis",
+          autor: "Bruno Santos",
+          local: "Sala 102",
+          dataRealizacao: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000), // +2 days (future)
+          visible: true,
+        },
+        {
+          ...getTestBancaData(cursoId, teacherId, studentId),
+          tituloTrabalho: "Charlie System",
+          autor: "Carlos Pereira",
+          local: "Sala 103",
+          dataRealizacao: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000), // -1 day (past)
+          visible: true,
+        },
+        {
+          ...getTestBancaData(cursoId, teacherId, studentId),
+          tituloTrabalho: "Delta Framework",
+          autor: "Diana Costa",
+          local: "Sala 104",
+          dataRealizacao: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000), // -2 days (past)
+          visible: true,
+        },
+        {
+          ...getTestBancaData(cursoId, teacherId, studentId),
+          tituloTrabalho: "Echo Platform",
+          autor: "Eduardo Lima",
+          local: "Sala 105",
+          dataRealizacao: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000), // +3 days (future)
+          visible: true,
+        },
+      ]
+
+      await db.insert(Bancas).values(bancas)
+    }
+
+    beforeEach(async () => {
+      await createTestBancas()
+    })
+
+    describe("Paginação básica", () => {
+      it("deve respeitar o limite de resultados", async () => {
+        const res = await client.banca.$get({
+          query: {
+            limit: "2",
+          },
+        })
+
+        expect(res.status).toBe(200)
+        const data = await res.json()
+
+        expect(data.meta.limit).toBe(2)
+        expect(data.meta.total).toBeGreaterThan(0)
+      })
+
+      it("deve paginar corretamente", async () => {
+        // First page
+        const page1 = await client.banca.$get({
+          query: {
+            page: "1",
+            limit: "2",
+          },
+        })
+
+        expect(page1.status).toBe(200)
+        const data1 = await page1.json()
+        expect(data1.meta.currentPage).toBe(1)
+        expect(data1.meta.hasNext).toBe(true)
+        expect(data1.meta.hasPrev).toBe(false)
+
+        // Second page
+        const page2 = await client.banca.$get({
+          query: {
+            page: "2",
+            limit: "2",
+          },
+        })
+
+        expect(page2.status).toBe(200)
+        const data2 = await page2.json()
+        expect(data2.meta.currentPage).toBe(2)
+        expect(data2.meta.hasPrev).toBe(true)
+      })
+
+      it("deve calcular corretamente os metadados de paginação", async () => {
+        const res = await client.banca.$get({
+          query: {
+            limit: "3",
+          },
+        })
+
+        expect(res.status).toBe(200)
+        const data = await res.json()
+
+        expect(data.meta).toMatchObject({
+          total: 5,
+          totalPages: expect.any(Number),
+          currentPage: 1,
+          limit: 3,
+          hasNext: expect.any(Boolean),
+          hasPrev: false,
+        })
+        expect(data.meta.totalPages).toBeGreaterThan(1)
+      })
+    })
+
+    describe("Ordenação por campos", () => {
+      it("deve ordenar por título do trabalho (ascendente)", async () => {
+        const res = await client.banca.$get({
+          query: {
+            orderBy: "tituloTrabalho",
+            order: "asc",
+          },
+        })
+
+        expect(res.status).toBe(200)
+        const data = await res.json()
+
+        // Check if upcoming bancas are sorted by title ascending
+        if (data.upcoming.length > 1) {
+          for (let i = 1; i < data.upcoming.length; i++) {
+            const currentTitle = data.upcoming[i].tituloTrabalho || ""
+            const prevTitle = data.upcoming[i - 1].tituloTrabalho || ""
+            expect(currentTitle.localeCompare(prevTitle)).toBeGreaterThanOrEqual(0)
+          }
+        }
+      })
+
+      it("deve ordenar por título do trabalho (descendente)", async () => {
+        const res = await client.banca.$get({
+          query: {
+            orderBy: "tituloTrabalho",
+            order: "desc",
+          },
+        })
+
+        expect(res.status).toBe(200)
+        const data = await res.json()
+
+        // Check if upcoming bancas are sorted by title descending
+        if (data.upcoming.length > 1) {
+          for (let i = 1; i < data.upcoming.length; i++) {
+            const currentTitle = data.upcoming[i].tituloTrabalho || ""
+            const prevTitle = data.upcoming[i - 1].tituloTrabalho || ""
+            expect(currentTitle.localeCompare(prevTitle)).toBeLessThanOrEqual(0)
+          }
+        }
+      })
+
+      it("deve ordenar por autor (ascendente)", async () => {
+        const res = await client.banca.$get({
+          query: {
+            orderBy: "autor",
+            order: "asc",
+          },
+        })
+
+        expect(res.status).toBe(200)
+        const data = await res.json()
+
+        // Check if upcoming bancas are sorted by autor ascending
+        if (data.upcoming.length > 1) {
+          for (let i = 1; i < data.upcoming.length; i++) {
+            const currentAutor = data.upcoming[i].autor || ""
+            const prevAutor = data.upcoming[i - 1].autor || ""
+            expect(currentAutor.localeCompare(prevAutor)).toBeGreaterThanOrEqual(0)
+          }
+        }
+      })
+
+      it("deve ordenar por local (descendente)", async () => {
+        const res = await client.banca.$get({
+          query: {
+            orderBy: "local",
+            order: "desc",
+          },
+        })
+
+        expect(res.status).toBe(200)
+        const data = await res.json()
+
+        // Check if upcoming bancas are sorted by local descending
+        if (data.upcoming.length > 1) {
+          for (let i = 1; i < data.upcoming.length; i++) {
+            const currentLocal = data.upcoming[i].local || ""
+            const prevLocal = data.upcoming[i - 1].local || ""
+            expect(currentLocal.localeCompare(prevLocal)).toBeLessThanOrEqual(0)
+          }
+        }
+      })
+
+      it("deve usar ordenação padrão por data quando não especificada", async () => {
+        const res = await client.banca.$get()
+
+        expect(res.status).toBe(200)
+        const data = await res.json()
+
+        // Past bancas should be ordered by date descending (most recent first)
+        if (data.past.length > 1) {
+          for (let i = 1; i < data.past.length; i++) {
+            const date1 = new Date(data.past[i - 1].dataRealizacao)
+            const date2 = new Date(data.past[i].dataRealizacao)
+            expect(date1.getTime()).toBeGreaterThanOrEqual(date2.getTime())
+          }
+        }
+
+        // Upcoming bancas should be ordered by date ascending (earliest first)
+        if (data.upcoming.length > 1) {
+          for (let i = 1; i < data.upcoming.length; i++) {
+            const date1 = new Date(data.upcoming[i - 1].dataRealizacao)
+            const date2 = new Date(data.upcoming[i].dataRealizacao)
+            expect(date1.getTime()).toBeLessThanOrEqual(date2.getTime())
+          }
+        }
+      })
+    })
+
+    describe("Paginação com ordenação (sem busca)", () => {
+      it("deve combinar paginação e ordenação", async () => {
+        const res = await client.banca.$get({
+          query: {
+            orderBy: "tituloTrabalho",
+            order: "asc",
+            limit: "2",
+          },
+        })
+
+        expect(res.status).toBe(200)
+        const data = await res.json()
+
+        expect(data.meta.limit).toBe(2)
+
+        // For mixed past/upcoming results, we check that results within each group are sorted
+        // Past bancas should be sorted by title ascending
+        if (data.past.length > 1) {
+          for (let i = 1; i < data.past.length; i++) {
+            const currentTitle = data.past[i].tituloTrabalho || ""
+            const prevTitle = data.past[i - 1].tituloTrabalho || ""
+            expect(currentTitle.localeCompare(prevTitle)).toBeGreaterThanOrEqual(0)
+          }
+        }
+
+        // Upcoming bancas should be sorted by title ascending
+        if (data.upcoming.length > 1) {
+          for (let i = 1; i < data.upcoming.length; i++) {
+            const currentTitle = data.upcoming[i].tituloTrabalho || ""
+            const prevTitle = data.upcoming[i - 1].tituloTrabalho || ""
+            expect(currentTitle.localeCompare(prevTitle)).toBeGreaterThanOrEqual(0)
+          }
+        }
+      })
+    })
+
+    describe("Separação de bancas passadas e futuras", () => {
+      it("deve separar corretamente bancas passadas e futuras", async () => {
+        const res = await client.banca.$get()
+
+        expect(res.status).toBe(200)
+        const data = await res.json()
+
+        const now = new Date()
+
+        // All past bancas should be in the past
+        data.past.forEach((banca) => {
+          const bancaDate = new Date(banca.dataRealizacao)
+          expect(bancaDate.getTime()).toBeLessThan(now.getTime())
+        })
+
+        // All upcoming bancas should be in the future
+        data.upcoming.forEach((banca) => {
+          const bancaDate = new Date(banca.dataRealizacao)
+          expect(bancaDate.getTime()).toBeGreaterThanOrEqual(now.getTime())
+        })
+      })
+
+      it("deve ordenar bancas passadas por data decrescente", async () => {
+        const res = await client.banca.$get()
+
+        expect(res.status).toBe(200)
+        const data = await res.json()
+
+        // Past bancas should be ordered by date descending (most recent first)
+        if (data.past.length > 1) {
+          for (let i = 1; i < data.past.length; i++) {
+            const date1 = new Date(data.past[i - 1].dataRealizacao)
+            const date2 = new Date(data.past[i].dataRealizacao)
+            expect(date1.getTime()).toBeGreaterThanOrEqual(date2.getTime())
+          }
+        }
+      })
+
+      it("deve ordenar bancas futuras por data crescente", async () => {
+        const res = await client.banca.$get()
+
+        expect(res.status).toBe(200)
+        const data = await res.json()
+
+        // Upcoming bancas should be ordered by date ascending (earliest first)
+        if (data.upcoming.length > 1) {
+          for (let i = 1; i < data.upcoming.length; i++) {
+            const date1 = new Date(data.upcoming[i - 1].dataRealizacao)
+            const date2 = new Date(data.upcoming[i].dataRealizacao)
+            expect(date1.getTime()).toBeLessThanOrEqual(date2.getTime())
+          }
+        }
+      })
+    })
+
+    describe("Casos extremos", () => {
+      it("deve lidar com página inexistente", async () => {
+        const res = await client.banca.$get({
+          query: {
+            page: "999",
+            limit: "10",
+          },
+        })
+
+        expect(res.status).toBe(200)
+        const data = await res.json()
+
+        // High page numbers should return pagination metadata correctly
+        expect(data.meta.currentPage).toBe(999)
+        expect(data.meta.hasNext).toBe(false)
+        expect(data.meta.hasPrev).toBe(true)
+        // The actual results may vary depending on pagination implementation
+      })
+
+      it("deve lidar com limite baixo", async () => {
+        const res = await client.banca.$get({
+          query: {
+            limit: "1",
+          },
+        })
+
+        expect(res.status).toBe(200)
+        const data = await res.json()
+
+        expect(data.meta.limit).toBe(1)
+        // Should still return valid structure
+        expect(Array.isArray(data.past)).toBe(true)
+        expect(Array.isArray(data.upcoming)).toBe(true)
+      })
+
+      it("deve lidar com parâmetros de ordenação inválidos", async () => {
+        const res = await client.banca.$get({
+          query: {
+            orderBy: "invalidField",
+            order: "asc",
+          },
+        })
+
+        expect(res.status).toBe(200)
+        const data = await res.json()
+
+        // Should still return valid structure even with invalid orderBy
+        expect(Array.isArray(data.past)).toBe(true)
+        expect(Array.isArray(data.upcoming)).toBe(true)
+        expect(data.meta).toBeDefined()
+      })
+    })
+  })
 })
