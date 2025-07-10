@@ -520,9 +520,32 @@ describe("Rotas de Banca", async () => {
       await db.delete(Bancas)
 
       const now = new Date()
+
+      // Criar estudantes únicos para cada banca
+      const students = []
+      for (let i = 0; i < 5; i++) {
+        const studentPasswordHash = await bcrypt.hash("testpass", 10)
+        const [student] = await db
+          .insert(Users)
+          .values({
+            email: `student${i}@test.com`,
+            passwordHash: studentPasswordHash,
+            nome: `Test Student ${i}`,
+            role: "STUDENT",
+            matricula: `555${i}`,
+            status: "ACTIVE",
+            school: "ICC",
+            academicTitle: "BSc",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .returning()
+        students.push(student)
+      }
+
       const bancas = [
         {
-          ...getTestBancaData(cursoId, teacherId, studentId),
+          ...getTestBancaData(cursoId, teacherId, students[0].id),
           tituloTrabalho: "Alpha Project",
           autor: "Alice Silva",
           local: "Sala 101",
@@ -530,7 +553,7 @@ describe("Rotas de Banca", async () => {
           visible: true,
         },
         {
-          ...getTestBancaData(cursoId, teacherId, studentId),
+          ...getTestBancaData(cursoId, teacherId, students[1].id),
           tituloTrabalho: "Beta Analysis",
           autor: "Bruno Santos",
           local: "Sala 102",
@@ -538,7 +561,7 @@ describe("Rotas de Banca", async () => {
           visible: true,
         },
         {
-          ...getTestBancaData(cursoId, teacherId, studentId),
+          ...getTestBancaData(cursoId, teacherId, students[2].id),
           tituloTrabalho: "Charlie System",
           autor: "Carlos Pereira",
           local: "Sala 103",
@@ -546,7 +569,7 @@ describe("Rotas de Banca", async () => {
           visible: true,
         },
         {
-          ...getTestBancaData(cursoId, teacherId, studentId),
+          ...getTestBancaData(cursoId, teacherId, students[3].id),
           tituloTrabalho: "Delta Framework",
           autor: "Diana Costa",
           local: "Sala 104",
@@ -554,7 +577,7 @@ describe("Rotas de Banca", async () => {
           visible: true,
         },
         {
-          ...getTestBancaData(cursoId, teacherId, studentId),
+          ...getTestBancaData(cursoId, teacherId, students[4].id),
           tituloTrabalho: "Echo Platform",
           autor: "Eduardo Lima",
           local: "Sala 105",
