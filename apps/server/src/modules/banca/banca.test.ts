@@ -1,74 +1,20 @@
-import * as bcrypt from "bcryptjs"
 import { eq } from "drizzle-orm"
 import { testClient } from "hono/testing"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { app } from "../.."
-import { Bancas, Cursos, type InsertBanca, type InsertUser, Users, usuariosBancas } from "../../database/schema"
+import { Bancas, Cursos, Users, usuariosBancas } from "../../database/schema"
 import { fakeDeps, getFakeDb } from "../../tests/utils"
 import { type CreateBancaInput, type UpdateBancaInput } from "./banca.schema"
-
-const TEST_TEACHER: Omit<InsertUser, "passwordHash"> & { password: "Password123!" } = {
-  email: "teacher@test.com",
-  password: "Password123!",
-  nome: "Test Teacher",
-  role: "TEACHER",
-  matricula: "111",
-  status: "ACTIVE",
-  school: "ICC",
-  academicTitle: "PhD",
-  createdAt: new Date(),
-  updatedAt: new Date(),
-}
-
-const TEST_STUDENT: Omit<InsertUser, "passwordHash"> & { password: "Password123!" } = {
-  email: "student@test.com",
-  password: "Password123!",
-  nome: "Test Student",
-  role: "STUDENT",
-  matricula: "222",
-  status: "ACTIVE",
-  school: "ICC",
-  academicTitle: "BSc",
-  createdAt: new Date(),
-  updatedAt: new Date(),
-}
-
-const TEST_ADMIN: Omit<InsertUser, "passwordHash"> & { password: "Password123!" } = {
-  email: "admin@test.com",
-  password: "Password123!",
-  nome: "Test Admin",
-  role: "ADMIN",
-  matricula: "333",
-  status: "ACTIVE",
-  school: "ICC",
-  academicTitle: "PhD",
-  createdAt: new Date(),
-  updatedAt: new Date(),
-}
-
-const TEST_CURSO = {
-  nome: "Ciência da Computação",
-  sigla: "BCC",
-  // grau property is not in the schema, removing it.
-}
-
-const getTestBancaData = (cursoId: number, orientadorId: number, alunoId: number): Omit<InsertBanca, "id"> => ({
-  tituloTrabalho: "Banca de Teste",
-  autor: "Aluno Teste",
-  matricula: "222",
-  turma: "T01",
-  periodoAcademico: "2024.1",
-  palavrasChave: "teste, hono, vitest",
-  resumo: "Um resumo da banca de teste.",
-  abstract: "An abstract of the test defense.",
-  dataRealizacao: new Date(new Date().getTime() + 24 * 60 * 60 * 1000),
-  local: "Online",
-  modalidade: "remoto",
-  cursoId,
-  orientadorId,
-  visible: true,
-  alunoId,
-})
+import {
+  TEST_TEACHER,
+  TEST_STUDENT,
+  TEST_ADMIN,
+  TEST_CURSO,
+  getTestBancaData,
+  createTestBancaInput,
+  createTestUserWithPasswordHash,
+  createLoginHelper
+} from "@tcc/tests"
 
 describe("Rotas de Banca", async () => {
   const db = await getFakeDb()
@@ -90,21 +36,21 @@ describe("Rotas de Banca", async () => {
     await db.delete(Users)
     await db.delete(Cursos)
 
-    const teacherPasswordHash = await bcrypt.hash(TEST_TEACHER.password, 10)
-    const studentPasswordHash = await bcrypt.hash(TEST_STUDENT.password, 10)
-    const adminPasswordHash = await bcrypt.hash(TEST_ADMIN.password, 10)
+    const teacherWithHash = await createTestUserWithPasswordHash(TEST_TEACHER)
+    const studentWithHash = await createTestUserWithPasswordHash(TEST_STUDENT)
+    const adminWithHash = await createTestUserWithPasswordHash(TEST_ADMIN)
 
     const [teacher] = await db
       .insert(Users)
-      .values({ ...TEST_TEACHER, passwordHash: teacherPasswordHash })
+      .values(teacherWithHash)
       .returning()
     const [student] = await db
       .insert(Users)
-      .values({ ...TEST_STUDENT, passwordHash: studentPasswordHash })
+      .values(studentWithHash)
       .returning()
     await db
       .insert(Users)
-      .values({ ...TEST_ADMIN, passwordHash: adminPasswordHash })
+      .values(adminWithHash)
       .returning()
     teacherId = teacher.id
     studentId = student.id
@@ -118,11 +64,7 @@ describe("Rotas de Banca", async () => {
       .returning()
     bancaId = banca.id
 
-    const loginUser = async (user: { email: string; password: string }) => {
-      const res = await client.auth.login.$post({ json: user })
-      const data = (await res.json()) as { token: string }
-      return data.token
-    }
+    const loginUser = createLoginHelper(client)
 
     teacherToken = await loginUser(TEST_TEACHER)
     studentToken = await loginUser(TEST_STUDENT)
@@ -138,22 +80,7 @@ describe("Rotas de Banca", async () => {
 
   describe("POST /bancas", () => {
     it("permite um professor criar uma nova banca", async () => {
-      const newBancaData: CreateBancaInput = {
-        tituloTrabalho: "Nova Banca de TCC",
-        palavrasChave: "tcc, novo",
-        cursoId,
-        resumo: "Resumo da nova banca",
-        alunoId: studentId,
-        dataRealizacao: new Date(),
-        local: "Teams",
-        orientadorId: teacherId,
-        autor: "Novo Aluno",
-        matricula: "333",
-        turma: "T02",
-        periodoAcademico: "2024.2",
-        abstract: "New abstract",
-        modalidade: "remoto",
-      }
+      const newBancaData: CreateBancaInput = createTestBancaInput(cursoId, teacherId, studentId)
 
       const res = await client.banca.$post(
         { json: newBancaData },
@@ -183,21 +110,22 @@ describe("Rotas de Banca", async () => {
       await db.update(Bancas).set({ visible: false }).where(eq(Bancas.id, bancaId))
 
       // Create an unrelated user
-      const unrelatedUserPasswordHash = await bcrypt.hash("Password123!", 10)
+      const unrelatedUserData = {
+        email: "unrelated@test.com",
+        password: "Password123!",
+        nome: "Unrelated User",
+        role: "TEACHER" as const,
+        matricula: "444",
+        status: "ACTIVE" as const,
+        school: "ICC",
+        academicTitle: "PhD",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+      const unrelatedUserWithHash = await createTestUserWithPasswordHash(unrelatedUserData)
       const [unrelatedUser] = await db
         .insert(Users)
-        .values({
-          email: "unrelated@test.com",
-          passwordHash: unrelatedUserPasswordHash,
-          nome: "Unrelated User",
-          role: "TEACHER",
-          matricula: "444",
-          status: "ACTIVE",
-          school: "ICC",
-          academicTitle: "PhD",
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
+        .values(unrelatedUserWithHash)
         .returning()
 
       const unrelatedLoginRes = await client.auth.login.$post({
@@ -286,21 +214,22 @@ describe("Rotas de Banca", async () => {
       await db.update(Bancas).set({ visible: false }).where(eq(Bancas.id, bancaId))
 
       // Create an unrelated user
-      const unrelatedUserPasswordHash = await bcrypt.hash("Password123!", 10)
+      const unrelatedUserData2 = {
+        email: "unrelated2@test.com",
+        password: "Password123!",
+        nome: "Unrelated User 2",
+        role: "TEACHER" as const,
+        matricula: "555",
+        status: "ACTIVE" as const,
+        school: "ICC",
+        academicTitle: "PhD",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+      const unrelatedUserWithHash2 = await createTestUserWithPasswordHash(unrelatedUserData2)
       await db
         .insert(Users)
-        .values({
-          email: "unrelated2@test.com",
-          passwordHash: unrelatedUserPasswordHash,
-          nome: "Unrelated User 2",
-          role: "TEACHER",
-          matricula: "555",
-          status: "ACTIVE",
-          school: "ICC",
-          academicTitle: "PhD",
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
+        .values(unrelatedUserWithHash2)
         .returning()
 
       const unrelatedLoginRes = await client.auth.login.$post({
