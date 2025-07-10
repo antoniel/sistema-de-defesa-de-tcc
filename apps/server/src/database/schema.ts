@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm"
-import { boolean, integer, pgEnum, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core"
+import { boolean, integer, pgEnum, pgTable, serial, text, timestamp, unique } from "drizzle-orm/pg-core"
 
 export const userRole = pgEnum("user_role", ["STUDENT", "TEACHER", "ADMIN"])
 export const userStatus = pgEnum("user_status", ["ACTIVE", "INACTIVE"])
@@ -57,6 +57,10 @@ export const Bancas = pgTable("banca", {
   local: text("local"), // Room or Meeting Link
   modalidade: modalidadeEnum("modalidade").notNull(), // 'remoto' or 'local'
   visible: boolean("visible").notNull().default(true),
+}, (table) => {
+  return {
+    alunoCursoUnique: unique("aluno_curso_unique").on(table.alunoId, table.cursoId),
+  }
 })
 export type InsertBanca = typeof Bancas.$inferInsert
 export type SelectBanca = typeof Bancas.$inferSelect

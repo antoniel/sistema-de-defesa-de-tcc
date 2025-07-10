@@ -1,0 +1,1 @@
+ALTER TABLE "banca" ADD CONSTRAINT "aluno_curso_unique" UNIQUE("aluno_id","curso_id");
