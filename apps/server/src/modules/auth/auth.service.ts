@@ -48,11 +48,6 @@ export const loginUserService = async (
       return err({ type: "invalid_credentials" })
     }
 
-    if (user.status !== "ACTIVE") {
-      console.log(`Login attempt failed: User ${email} is inactive.`)
-      return err({ type: "inactive_user" })
-    }
-
     if (!user.passwordHash) {
       console.error(`Login attempt failed: User ${email} has no password hash set.`)
       return err({ type: "no_password_hash" })
@@ -92,7 +87,6 @@ export const loginUserService = async (
         nome: user.nome,
         email: user.email,
         role: user.role,
-        status: user.status,
         school: user.school,
         matricula: user.matricula,
         academicTitle: user.academicTitle,
@@ -115,14 +109,10 @@ export const requestPasswordResetService = async (
   console.log(`Password reset requested for email: ${email}`)
 
   try {
-    const potentialUsers = await dbInstance
-      .select({ id: Users.id, status: Users.status })
-      .from(Users)
-      .where(eq(Users.email, email))
-      .limit(1)
+    const potentialUsers = await dbInstance.select({ id: Users.id }).from(Users).where(eq(Users.email, email)).limit(1)
     const user = potentialUsers[0]
 
-    if (!user || user.status !== "ACTIVE") {
+    if (!user) {
       console.log(`Password reset request failed: User not found or inactive for email ${email}`)
 
       return ok(undefined)
@@ -391,7 +381,6 @@ export const registerUserService = async (
         school: school,
         academicTitle: academicTitle,
         matricula: userData.matricula,
-        status: "ACTIVE", // Default status
         createdAt: now,
         updatedAt: now,
         role: "STUDENT",
