@@ -1,7 +1,8 @@
 import { drizzle, PgliteDatabase } from "drizzle-orm/pglite"
 import { migrate } from "drizzle-orm/pglite/migrator"
 import { createMiddleware } from "hono/factory"
-import path from "path"
+import path, { dirname } from "path"
+import { fileURLToPath } from "url"
 import * as schema from "../database/schema"
 import { type AppVariables } from "../types"
 
@@ -13,6 +14,8 @@ export const getFakeDb = async () => {
   const db = drizzle({
     schema: schema,
   })
+  const __filename = fileURLToPath(import.meta.url)
+  const __dirname = dirname(__filename)
   const migrationsFolder = path.join(__dirname, "..", "database", "drizzle")
   await migrate(db, {
     migrationsFolder,

@@ -22,6 +22,13 @@
       "when": 1752098899351,
       "tag": "0002_good_gamora",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1752152736174,
+      "tag": "0003_student-course-unique-constraint",
+      "breakpoints": true
     }
   ]
 }
