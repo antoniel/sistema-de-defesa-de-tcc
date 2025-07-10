@@ -2,7 +2,7 @@ export type AppResult<TData, TError> = { ok: true; data: TData } | { ok: false; 
 export function ok<TData, TError>(data: TData): AppResult<TData, TError> {
   return { ok: true, data }
 }
-export function err<TData, TError>(error: TError): AppResult<TData, TError> {
+export function err<const TData, const TError>(error: TError): AppResult<TData, TError> {
   return { ok: false, error }
 }
 export function panic<TError extends { message: string }>(error: TError): void {
