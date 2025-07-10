@@ -43,7 +43,7 @@ export const getTeachers = async (
     const teachers = await dbInstance
       .select()
       .from(Users)
-      .where(and(or(eq(Users.role, "TEACHER"), eq(Users.role, "ADMIN")), eq(Users.status, "ACTIVE")))
+      .where(and(or(eq(Users.role, "TEACHER"), eq(Users.role, "ADMIN"))))
       .orderBy(Users.nome)
 
     return ok(teachers)
@@ -98,7 +98,6 @@ export const createUser = async (
         matricula: userData.matricula.trim(),
         passwordHash: passwordHash,
         role: userData.role,
-        status: "ACTIVE",
         createdAt: now,
         updatedAt: now,
         school: userData.school,

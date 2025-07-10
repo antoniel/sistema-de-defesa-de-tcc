@@ -26,7 +26,6 @@ describe("Auth Routes", async () => {
   beforeEach(async () => {
     TEST_USER.passwordHash = await bcrypt.hash(TEST_USER.password, 10)
     await db.insert(Users).values({
-      status: "ACTIVE",
       email: TEST_USER.email,
       matricula: TEST_USER.matricula,
       passwordHash: TEST_USER.passwordHash,

@@ -2,7 +2,6 @@ import { relations, sql } from "drizzle-orm"
 import { boolean, integer, pgEnum, pgTable, serial, text, timestamp, unique } from "drizzle-orm/pg-core"
 
 export const userRole = pgEnum("user_role", ["STUDENT", "TEACHER", "ADMIN"])
-export const userStatus = pgEnum("user_status", ["ACTIVE", "INACTIVE"])
 export type UserRole = (typeof userRole.enumValues)[number]
 export const Users = pgTable("usuario", {
   id: serial("id").primaryKey(),
@@ -13,7 +12,6 @@ export const Users = pgTable("usuario", {
   matricula: text("matricula").notNull(),
   academicTitle: text("academic_title").notNull(), // Ex: Doutorado
   createdAt: timestamp("created_at").notNull(),
-  status: userStatus("status").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
   role: userRole("role").notNull(),
 })
