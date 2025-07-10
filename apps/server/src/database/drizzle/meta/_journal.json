@@ -15,6 +15,13 @@
       "when": 1748914583837,
       "tag": "0001_seed-db",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1752098899351,
+      "tag": "0002_good_gamora",
+      "breakpoints": true
     }
   ]
 }

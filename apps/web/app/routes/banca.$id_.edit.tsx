@@ -91,16 +91,6 @@ const useTeachers = () => {
   })
 }
 
-const useAllUsers = () => {
-  return useQuery({
-    queryKey: ["users", "all"],
-    queryFn: async () => {
-      const response = await apiClient.usuario.all.$get()
-      return rpcReturn(response) as unknown as SelectUser[]
-    },
-  })
-}
-
 export default function EditBancaPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -109,7 +99,6 @@ export default function EditBancaPage() {
   const { data: teachers, isLoading: isLoadingTeachers } = useTeachers()
   const { data: banca, isLoading: isBancaLoading } = useBanca(id!)
   const updateBancaMutation = useUpdateBanca(id!)
-  const { data: allUsers, isLoading: isLoadingUsers } = useAllUsers()
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -129,12 +118,16 @@ export default function EditBancaPage() {
           orientadorId: banca.orientadorId?.toString() || "",
           autor: banca.autor || "",
           matricula: banca.matricula || "",
-          avaliadores:
-            banca.membros
-              ?.filter((m) => m.role === "EVALUATOR")
-              .map((m) => ({
-                usuarioId: m.usuario.id.toString(),
-              })) || [],
+          avaliadores: (() => {
+            const avaliadores =
+              banca.membros
+                ?.filter((m) => m.role === "avaliador")
+                .map((m) => ({
+                  usuarioId: m.usuario.id.toString(),
+                })) || []
+
+            return avaliadores.length > 0 ? avaliadores : [{ usuarioId: "" }]
+          })(),
         }
       : undefined,
   })
@@ -153,10 +146,10 @@ export default function EditBancaPage() {
       dataRealizacao: new Date(data.dataRealizacao),
       local: data.local,
       turma: data.turma,
-      cursoId: data.cursoId,
-      orientadorId: data.orientadorId,
+      cursoId: Number(data.cursoId),
+      orientadorId: Number(data.orientadorId),
       membros: data.avaliadores.map((a) => ({ id: a.usuarioId })),
-      alunoId: data.autor,
+      alunoId: banca!.alunoId,
     }
 
     updateBancaMutation.mutate(submitData, {
@@ -170,7 +163,7 @@ export default function EditBancaPage() {
     })
   }
 
-  if (isLoadingCursos || isLoadingTeachers || isBancaLoading || isLoadingUsers) {
+  if (isLoadingCursos || isLoadingTeachers || isBancaLoading) {
     return <BancaSkeleton />
   }
 
@@ -201,7 +194,7 @@ export default function EditBancaPage() {
               <FormItem>
                 <FormLabel>Resumo</FormLabel>
                 <FormControl>
-                  <Textarea placeholder="Resumo do trabalho" {...field} />
+                  <Textarea rows={8} placeholder="Resumo do trabalho" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -215,7 +208,7 @@ export default function EditBancaPage() {
               <FormItem>
                 <FormLabel>Abstract</FormLabel>
                 <FormControl>
-                  <Textarea placeholder="Abstract" {...field} />
+                  <Textarea rows={8} placeholder="Abstract" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -258,7 +251,7 @@ export default function EditBancaPage() {
                 <FormItem>
                   <FormLabel>Matrícula</FormLabel>
                   <FormControl>
-                    <Input placeholder="Matrícula do autor" {...field} />
+                    <Input placeholder="Matrícula do autor" {...field} disabled />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -392,13 +385,11 @@ export default function EditBancaPage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {allUsers
-                              ?.filter((user) => user.role === "TEACHER")
-                              .map((user) => (
-                                <SelectItem key={user.id} value={String(user.id)}>
-                                  {user.nome}
-                                </SelectItem>
-                              ))}
+                            {teachers?.map((user) => (
+                              <SelectItem key={user.id} value={String(user.id)}>
+                                {user.nome}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />

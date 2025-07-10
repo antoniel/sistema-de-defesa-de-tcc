@@ -13,17 +13,26 @@ import apiClient from "@/services/apiClient"
 import { useUser } from "@/services/useUser"
 import { useQuery } from "@tanstack/react-query"
 import { ArrowUpDown, ChevronDown, ChevronUp } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { href, useNavigate } from "react-router"
 import { match } from "ts-pattern"
 
-const useBancasDefesa = (orderBy?: string, order?: "asc" | "desc") => {
+const useBancasDefesa = (
+  orderBy?: string,
+  order?: "asc" | "desc",
+  page?: number,
+  limit?: number,
+  searchQuery?: string
+) => {
   return useQuery({
-    queryKey: ["bancas", orderBy, order],
+    queryKey: ["bancas", orderBy, order, page, limit, searchQuery],
     queryFn: async () => {
       const params = new URLSearchParams()
       if (orderBy) params.set("orderBy", orderBy)
       if (order) params.set("order", order)
+      if (page) params.set("page", page.toString())
+      if (limit) params.set("limit", limit.toString())
+      if (searchQuery) params.set("searchQuery", searchQuery)
 
       const res = await apiClient.banca.$get({
         query: Object.fromEntries(params),
@@ -33,15 +42,24 @@ const useBancasDefesa = (orderBy?: string, order?: "asc" | "desc") => {
   })
 }
 
-const useMyDefesas = (orderBy?: string, order?: "asc" | "desc") => {
+const useMyDefesas = (
+  orderBy?: string,
+  order?: "asc" | "desc",
+  page?: number,
+  limit?: number,
+  searchQuery?: string
+) => {
   const userQuery = useUser()
 
   return useQuery({
-    queryKey: ["user", userQuery.data?.id, "my-defesas", orderBy, order],
+    queryKey: ["user", userQuery.data?.id, "my-defesas", orderBy, order, page, limit, searchQuery],
     queryFn: async () => {
       const params = new URLSearchParams()
       if (orderBy) params.set("orderBy", orderBy)
       if (order) params.set("order", order)
+      if (page) params.set("page", page.toString())
+      if (limit) params.set("limit", limit.toString())
+      if (searchQuery) params.set("searchQuery", searchQuery)
 
       const res = await apiClient.banca["my-defenses"].$get({
         query: Object.fromEntries(params),
@@ -61,10 +79,28 @@ export default function Home() {
   const [sortField, setSortField] = useState<string>("")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
   const [rowsPerPage, setRowsPerPage] = useState<number>(10)
+  const [currentPage, setCurrentPage] = useState<number>(1)
 
   const userQuery = useUser()
-  const bancasDefesaQuery = useBancasDefesa(sortField || undefined, sortField ? sortOrder : undefined)
-  const myDefesasQuery = useMyDefesas(sortField || undefined, sortField ? sortOrder : undefined)
+  const bancasDefesaQuery = useBancasDefesa(
+    sortField || undefined,
+    sortField ? sortOrder : undefined,
+    currentPage,
+    rowsPerPage,
+    searchQuery
+  )
+  const myDefesasQuery = useMyDefesas(
+    sortField || undefined,
+    sortField ? sortOrder : undefined,
+    currentPage,
+    rowsPerPage,
+    searchQuery
+  )
+
+  // Reset page when search query changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery])
 
   const isTeacherOrAdmin = userQuery.data?.role === "TEACHER" || userQuery.data?.role === "ADMIN"
 
@@ -77,6 +113,7 @@ export default function Home() {
       setSortField(field)
       setSortOrder("asc")
     }
+    setCurrentPage(1) // Reset to first page when sorting
   }
 
   if (bancasDefesaQuery.isLoading) {
@@ -114,11 +151,13 @@ export default function Home() {
       return {
         upcoming: myDefesasQuery.data?.upcoming || [],
         past: myDefesasQuery.data?.past || [],
+        meta: myDefesasQuery.data?.meta,
       }
     }
     return {
       upcoming: bancasDefesaQuery.data?.upcoming || [],
       past: bancasDefesaQuery.data?.past || [],
+      meta: bancasDefesaQuery.data?.meta,
     }
   }
 
@@ -139,7 +178,13 @@ export default function Home() {
           />
           <div className="flex items-center gap-2 whitespace-nowrap">
             <span className="text-sm text-muted-foreground">Exibir:</span>
-            <Select value={rowsPerPage.toString()} onValueChange={(value) => setRowsPerPage(Number(value))}>
+            <Select
+              value={rowsPerPage.toString()}
+              onValueChange={(value) => {
+                setRowsPerPage(Number(value))
+                setCurrentPage(1) // Reset to first page when changing rows per page
+              }}
+            >
               <SelectTrigger className="w-20">
                 <SelectValue />
               </SelectTrigger>
@@ -169,6 +214,9 @@ export default function Home() {
             sortOrder={sortOrder}
             onSort={handleSort}
             rowsPerPage={rowsPerPage}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+            meta={tableData.meta}
           />
         </TabsContent>
         <TabsContent value="past">
@@ -179,6 +227,9 @@ export default function Home() {
             sortOrder={sortOrder}
             onSort={handleSort}
             rowsPerPage={rowsPerPage}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+            meta={tableData.meta}
           />
         </TabsContent>
         {isTeacherOrAdmin && (
@@ -212,25 +263,36 @@ export default function Home() {
                       />
                     </div>
                   </div>
-                  <div className="text-sm text-muted-foreground px-4 pt-2">
-                    {(() => {
-                      const filteredData = tableData.upcoming.filter(
-                        (banca) =>
-                          banca.tituloTrabalho.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          banca.autor.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          banca.orientador.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          banca.curso.nome.toLowerCase().includes(searchQuery.toLowerCase())
-                      )
-                      const showingCount = Math.min(filteredData.length, rowsPerPage)
-                      return filteredData.length > 0 ? (
-                        <>
-                          Exibindo {showingCount} de {filteredData.length} resultado
-                          {filteredData.length !== 1 ? "s" : ""}
-                          {searchQuery && ` para "${searchQuery}"`}
-                        </>
-                      ) : null
-                    })()}
-                  </div>
+                  {tableData.meta && (
+                    <div className="flex items-center justify-between px-4 pt-2">
+                      <div className="text-sm text-muted-foreground">
+                        Exibindo {tableData.upcoming.length} de {tableData.meta.total} resultado
+                        {tableData.meta.total !== 1 ? "s" : ""}
+                        {searchQuery && ` para "${searchQuery}"`}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(currentPage - 1)}
+                          disabled={!tableData.meta.hasPrev}
+                        >
+                          Anterior
+                        </Button>
+                        <span className="text-sm text-muted-foreground">
+                          Página {tableData.meta.currentPage} de {tableData.meta.totalPages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(currentPage + 1)}
+                          disabled={!tableData.meta.hasNext}
+                        >
+                          Próximo
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <div className="border rounded-md">
@@ -248,25 +310,36 @@ export default function Home() {
                       />
                     </div>
                   </div>
-                  <div className="text-sm text-muted-foreground px-4 pt-2">
-                    {(() => {
-                      const filteredData = tableData.past.filter(
-                        (banca) =>
-                          banca.tituloTrabalho.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          banca.autor.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          banca.orientador.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          banca.curso.nome.toLowerCase().includes(searchQuery.toLowerCase())
-                      )
-                      const showingCount = Math.min(filteredData.length, rowsPerPage)
-                      return filteredData.length > 0 ? (
-                        <>
-                          Exibindo {showingCount} de {filteredData.length} resultado
-                          {filteredData.length !== 1 ? "s" : ""}
-                          {searchQuery && ` para "${searchQuery}"`}
-                        </>
-                      ) : null
-                    })()}
-                  </div>
+                  {tableData.meta && (
+                    <div className="flex items-center justify-between px-4 pt-2">
+                      <div className="text-sm text-muted-foreground">
+                        Exibindo {tableData.past.length} de {tableData.meta.total} resultado
+                        {tableData.meta.total !== 1 ? "s" : ""}
+                        {searchQuery && ` para "${searchQuery}"`}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(currentPage - 1)}
+                          disabled={!tableData.meta.hasPrev}
+                        >
+                          Anterior
+                        </Button>
+                        <span className="text-sm text-muted-foreground">
+                          Página {tableData.meta.currentPage} de {tableData.meta.totalPages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(currentPage + 1)}
+                          disabled={!tableData.meta.hasNext}
+                        >
+                          Próximo
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -278,8 +351,8 @@ export default function Home() {
 }
 
 const columns = [
-  { key: "dataRealizacao", header: "Data", minWidth: "160px", sortable: true },
-  { key: "tituloTrabalho", header: "Título do Trabalho", minWidth: "400px", sortable: true },
+  { key: "dataRealizacao", header: "Data", minWidth: "100px", sortable: true },
+  { key: "tituloTrabalho", header: "Título do Trabalho", minWidth: "350px", sortable: true },
   { key: "autor", header: "Discente", minWidth: "120px", sortable: true },
   { key: "orientador", header: "Orientador", minWidth: "150px", sortable: true },
   { key: "curso", header: "Curso", minWidth: "80px", sortable: true },
@@ -307,17 +380,13 @@ function HomeTable(props: {
     return props.sortOrder === "asc" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
   }
 
-  // Filter data based on search query
-  const filteredData = props.data.filter(
-    (banca) =>
-      banca.tituloTrabalho.toLowerCase().includes(props.searchQuery.toLowerCase()) ||
-      banca.autor.toLowerCase().includes(props.searchQuery.toLowerCase()) ||
-      banca.orientador.nome.toLowerCase().includes(props.searchQuery.toLowerCase()) ||
-      banca.curso.nome.toLowerCase().includes(props.searchQuery.toLowerCase())
-  )
+  const truncateText = (text: string, maxLength: number) => {
+    if (text.length <= maxLength) return text
+    return text.substring(0, maxLength) + "..."
+  }
 
-  // Apply rows per page limit
-  const paginatedData = filteredData.slice(0, props.rowsPerPage)
+  // Data is already filtered and paginated by the backend
+  const paginatedData = props.data
 
   return (
     <Table>
@@ -350,11 +419,19 @@ function HomeTable(props: {
                 <TableCell key={`${banca.id}-${col.key}`}>
                   {match(col.key)
                     .with("dataRealizacao", () => (
-                      <span className="whitespace-nowrap">
-                        {new Date(banca.dataRealizacao).toLocaleDateString("pt-BR")}
+                      <span className="whitespace-nowrap text-xs">
+                        {new Date(banca.dataRealizacao).toLocaleDateString("pt-BR", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "2-digit",
+                        })}
                       </span>
                     ))
-                    .with("tituloTrabalho", () => <span className="whitespace-nowrap">{banca.tituloTrabalho}</span>)
+                    .with("tituloTrabalho", () => (
+                      <span className="block" title={banca.tituloTrabalho}>
+                        {truncateText(banca.tituloTrabalho, 80)}
+                      </span>
+                    ))
                     .with("autor", () => <span className="whitespace-nowrap">{banca.autor}</span>)
                     .with("orientador", () => <span className="whitespace-nowrap">{banca.orientador.nome}</span>)
                     .with("curso", () => <span className="whitespace-nowrap">{banca.curso.sigla}</span>)
@@ -383,27 +460,51 @@ function TableWithInfo(props: {
   sortOrder: "asc" | "desc"
   onSort: (field: string) => void
   rowsPerPage: number
+  currentPage: number
+  onPageChange: (page: number) => void
+  meta?: {
+    total: number
+    totalPages: number
+    currentPage: number
+    limit: number
+    hasNext: boolean
+    hasPrev: boolean
+  }
 }) {
-  // Filter data based on search query
-  const filteredData = props.data.filter(
-    (banca) =>
-      banca.tituloTrabalho.toLowerCase().includes(props.searchQuery.toLowerCase()) ||
-      banca.autor.toLowerCase().includes(props.searchQuery.toLowerCase()) ||
-      banca.orientador.nome.toLowerCase().includes(props.searchQuery.toLowerCase()) ||
-      banca.curso.nome.toLowerCase().includes(props.searchQuery.toLowerCase())
-  )
-
-  const showingCount = Math.min(filteredData.length, props.rowsPerPage)
+  const meta = props.meta
 
   return (
     <div>
       <div className="border rounded-md overflow-x-auto">
         <HomeTable {...props} />
       </div>
-      {filteredData.length > 0 && (
-        <div className="text-sm text-muted-foreground px-4 pt-2">
-          Exibindo {showingCount} de {filteredData.length} resultado{filteredData.length !== 1 ? "s" : ""}
-          {props.searchQuery && ` para "${props.searchQuery}"`}
+      {meta && (
+        <div className="flex items-center justify-between px-4 pt-2">
+          <div className="text-sm text-muted-foreground">
+            Exibindo {props.data.length} de {meta.total} resultado{meta.total !== 1 ? "s" : ""}
+            {props.searchQuery && ` para "${props.searchQuery}"`}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => props.onPageChange(props.currentPage - 1)}
+              disabled={!meta.hasPrev}
+            >
+              Anterior
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Página {meta.currentPage} de {meta.totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => props.onPageChange(props.currentPage + 1)}
+              disabled={!meta.hasNext}
+            >
+              Próximo
+            </Button>
+          </div>
         </div>
       )}
     </div>
