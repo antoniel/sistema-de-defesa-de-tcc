@@ -50,31 +50,7 @@ const DEV_SEED_DATA: Partial<BancaFormData> = {
   orientadorId: 1,
 }
 
-// Hook para buscar professores da API
-const useTeachers = () => {
-  return useQuery({
-    queryKey: ["teachers"],
-    queryFn: async () => {
-      const response = await apiClient.usuario.teachers.$get()
-      return rpcReturn(response) as unknown as SelectUser[]
-    },
-  })
-}
-const useStudents = () => {
-  return useQuery({
-    queryKey: ["students"],
-    queryFn: async () => {
-      const response = await apiClient.usuario.students.$get()
-      return rpcReturn(response) as unknown as SelectUser[]
-    },
-  })
-}
-
-const useAddBancaMutation = () => {
-  return useMutation({
-    mutationFn: async (data: query["input"]) => rpcReturn(await apiClient.banca.$post(data)),
-  })
-}
+import { useTeachers, useStudents, useAddBancaMutation } from "@/hooks"
 
 const FORM_STEPS = [
   { id: 0, name: "Informações Básicas" },
@@ -142,11 +118,20 @@ export default function AddBancaPage() {
           })
           navigate("/")
         },
-        onError: () => {
-          toast({
-            title: "Erro ao cadastrar defesa ❌",
-            description: "Ocorreu um erro ao cadastrar a defesa",
-          })
+        onError: (error: any) => {
+          if (error?.message) {
+            toast({
+              title: "Erro ao cadastrar defesa ",
+              description: error.message,
+              variant: "destructive",
+            })
+          } else {
+            toast({
+              title: "Erro ao cadastrar defesa ❌",
+              description: "Ocorreu um erro ao cadastrar a defesa",
+              variant: "destructive",
+            })
+          }
         },
       }
     )

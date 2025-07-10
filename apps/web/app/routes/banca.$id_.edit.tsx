@@ -17,7 +17,8 @@ import { CalendarIcon } from "lucide-react"
 import { useFieldArray, useForm } from "react-hook-form"
 import { useNavigate, useParams } from "react-router"
 import { z } from "zod"
-import { BancaSkeleton, useBanca } from "./banca.$id"
+import { BancaSkeleton } from "./banca.$id"
+import { useBanca } from "@/hooks"
 
 const formSchema = z.object({
   tituloTrabalho: z.string().min(1, "Título é obrigatório"),
@@ -42,54 +43,7 @@ type FormValues = z.infer<typeof formSchema>
 
 type updateBanca = RpcType<(typeof apiClient.banca)[":id"]["$put"]>["input"]["json"]
 
-const useUpdateBanca = (id: string) => {
-  const queryClient = useQueryClient()
-  const banca = useBanca(id)
-  const navigate = useNavigate()
-  const { toast } = useToast()
-
-  return useMutation({
-    mutationFn: async (data: updateBanca) => {
-      const res = await apiClient.banca[":id"].$put({
-        json: data,
-        param: { id },
-      })
-      return rpcReturn(res)
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["bancas"] })
-      void queryClient.invalidateQueries({ queryKey: ["banca", id] })
-      navigate(`/banca/${id}`)
-    },
-    onError: (error) => {
-      toast({
-        title: "Erro",
-        description: error instanceof Error ? error.message : "Erro ao atualizar banca. Tente novamente.",
-        variant: "destructive",
-      })
-    },
-  })
-}
-
-const useCursos = () => {
-  return useQuery({
-    queryKey: ["cursos"],
-    queryFn: async () => {
-      const response = await apiClient.cursos.$get()
-      return rpcReturn(response) as unknown as SelectCurso[]
-    },
-  })
-}
-
-const useTeachers = () => {
-  return useQuery({
-    queryKey: ["teachers"],
-    queryFn: async () => {
-      const response = await apiClient.usuario.teachers.$get()
-      return rpcReturn(response) as unknown as SelectUser[]
-    },
-  })
-}
+import { useUpdateBanca, useCursos, useTeachers } from "@/hooks"
 
 export default function EditBancaPage() {
   const { id } = useParams<{ id: string }>()

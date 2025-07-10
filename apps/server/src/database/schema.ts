@@ -1,8 +1,7 @@
 import { relations, sql } from "drizzle-orm"
-import { boolean, integer, pgEnum, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core"
+import { boolean, integer, pgEnum, pgTable, serial, text, timestamp, unique } from "drizzle-orm/pg-core"
 
 export const userRole = pgEnum("user_role", ["STUDENT", "TEACHER", "ADMIN"])
-export const userStatus = pgEnum("user_status", ["ACTIVE", "INACTIVE"])
 export type UserRole = (typeof userRole.enumValues)[number]
 export const Users = pgTable("usuario", {
   id: serial("id").primaryKey(),
@@ -13,7 +12,6 @@ export const Users = pgTable("usuario", {
   matricula: text("matricula").notNull(),
   academicTitle: text("academic_title").notNull(), // Ex: Doutorado
   createdAt: timestamp("created_at").notNull(),
-  status: userStatus("status").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
   role: userRole("role").notNull(),
 })
@@ -30,34 +28,42 @@ export type InsertCurso = typeof Cursos.$inferInsert
 export type SelectCurso = typeof Cursos.$inferSelect
 
 export const modalidadeEnum = pgEnum("modalidade", ["remoto", "local"])
-export const Bancas = pgTable("banca", {
-  id: serial("id").primaryKey(),
-  // user_id no dump original parece redundante se temos a relação N:N em usuario_banca
-  // Mantendo por ora para refletir o dump, mas pode ser removido.
-  // userId: int('user_id').notNull().references(() => usuarios.id), // FK para usuario (Proprietário?)
-  orientadorId: integer("orientador_id")
-    .notNull()
-    .references(() => Users.id),
-  cursoId: integer("curso_id")
-    .notNull()
-    .references(() => Cursos.id), // FK para curso (ajustado de text)
-  autor: text("autor").notNull(), // Nome do autor/aluno principal
-  alunoId: integer("aluno_id")
-    .notNull()
-    .references(() => Users.id),
-  matricula: text("matricula"), // Matrícula do autor/aluno principal
-  turma: text("turma").notNull(),
-  periodoAcademico: text("periodo_academico").notNull(),
-  tituloTrabalho: text("titulo_trabalho").notNull(),
-  resumo: text("resumo").notNull(),
-  abstract: text("abstract").notNull(),
-  palavrasChave: text("palavras_chave").notNull(),
-  dataRealizacao: timestamp("data_realizacao").notNull(),
-  notaFinal: text("nota_final"),
-  local: text("local"), // Room or Meeting Link
-  modalidade: modalidadeEnum("modalidade").notNull(), // 'remoto' or 'local'
-  visible: boolean("visible").notNull().default(true),
-})
+export const Bancas = pgTable(
+  "banca",
+  {
+    id: serial("id").primaryKey(),
+    // user_id no dump original parece redundante se temos a relação N:N em usuario_banca
+    // Mantendo por ora para refletir o dump, mas pode ser removido.
+    // userId: int('user_id').notNull().references(() => usuarios.id), // FK para usuario (Proprietário?)
+    orientadorId: integer("orientador_id")
+      .notNull()
+      .references(() => Users.id),
+    cursoId: integer("curso_id")
+      .notNull()
+      .references(() => Cursos.id), // FK para curso (ajustado de text)
+    autor: text("autor").notNull(), // Nome do autor/aluno principal
+    alunoId: integer("aluno_id")
+      .notNull()
+      .references(() => Users.id),
+    matricula: text("matricula"), // Matrícula do autor/aluno principal
+    turma: text("turma").notNull(),
+    periodoAcademico: text("periodo_academico").notNull(),
+    tituloTrabalho: text("titulo_trabalho").notNull(),
+    resumo: text("resumo").notNull(),
+    abstract: text("abstract").notNull(),
+    palavrasChave: text("palavras_chave").notNull(),
+    dataRealizacao: timestamp("data_realizacao").notNull(),
+    notaFinal: text("nota_final"),
+    local: text("local"), // Room or Meeting Link
+    modalidade: modalidadeEnum("modalidade").notNull(), // 'remoto' or 'local'
+    visible: boolean("visible").notNull().default(true),
+  },
+  (table) => {
+    return {
+      alunoCursoUnique: unique("aluno_curso_unique").on(table.alunoId, table.cursoId),
+    }
+  }
+)
 export type InsertBanca = typeof Bancas.$inferInsert
 export type SelectBanca = typeof Bancas.$inferSelect
 

@@ -20,6 +20,10 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
         .with({ type: "database_error" }, () => new AppError(500, "Erro ao criar banca"))
         .with({ type: "curso_not_found" }, () => new AppError(404, "Curso não encontrado"))
         .with({ type: "invalid_input" }, () => new AppError(400, "Dados inválidos"))
+        .with(
+          { type: "student_already_has_banca" },
+          () => new AppError(409, "Este aluno já possui uma banca cadastrada para este curso.")
+        )
         .exhaustive()
     }
 
@@ -40,13 +44,10 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
         .exhaustive()
     }
 
-    const bancas = result.data.data
-    const meta = result.data.meta
-
     return c.json({
-      past: bancas.filter((banca) => banca.dataRealizacao < new Date()),
-      upcoming: bancas.filter((banca) => banca.dataRealizacao > new Date()),
-      meta,
+      past: result.data.bancasWithMembrosPast,
+      upcoming: result.data.bancasWithMembrosUpcoming,
+      meta: result.data.meta,
     })
   })
   .get("/my-defenses", checkRole(["TEACHER", "ADMIN"]), async (c) => {
@@ -69,13 +70,10 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
         .exhaustive()
     }
 
-    const bancas = result.data.data
-    const meta = result.data.meta
-
     return c.json({
-      past: bancas.filter((banca) => banca.dataRealizacao < new Date()),
-      upcoming: bancas.filter((banca) => banca.dataRealizacao > new Date()),
-      meta,
+      past: result.data.past,
+      upcoming: result.data.upcoming,
+      meta: result.data.meta,
     })
   })
   .get("/:id", async (c) => {

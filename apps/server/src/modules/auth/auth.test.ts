@@ -14,6 +14,7 @@ describe("Auth Routes", async () => {
   beforeEach(async () => {
     const testUserWithHash = await createTestUserWithPasswordHash(TEST_USER_BASIC)
     await db.insert(Users).values(testUserWithHash)
+
   })
   afterEach(async () => {
     await db.delete(Users)

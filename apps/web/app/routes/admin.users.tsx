@@ -14,7 +14,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
@@ -22,12 +21,8 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { useToast } from "@/hooks/use-toast"
-import { rpcReturn } from "@/lib/utils"
-import apiClient from "@/services/apiClient"
 import { useUser } from "@/services/useUser"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { SelectUser } from "@tcc/server"
 import { MoreHorizontal, Search } from "lucide-react"
 import React, { useState } from "react"
@@ -145,11 +140,6 @@ export default function AdminUsersPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={user.status === "ACTIVE" ? "default" : "secondary"}>
-                      {user.status === "ACTIVE" ? "Ativo" : "Inativo"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
@@ -160,14 +150,6 @@ export default function AdminUsersPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Ações</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => handleEditUser(user)}>Editar</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => {
-                            // Função para alterar status de um usuário (a ser implementada)
-                          }}
-                        >
-                          {user.status === "ACTIVE" ? "Desativar" : "Ativar"}
-                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -194,16 +176,9 @@ type UserType = Omit<SelectUser, "createdAt" | "updatedAt"> & {
   updatedAt: string
 }
 
-const useAllUsers = () => {
-  return useQuery({
-    queryKey: ["users", "all"],
-    queryFn: async () => {
-      const res = await apiClient.usuario.all.$get()
-      return rpcReturn(res)
-    },
-  })
-}
+import { useAllUsers, useUpdateUser } from "@/hooks"
 
+// Schema for updating user
 const updateUserSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
   school: z.string().min(1, "Escola é obrigatória"),
@@ -214,35 +189,6 @@ const updateUserSchema = z.object({
 })
 
 type UpdateUserFormData = z.infer<typeof updateUserSchema>
-
-const useUpdateUser = () => {
-  const queryClient = useQueryClient()
-  const { toast } = useToast()
-
-  return useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: UpdateUserFormData }) => {
-      const res = await apiClient.usuario[":id"].$put({
-        param: { id: id.toString() },
-        json: data,
-      })
-      return rpcReturn(res)
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users", "all"] })
-      toast({
-        title: "Usuário atualizado ✅",
-        description: "Os dados do usuário foram atualizados com sucesso",
-      })
-    },
-    onError: () => {
-      toast({
-        title: "Erro ao atualizar usuário ❌",
-        description: "Ocorreu um erro ao atualizar os dados do usuário",
-        variant: "destructive",
-      })
-    },
-  })
-}
 
 function EditUserDialog({
   user,
