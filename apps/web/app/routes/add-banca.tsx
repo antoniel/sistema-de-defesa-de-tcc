@@ -50,38 +50,7 @@ const DEV_SEED_DATA: Partial<BancaFormData> = {
   orientadorId: 1,
 }
 
-// Hook para buscar professores da API
-const useTeachers = () => {
-  return useQuery({
-    queryKey: ["teachers"],
-    queryFn: async () => {
-      const response = await apiClient.usuario.teachers.$get()
-      return rpcReturn(response) as unknown as SelectUser[]
-    },
-  })
-}
-const useStudents = () => {
-  return useQuery({
-    queryKey: ["students"],
-    queryFn: async () => {
-      const response = await apiClient.usuario.students.$get()
-      return rpcReturn(response) as unknown as SelectUser[]
-    },
-  })
-}
-
-const useAddBancaMutation = () => {
-  return useMutation({
-    mutationFn: async (data: query["input"]) => {
-      const response = await apiClient.banca.$post(data)
-      const body = await response.json()
-      if (!response.ok) {
-        throw body // Throw the error body
-      }
-      return body
-    },
-  })
-}
+import { useTeachers, useStudents, useAddBancaMutation } from "@/hooks"
 
 const FORM_STEPS = [
   { id: 0, name: "Informações Básicas" },
