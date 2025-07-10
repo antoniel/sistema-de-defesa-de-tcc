@@ -76,6 +76,18 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
       meta: result.data.meta,
     })
   })
+  .get("/keywords", async (c) => {
+    const searchQuery = c.req.query("searchQuery")
+    const result = await service.getBancasGroupedByKeywords(c, searchQuery)
+
+    if (!result.ok) {
+      throw match(result.error)
+        .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar palavras-chave"))
+        .exhaustive()
+    }
+
+    return c.json(result.data)
+  })
   .get("/:id", async (c) => {
     const id = Number(c.req.param("id"))
     const result = await service.getBancaById(c, id)

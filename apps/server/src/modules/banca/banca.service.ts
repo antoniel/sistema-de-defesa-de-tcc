@@ -775,3 +775,59 @@ export const getBancasByOrientador = async (
     return err({ type: "database_error", error })
   }
 }
+
+export const getBancasGroupedByKeywords = async (
+  c: Context<{ Variables: AppVariables }>,
+  searchQuery?: string
+): Promise<
+  AppResult<
+    { keyword: string; bancas: InferResultType<"Bancas", { curso: true; orientador: true }>[]}[],
+    GetAllBancasError
+  >
+> => {
+  const dbInstance = c.get("db")
+  try {
+    // Build search condition (reutiliza lógica do getAllBancasVisible)
+    const searchCondition = searchQuery
+      ? or(
+          ilike(Bancas.tituloTrabalho, `%${searchQuery}%`),
+          ilike(Bancas.autor, `%${searchQuery}%`),
+          ilike(Users.nome, `%${searchQuery}%`),
+          ilike(Cursos.nome, `%${searchQuery}%`)
+        )
+      : undefined
+
+    const whereCondition = searchCondition ? and(eq(Bancas.visible, true), searchCondition) : eq(Bancas.visible, true)
+
+    // Buscamos todas as bancas visíveis (sem paginação pois o front precisa de todos os dados para segmentação)
+    const bancas = await dbInstance.query.Bancas.findMany({
+      where: whereCondition,
+      with: {
+        orientador: true,
+        curso: true,
+      },
+      orderBy: desc(Bancas.dataRealizacao),
+    })
+
+    // Agrupamos por palavra-chave
+    const map = new Map<string, typeof bancas>()
+    bancas.forEach((banca: typeof bancas[number]) => {
+      if (!banca.palavrasChave) return
+      const keywords = banca.palavrasChave.split(",").map((k: string) => k.trim().toLowerCase()).filter(Boolean)
+      keywords.forEach((keyword: string) => {
+        const arr = map.get(keyword) || []
+        ;(arr as typeof bancas).push(banca)
+        map.set(keyword, arr)
+      })
+    })
+
+    const grouped = Array.from(map.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([keyword, bancas]) => ({ keyword, bancas }))
+
+    return ok(grouped)
+  } catch (error) {
+    console.error("Error grouping bancas by keywords:", error)
+    return err({ type: "database_error", error })
+  }
+}
