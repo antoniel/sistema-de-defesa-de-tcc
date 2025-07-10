@@ -119,7 +119,6 @@ export default function AdminUsersPage() {
               <TableHead>Email</TableHead>
               <TableHead>Matrícula</TableHead>
               <TableHead>Função</TableHead>
-              <TableHead>Status</TableHead>
               <TableHead className="w-[80px]">Ações</TableHead>
             </TableRow>
           </TableHeader>
