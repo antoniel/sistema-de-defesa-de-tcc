@@ -12,8 +12,8 @@ import { cn } from "@/lib/utils"
 import { removeAuthToken } from "@/services/authService"
 import { useUser } from "@/services/useUser"
 import { useQueryClient } from "@tanstack/react-query"
-import { ChevronDown, LogOut, User, Users } from "lucide-react"
-import React from "react"
+import { ChevronDown, LogOut, User, Users, Menu, X } from "lucide-react"
+import React, { useState } from "react"
 import { Link } from "react-router"
 import { match } from "ts-pattern"
 import { LoginForm } from "../auth/LoginForm"
@@ -25,26 +25,75 @@ interface HeaderProps {
 }
 
 export function Header(props: HeaderProps) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
   return (
     <header
       className={cn(
         "sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
         props.className
       )}
+      role="banner"
+      aria-label="Cabeçalho principal"
     >
-      <div className="container flex h-14 items-center justify-between">
+      <div className="container flex h-14 items-center justify-between px-4 sm:px-6">
         {/* Left Side: Logo and Title */}
-        <Link to="/" className="mr-6 flex items-center space-x-2">
-          <img src="/icc-ufba.png" alt="Computação UFBA" className="h-9 w-6" />
-          <span className="font-bold sm:inline-block">Sistema de Defesas de TCC</span>
+        <Link 
+          to="/" 
+          className="mr-6 flex items-center space-x-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-md p-1"
+          aria-label="Ir para página inicial"
+        >
+          <img 
+            src="/icc-ufba.png" 
+            alt="Logo do Instituto de Computação da UFBA" 
+            className="h-9 w-6" 
+            aria-hidden="true"
+          />
+          <span className="font-bold text-sm sm:text-base lg:inline-block">
+            Sistema de Defesas de TCC
+          </span>
         </Link>
 
-        {/* Right Side: Action Buttons */}
-        <RightSideButtons />
+        {/* Mobile Menu Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="lg:hidden"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-expanded={mobileMenuOpen}
+          aria-controls="mobile-menu"
+          aria-label={mobileMenuOpen ? "Fechar menu" : "Abrir menu"}
+        >
+          {mobileMenuOpen ? (
+            <X className="h-5 w-5" aria-hidden="true" />
+          ) : (
+            <Menu className="h-5 w-5" aria-hidden="true" />
+          )}
+        </Button>
+
+        {/* Desktop Navigation */}
+        <div className="hidden lg:block">
+          <RightSideButtons />
+        </div>
+
+        {/* Mobile Navigation */}
+        {mobileMenuOpen && (
+          <div
+            id="mobile-menu"
+            className="absolute top-full left-0 right-0 bg-background border-b lg:hidden"
+            role="navigation"
+            aria-label="Menu de navegação móvel"
+          >
+            <div className="container px-4 py-4 space-y-2">
+              <MobileRightSideButtons onClose={() => setMobileMenuOpen(false)} />
+            </div>
+          </div>
+        )}
       </div>
     </header>
   )
 }
+
 function RightSideButtons() {
   const queryClient = useQueryClient()
   const { data: user, isLoading, isError } = useUser()
@@ -52,23 +101,40 @@ function RightSideButtons() {
     removeAuthToken()
     useUser.removeQueries(queryClient)
   }
+  
   if (isLoading) {
-    return <span className="text-sm text-muted-foreground">Carregando...</span>
+    return (
+      <span className="text-sm text-muted-foreground" aria-live="polite">
+        Carregando...
+      </span>
+    )
   }
+  
   if (isError) {
-    return <span className="text-sm text-muted-foreground">Erro ao carregar usuário</span>
+    return (
+      <span className="text-sm text-muted-foreground" role="alert">
+        Erro ao carregar usuário
+      </span>
+    )
   }
+  
   if (!user) {
     return <LoggedOutButtons />
   }
+  
   return (
     <div className="ml-auto flex items-center gap-2">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="flex items-center gap-2 px-2">
-            <span className="font-medium">Olá, {user.nome || "Usuário"}</span>
+          <Button 
+            variant="ghost" 
+            className="flex items-center gap-2 px-2 focus:ring-2 focus:ring-primary focus:ring-offset-2"
+            aria-label={`Menu do usuário: ${user.nome || "Usuário"}`}
+          >
+            <span className="font-medium hidden sm:inline">Olá, {user.nome || "Usuário"}</span>
+            <span className="font-medium sm:hidden">{user.nome?.split(' ')[0] || "Usuário"}</span>
             {user.role && (
-              <Badge variant="outline">
+              <Badge variant="outline" className="hidden sm:inline-flex">
                 {match(user.role)
                   .with("TEACHER", () => "Professor")
                   .with("STUDENT", () => "Aluno")
@@ -76,13 +142,17 @@ function RightSideButtons() {
                   .exhaustive()}
               </Badge>
             )}
-            <ChevronDown className="h-4 w-4 opacity-50" />
+            <ChevronDown className="h-4 w-4 opacity-50" aria-hidden="true" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuItem asChild>
-            <Link to="/profile" className="flex w-full items-center">
-              <User className="mr-2 h-4 w-4" />
+            <Link 
+              to="/profile" 
+              className="flex w-full items-center focus:bg-accent focus:text-accent-foreground"
+              onClick={() => document.activeElement?.blur()}
+            >
+              <User className="mr-2 h-4 w-4" aria-hidden="true" />
               Meu Perfil
             </Link>
           </DropdownMenuItem>
@@ -91,8 +161,12 @@ function RightSideButtons() {
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link to="/admin/users" className="flex w-full items-center">
-                  <Users className="mr-2 h-4 w-4" />
+                <Link 
+                  to="/admin/users" 
+                  className="flex w-full items-center focus:bg-accent focus:text-accent-foreground"
+                  onClick={() => document.activeElement?.blur()}
+                >
+                  <Users className="mr-2 h-4 w-4" aria-hidden="true" />
                   Gerenciar Usuários
                 </Link>
               </DropdownMenuItem>
@@ -100,8 +174,16 @@ function RightSideButtons() {
           )}
 
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
-            <LogOut className="mr-2 h-4 w-4" />
+          <DropdownMenuItem 
+            onClick={handleLogout} 
+            className="text-destructive focus:text-destructive focus:bg-destructive/10"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                handleLogout()
+              }
+            }}
+          >
+            <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
             Sair
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -110,14 +192,110 @@ function RightSideButtons() {
   )
 }
 
+function MobileRightSideButtons({ onClose }: { onClose: () => void }) {
+  const queryClient = useQueryClient()
+  const { data: user, isLoading, isError } = useUser()
+  const handleLogout = () => {
+    removeAuthToken()
+    useUser.removeQueries(queryClient)
+    onClose()
+  }
+  
+  if (isLoading) {
+    return (
+      <span className="text-sm text-muted-foreground" aria-live="polite">
+        Carregando...
+      </span>
+    )
+  }
+  
+  if (isError) {
+    return (
+      <span className="text-sm text-muted-foreground" role="alert">
+        Erro ao carregar usuário
+      </span>
+    )
+  }
+  
+  if (!user) {
+    return <MobileLoggedOutButtons onClose={onClose} />
+  }
+  
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 p-2">
+        <span className="font-medium">Olá, {user.nome || "Usuário"}</span>
+        {user.role && (
+          <Badge variant="outline">
+            {match(user.role)
+              .with("TEACHER", () => "Professor")
+              .with("STUDENT", () => "Aluno")
+              .with("ADMIN", () => "Administrador")
+              .exhaustive()}
+          </Badge>
+        )}
+      </div>
+      
+      <div className="space-y-1">
+        <Button
+          variant="ghost"
+          className="w-full justify-start"
+          asChild
+        >
+          <Link 
+            to="/profile" 
+            onClick={onClose}
+            className="flex items-center"
+          >
+            <User className="mr-2 h-4 w-4" aria-hidden="true" />
+            Meu Perfil
+          </Link>
+        </Button>
+
+        {user.role === "ADMIN" && (
+          <Button
+            variant="ghost"
+            className="w-full justify-start"
+            asChild
+          >
+            <Link 
+              to="/admin/users" 
+              onClick={onClose}
+              className="flex items-center"
+            >
+              <Users className="mr-2 h-4 w-4" aria-hidden="true" />
+              Gerenciar Usuários
+            </Link>
+          </Button>
+        )}
+
+        <Button
+          variant="ghost"
+          className="w-full justify-start text-destructive hover:text-destructive"
+          onClick={handleLogout}
+        >
+          <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
+          Sair
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 function LoggedOutButtons() {
   const [loginDialogOpen, setLoginDialogOpen] = React.useState(false)
   const [registerDialogOpen, setRegisterDialogOpen] = React.useState(false)
+  
   return (
-    <div className="ml-auto">
+    <div className="ml-auto flex items-center gap-2">
       <Dialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen}>
         <DialogTrigger asChild>
-          <Button variant="ghost">Login</Button>
+          <Button 
+            variant="ghost"
+            className="focus:ring-2 focus:ring-primary focus:ring-offset-2"
+          >
+            Login
+          </Button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -130,8 +308,64 @@ function LoggedOutButtons() {
 
       <Dialog open={registerDialogOpen} onOpenChange={setRegisterDialogOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline">Regitre-se</Button>
+          <Button 
+            variant="outline"
+            className="focus:ring-2 focus:ring-primary focus:ring-offset-2"
+          >
+            Registre-se
+          </Button>
         </DialogTrigger>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Criar Conta</DialogTitle>
+            <DialogDescription>Preencha os campos abaixo para se registrar.</DialogDescription>
+          </DialogHeader>
+          <RegisterForm onSuccess={() => setRegisterDialogOpen(false)} />
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+function MobileLoggedOutButtons({ onClose }: { onClose: () => void }) {
+  const [loginDialogOpen, setLoginDialogOpen] = React.useState(false)
+  const [registerDialogOpen, setRegisterDialogOpen] = React.useState(false)
+  
+  return (
+    <div className="space-y-2">
+      <Button
+        variant="ghost"
+        className="w-full justify-start"
+        onClick={() => {
+          setLoginDialogOpen(true)
+          onClose()
+        }}
+      >
+        Login
+      </Button>
+      
+      <Button
+        variant="outline"
+        className="w-full justify-start"
+        onClick={() => {
+          setRegisterDialogOpen(true)
+          onClose()
+        }}
+      >
+        Registre-se
+      </Button>
+
+      <Dialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Login</DialogTitle>
+            <DialogDescription>Insira seu email e senha para acessar sua conta.</DialogDescription>
+          </DialogHeader>
+          <LoginForm onSuccess={() => setLoginDialogOpen(false)} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={registerDialogOpen} onOpenChange={setRegisterDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Criar Conta</DialogTitle>
