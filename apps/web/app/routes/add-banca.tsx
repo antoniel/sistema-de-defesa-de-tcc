@@ -26,6 +26,7 @@ type BancaFormData = Omit<InsertBanca, "ano" | "semestreLetivo"> & {
   visible: boolean
   hora: string
   orientadorId?: number
+  alunoId: number
   periodoAcademico: string // New combined field for ano.semestreLetivo
 }
 
@@ -55,6 +56,15 @@ const useTeachers = () => {
     queryKey: ["teachers"],
     queryFn: async () => {
       const response = await apiClient.usuario.teachers.$get()
+      return rpcReturn(response) as unknown as SelectUser[]
+    },
+  })
+}
+const useStudents = () => {
+  return useQuery({
+    queryKey: ["students"],
+    queryFn: async () => {
+      const response = await apiClient.usuario.students.$get()
       return rpcReturn(response) as unknown as SelectUser[]
     },
   })
@@ -119,6 +129,7 @@ export default function AddBancaPage() {
       cursoId: Number(data.cursoId),
       periodoAcademico: data.periodoAcademico,
       visible: Boolean(data.visible),
+      alunoId: Number(data.alunoId),
       orientadorId: Number(data.orientadorId),
     }
     addBancaMutation.mutate(
@@ -324,7 +335,7 @@ const BasicInfoSection = () => {
           id="resumo"
           {...register("resumo", { required: "Resumo é obrigatório" })}
           placeholder="Resumo em português"
-          rows={4}
+          rows={8}
           aria-invalid={errors.resumo ? "true" : "false"}
         />
         {errors.resumo && <p className="text-sm text-red-600 mt-1">{errors.resumo.message}</p>}
@@ -336,7 +347,7 @@ const BasicInfoSection = () => {
           id="abstract"
           {...register("abstract", { required: "Abstract é obrigatório" })}
           placeholder="Abstract in English"
-          rows={4}
+          rows={8}
           aria-invalid={errors.abstract ? "true" : "false"}
         />
         {errors.abstract && <p className="text-sm text-red-600 mt-1">{errors.abstract.message}</p>}
@@ -350,26 +361,63 @@ const AuthorInfoSection = () => {
   const {
     register,
     control,
+    setValue,
     formState: { errors },
   } = useFormContext<BancaFormData>()
 
   // Buscar a lista de professores do servidor
   const { data: teachers, isLoading: isLoadingTeachers, error: teachersError } = useTeachers()
+  const studentsQuery = useStudents()
 
   return (
     <>
       <h2 className="text-xl font-semibold mb-4">Informações do Autor</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <Label htmlFor="autor">Autor</Label>
-          <Input
-            id="autor"
-            {...register("autor", { required: isUserTeacher ? "Autor é obrigatório" : false })}
-            placeholder="Nome do Aluno"
-            aria-invalid={errors.autor ? "true" : "false"}
-            disabled={!isUserTeacher}
+          <Label htmlFor="autor">Aluno</Label>
+          <Controller
+            name="autor"
+            control={control}
+            rules={{ required: "Aluno é obrigatório" }}
+            render={({ field }) => (
+              <Select
+                onValueChange={(value) => {
+                  const student = studentsQuery.data?.find((student) => student.id.toString() === value)
+                  if (student) {
+                    field.onChange(student.nome)
+                    setValue("matricula", student.matricula)
+                    setValue("alunoId", Number(value))
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o aluno..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {studentsQuery.isLoading ? (
+                    <SelectItem value="0" disabled>
+                      Carregando alunos...
+                    </SelectItem>
+                  ) : studentsQuery.error ? (
+                    <SelectItem value="0" disabled>
+                      Erro ao carregar alunos
+                    </SelectItem>
+                  ) : studentsQuery.data && studentsQuery.data.length > 0 ? (
+                    studentsQuery.data.map((student) => (
+                      <SelectItem key={student.id} value={student.id.toString()}>
+                        {student.nome}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="0" disabled>
+                      Nenhum aluno encontrado
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            )}
           />
-          {errors.autor && <p className="text-sm text-red-600 mt-1">{errors.autor.message}</p>}
+          {errors.orientadorId && <p className="text-sm text-red-600 mt-1">{errors.orientadorId.message}</p>}
         </div>
         <div>
           <Label htmlFor="matricula">Matrícula</Label>
@@ -378,7 +426,7 @@ const AuthorInfoSection = () => {
             {...register("matricula", { required: isUserTeacher ? "Matrícula é obrigatória" : false })}
             placeholder="Matrícula"
             aria-invalid={errors.matricula ? "true" : "false"}
-            disabled={!isUserTeacher}
+            disabled={true}
           />
           {errors.matricula && <p className="text-sm text-red-600 mt-1">{errors.matricula.message}</p>}
         </div>

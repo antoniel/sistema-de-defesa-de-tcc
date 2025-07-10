@@ -93,21 +93,19 @@ async function main() {
 
   console.log("⏳ Web deployment started in background. Waiting for completion...\n")
 
-  const webResult = await webDeploy.promise
+  const resultsAll = await Promise.all([webDeploy.promise, serverDeploy.promise])
 
-  if (webResult.code !== 0) {
+  if (resultsAll[0].code !== 0) {
     console.error("❌ Web deployment failed!")
     console.error("Web deployment output:")
-    console.error(webResult.stderr)
+    console.error(resultsAll[0].stderr)
     process.exit(1)
   }
 
-  const serverResult = await serverDeploy.promise
-
-  if (serverResult.code !== 0) {
+  if (resultsAll[1].code !== 0) {
     console.error("❌ Server deployment failed!")
     console.error("Server deployment output:")
-    console.error(serverResult.stderr)
+    console.error(resultsAll[1].stderr)
     process.exit(1)
   }
 

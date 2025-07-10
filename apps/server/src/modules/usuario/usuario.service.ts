@@ -1,5 +1,5 @@
 import * as bcrypt from "bcryptjs"
-import { and, desc, eq, or } from "drizzle-orm"
+import { and, asc, desc, eq, or } from "drizzle-orm"
 import { type Context } from "hono"
 import { z } from "zod"
 import { Bancas, type SelectUser, Users } from "../../database/schema"
@@ -306,6 +306,34 @@ export const getUserBancas = async (
     return ok(relatedBancas)
   } catch (error) {
     console.error(`Error fetching bancas for user ID ${id}:`, error)
+    return err({ type: "database_error", error })
+  }
+}
+
+type GetStudentsError = { type: "database_error"; error: unknown }
+export const getStudents = async (
+  c: Context<{ Variables: AppVariables }>
+): Promise<
+  AppResult<Pick<SelectUser, "id" | "nome" | "matricula" | "academicTitle" | "email">[], GetStudentsError>
+> => {
+  const dbInstance = c.get("db")
+  try {
+    const students = await dbInstance
+      .select({
+        id: Users.id,
+        nome: Users.nome,
+        matricula: Users.matricula,
+        academicTitle: Users.academicTitle,
+        school: Users.school,
+        email: Users.email,
+      })
+      .from(Users)
+      .where(eq(Users.role, "STUDENT"))
+      .orderBy(asc(Users.nome))
+
+    return ok(students)
+  } catch (error) {
+    console.error("Error fetching students:", error)
     return err({ type: "database_error", error })
   }
 }
