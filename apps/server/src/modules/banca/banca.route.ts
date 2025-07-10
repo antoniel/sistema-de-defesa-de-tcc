@@ -40,13 +40,10 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
         .exhaustive()
     }
 
-    const bancas = result.data.data
-    const meta = result.data.meta
-
     return c.json({
-      past: bancas.filter((banca) => banca.dataRealizacao < new Date()),
-      upcoming: bancas.filter((banca) => banca.dataRealizacao > new Date()),
-      meta,
+      past: result.data.bancasWithMembrosPast,
+      upcoming: result.data.bancasWithMembrosUpcoming,
+      meta: result.data.meta,
     })
   })
   .get("/my-defenses", checkRole(["TEACHER", "ADMIN"]), async (c) => {

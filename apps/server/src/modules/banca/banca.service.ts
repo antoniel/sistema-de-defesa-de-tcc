@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ilike, or } from "drizzle-orm"
+import { and, asc, desc, eq, gte, ilike, lt, or } from "drizzle-orm"
 import { type Context } from "hono"
 import type { InferResultType } from "../../database"
 import {
@@ -66,7 +66,14 @@ export const getAllBancasVisible = async (
 ): Promise<
   AppResult<
     {
-      data: InferResultType<"Bancas", { curso: true; orientador: true; membros: { with: { usuario: true } } }>[]
+      bancasWithMembrosPast: InferResultType<
+        "Bancas",
+        { curso: true; orientador: true; membros: { with: { usuario: true } } }
+      >[]
+      bancasWithMembrosUpcoming: InferResultType<
+        "Bancas",
+        { curso: true; orientador: true; membros: { with: { usuario: true } } }
+      >[]
       meta: {
         total: number
         totalPages: number
@@ -104,147 +111,55 @@ export const getAllBancasVisible = async (
       .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
       .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
       .where(whereCondition)
+      .orderBy(desc(Bancas.dataRealizacao))
 
     const total = totalResult.length
     const totalPages = Math.ceil(total / limit)
 
-    // For simple fields, use the query API with orderBy
-    const simpleFields = ["dataRealizacao", "tituloTrabalho", "autor", "local"]
-
-    if (!orderBy || simpleFields.includes(orderBy)) {
-      const fieldMap: Record<string, any> = {
-        dataRealizacao: Bancas.dataRealizacao,
-        tituloTrabalho: Bancas.tituloTrabalho,
-        autor: Bancas.autor,
-        local: Bancas.local,
+    const fieldMap: Record<string, any> = {
+      dataRealizacao: Bancas.dataRealizacao,
+      tituloTrabalho: Bancas.tituloTrabalho,
+      autor: Bancas.autor,
+      local: Bancas.local,
+    }
+    const hasOrder = orderBy && fieldMap[orderBy]
+    const getOrderClause = () => {
+      if (hasOrder) {
+        return order === "desc" ? desc(fieldMap[orderBy]) : asc(fieldMap[orderBy])
       }
-
-      let orderClause
-      if (orderBy && fieldMap[orderBy]) {
-        orderClause = order === "desc" ? desc(fieldMap[orderBy]) : asc(fieldMap[orderBy])
-      } else {
-        // Default order by dataRealizacao ascending
-        orderClause = asc(Bancas.dataRealizacao)
-      }
-
-      // For search, we need to use leftJoin even for simple fields
-      if (searchQuery) {
-        const result = await dbInstance
-          .select({
-            banca: Bancas,
-            orientador: Users,
-            curso: Cursos,
-          })
-          .from(Bancas)
-          .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
-          .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
-          .where(whereCondition)
-          .orderBy(orderClause)
-          .limit(limit)
-          .offset(offset)
-
-        // Fetch membros separately for each banca
-        const bancasWithMembros = await Promise.all(
-          result.map(async (row) => {
-            const membros = await dbInstance.query.usuariosBancas.findMany({
-              where: eq(usuariosBancas.bancaId, row.banca.id),
-              with: {
-                usuario: true,
-              },
-            })
-
-            return {
-              ...row.banca,
-              orientador: row.orientador,
-              curso: row.curso,
-              membros,
-            }
-          })
-        )
-
-        return ok({
-          data: bancasWithMembros as any,
-          meta: {
-            total,
-            totalPages,
-            currentPage: page,
-            limit,
-            hasNext: page < totalPages,
-            hasPrev: page > 1,
-          },
-        })
-      } else {
-        const result = await dbInstance.query.Bancas.findMany({
-          where: eq(Bancas.visible, true),
-          with: {
-            orientador: true,
-            curso: true,
-            membros: {
-              with: {
-                usuario: true,
-              },
-            },
-          },
-          orderBy: orderClause,
-          limit: limit,
-          offset: offset,
-        })
-
-        return ok({
-          data: result,
-          meta: {
-            total,
-            totalPages,
-            currentPage: page,
-            limit,
-            hasNext: page < totalPages,
-            hasPrev: page > 1,
-          },
-        })
-      }
+      return desc(Bancas.dataRealizacao)
     }
 
-    // For related fields, use leftJoin
-    let orderClause
-    if (orderBy === "orientador") {
-      orderClause = order === "desc" ? desc(Users.nome) : asc(Users.nome)
-    } else if (orderBy === "curso") {
-      orderClause = order === "desc" ? desc(Cursos.nome) : asc(Cursos.nome)
-    } else {
-      orderClause = asc(Bancas.dataRealizacao)
-    }
-
-    const result = await dbInstance
-      .select()
-      .from(Bancas)
-      .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
-      .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
-      .where(whereCondition)
-      .orderBy(orderClause)
-      .limit(limit)
-      .offset(offset)
-
-    // Fetch membros separately for each banca (this is still needed due to the many-to-many relationship)
-    const bancasWithMembros = await Promise.all(
-      result.map(async (row) => {
-        const membros = await dbInstance.query.usuariosBancas.findMany({
-          where: eq(usuariosBancas.bancaId, row.banca.id),
+    const bancasWithMembrosPast = await dbInstance.query.Bancas.findMany({
+      where: and(whereCondition, lt(Bancas.dataRealizacao, new Date())),
+      orderBy: hasOrder ? getOrderClause() : desc(Bancas.dataRealizacao),
+      with: {
+        orientador: true,
+        curso: true,
+        membros: {
           with: {
             usuario: true,
           },
-        })
-
-        return {
-          ...row.banca,
-          orientador: row.usuario,
-          curso: row.cursos,
-          membros,
-        }
-      })
-    )
+        },
+      },
+    })
+    const bancasWithMembrosUpcoming = await dbInstance.query.Bancas.findMany({
+      where: and(whereCondition, gte(Bancas.dataRealizacao, new Date())),
+      orderBy: hasOrder ? getOrderClause() : asc(Bancas.dataRealizacao),
+      with: {
+        orientador: true,
+        curso: true,
+        membros: {
+          with: {
+            usuario: true,
+          },
+        },
+      },
+    })
 
     return ok({
-      data: bancasWithMembros as any,
+      bancasWithMembrosPast,
+      bancasWithMembrosUpcoming,
       meta: {
         total,
         totalPages,
@@ -490,6 +405,7 @@ export const getBancasByUser = async (
       .from(usuariosBancas)
       .innerJoin(Bancas, eq(usuariosBancas.bancaId, Bancas.id))
       .where(eq(usuariosBancas.usuarioId, userId))
+      .orderBy(desc(Bancas.dataRealizacao))
 
     return ok(bancas.map((row) => row.banca))
   } catch (error) {
