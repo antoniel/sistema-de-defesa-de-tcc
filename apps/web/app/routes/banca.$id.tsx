@@ -1,3 +1,4 @@
+import React from "react"
 import { Header } from "@/components/layout/Header"
 import {
   AlertDialog,
@@ -22,50 +23,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { ArrowLeft, Calendar, Clock, MapPin, School, User } from "lucide-react"
 import { useNavigate, useParams } from "react-router"
 
-const useDeleteBanca = () => {
-  const queryClient = useQueryClient()
-  const navigate = useNavigate()
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await apiClient.banca[":id"].$delete({ param: { id } })
-
-      return rpcReturn(res as any)
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["bancas"] })
-      navigate("/")
-    },
-  })
-}
-
-const useToggleBancaVisibility = (bancaId: string) => {
-  const queryClient = useQueryClient()
-  const { toast } = useToast()
-
-  return useMutation({
-    mutationFn: async () => {
-      const res = await apiClient.banca[":id"]["toggle-visibility"].$patch({
-        param: { id: bancaId },
-      })
-      return rpcReturn(res)
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(["banca", bancaId], data)
-      toast({
-        title: "Visibilidade alterada",
-        description: `A banca agora está ${data.visible ? "visível" : "oculta"}.`,
-      })
-    },
-    onError: (error) => {
-      toast({
-        title: "Erro ao alterar visibilidade",
-        description: error.message,
-        variant: "destructive",
-      })
-    },
-  })
-}
+import { useDeleteBanca, useToggleBancaVisibility, useBanca } from "@/hooks"
 
 export default function BancaDetalhesPage() {
   const navigate = useNavigate()
@@ -344,17 +302,7 @@ export const BancaSkeleton = () => {
   )
 }
 
-export const useBanca = (id: string) => {
-  return useQuery({
-    queryKey: ["banca", id],
-    queryFn: async () => {
-      if (!id) throw new Error("ID da banca não fornecido")
-      const response = await apiClient.banca[":id"].$get({ param: { id } })
-      return rpcReturn(response)
-    },
-    enabled: !!id,
-  })
-}
+
 
 const formatDate = (dateString?: string | Date) => {
   if (!dateString) return "Data não disponível"
