@@ -1,3 +1,4 @@
+import { faker } from "@faker-js/faker"
 import * as bcrypt from "bcryptjs"
 
 export interface TestUserData {
@@ -74,8 +75,15 @@ export const createTestUserWithPasswordHash = async (userData: TestUserData) => 
 }
 
 export const createMultipleTestUsers = async (users: TestUserData[]) => {
-  const usersWithHashes = await Promise.all(
-    users.map(async (user) => createTestUserWithPasswordHash(user))
-  )
+  const usersWithHashes = await Promise.all(users.map(async (user) => createTestUserWithPasswordHash(user)))
   return usersWithHashes
+}
+
+export const createTestStudent = async () => {
+  const student = {
+    ...TEST_STUDENT,
+    email: faker.internet.email(),
+    password: "Password123!",
+  }
+  return createTestUserWithPasswordHash(student)
 }
