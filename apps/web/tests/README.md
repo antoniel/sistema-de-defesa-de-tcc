@@ -34,6 +34,7 @@ npm run test:e2e
 
 - `example.spec.ts` - Basic example tests
 - `app.spec.ts` - Application-specific tests
+- `api.spec.ts` - API integration tests with fake database
 
 ## Writing Tests
 
@@ -88,9 +89,18 @@ The Playwright configuration is in `playwright.config.ts` and includes:
 - Test directory: `./tests`
 - Base URL: `http://localhost:5173`
 - Browser support: Chromium, Firefox, WebKit
-- Automatic dev server startup
+- Automatic dev server startup (both frontend and backend)
+- Fake database for testing (using pglite)
 - HTML reporter
 - Trace collection on retry
+
+### Environment Setup
+
+The tests use a special test environment:
+
+- **Frontend**: Uses `.env.test` with `VITE_API_URL=http://localhost:9000`
+- **Backend**: Uses `NODE_ENV=test` with fake database (pglite)
+- **Database**: In-memory PostgreSQL using pglite for testing
 
 ## Best Practices
 

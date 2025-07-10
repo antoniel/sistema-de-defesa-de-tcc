@@ -10,12 +10,14 @@
 - ✅ `playwright.config.ts` - Main configuration file
 - ✅ Configured for TypeScript support
 - ✅ Set up for multiple browsers (Chromium, Firefox, WebKit)
-- ✅ Configured to run dev server automatically
+- ✅ Configured to run both frontend and backend servers automatically
 - ✅ Set base URL to `http://localhost:5173`
+- ✅ Backend server runs on `http://localhost:9000` with fake database
 
 ### 3. **Test Files**
 - ✅ `tests/example.spec.ts` - Basic example tests
 - ✅ `tests/app.spec.ts` - Comprehensive application tests
+- ✅ `tests/api.spec.ts` - API integration tests with fake database
 - ✅ `tests/README.md` - Detailed documentation
 
 ### 4. **Package.json Scripts**
@@ -28,7 +30,10 @@
 ### 5. **Root Package.json**
 - ✅ Added `npm run test:e2e` for running from root directory
 
-### 6. **Git Configuration**
+### 6. **Server Integration**
+- ✅ Created `test-server.ts` for running server with fake database
+- ✅ Added `dev:test` script in server package.json
+- ✅ Configured environment variables for test mode
 - ✅ Updated `.gitignore` to exclude Playwright artifacts
 - ✅ Created GitHub Actions workflow for CI/CD
 
@@ -66,13 +71,15 @@ apps/web/
 
 - **Multi-browser testing** (Chromium, Firefox, WebKit)
 - **TypeScript support** with full type checking
-- **Automatic dev server startup** before tests
+- **Automatic dev server startup** (both frontend and backend)
+- **Fake database integration** using pglite for testing
 - **HTML test reports** with detailed results
 - **Trace collection** for debugging failed tests
 - **CI/CD ready** with GitHub Actions workflow
 - **Responsive testing** across different viewports
 - **API mocking** capabilities
 - **Accessibility testing** with built-in selectors
+- **Full-stack testing** with real API integration
 
 ## Next Steps
 
