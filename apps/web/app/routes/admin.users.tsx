@@ -196,6 +196,18 @@ type UserType = Omit<SelectUser, "createdAt" | "updatedAt"> & {
 
 import { useAllUsers, useUpdateUser } from "@/hooks"
 
+// Schema for updating user
+const updateUserSchema = z.object({
+  nome: z.string().min(1, "Nome é obrigatório"),
+  school: z.string().min(1, "Escola é obrigatória"),
+  academicTitle: z.string().min(1, "Título acadêmico é obrigatório"),
+  role: z.enum(["STUDENT", "TEACHER", "ADMIN"], {
+    required_error: "Função é obrigatória",
+  }),
+})
+
+type UpdateUserFormData = z.infer<typeof updateUserSchema>
+
 function EditUserDialog({
   user,
   open,
