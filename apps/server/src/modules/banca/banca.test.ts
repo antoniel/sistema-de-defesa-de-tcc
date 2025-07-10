@@ -208,7 +208,7 @@ describe("Rotas de Banca", async () => {
 
       expect(res.status).toBe(409)
       const data = await res.json()
-      expect(data.message).toContain("Este aluno já possui uma banca cadastrada para este curso.")
+      expect((data as any).message).toContain("Este aluno já possui uma banca cadastrada para este curso.")
     })
   })
 
