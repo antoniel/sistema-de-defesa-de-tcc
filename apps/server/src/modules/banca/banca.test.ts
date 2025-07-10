@@ -138,12 +138,29 @@ describe("Rotas de Banca", async () => {
 
   describe("POST /bancas", () => {
     it("permite um professor criar uma nova banca", async () => {
+      const newStudentPasswordHash = await bcrypt.hash("newpass", 10)
+      const [newStudent] = await db
+        .insert(Users)
+        .values({
+          email: "newstudent@test.com",
+          passwordHash: newStudentPasswordHash,
+          nome: "New Student",
+          role: "STUDENT",
+          matricula: "444",
+          status: "ACTIVE",
+          school: "ICC",
+          academicTitle: "BSc",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning()
+
       const newBancaData: CreateBancaInput = {
         tituloTrabalho: "Nova Banca de TCC",
         palavrasChave: "tcc, novo",
         cursoId,
         resumo: "Resumo da nova banca",
-        alunoId: studentId,
+        alunoId: newStudent.id,
         dataRealizacao: new Date(),
         local: "Teams",
         orientadorId: teacherId,
@@ -164,6 +181,34 @@ describe("Rotas de Banca", async () => {
       const data = await res.json()
       expect(data).toHaveProperty("id")
       expect(data.tituloTrabalho).toBe(newBancaData.tituloTrabalho)
+    })
+
+    it("não permite criar uma banca para um aluno que já possui uma no mesmo curso", async () => {
+      const newBancaData: CreateBancaInput = {
+        tituloTrabalho: "Segunda Banca de TCC",
+        palavrasChave: "tcc, duplicado",
+        cursoId,
+        resumo: "Resumo da segunda banca",
+        alunoId: studentId, // Same student from beforeEach
+        dataRealizacao: new Date(),
+        local: "Teams",
+        orientadorId: teacherId,
+        autor: "Aluno Teste",
+        matricula: "222",
+        turma: "T03",
+        periodoAcademico: "2024.2",
+        abstract: "Second abstract",
+        modalidade: "remoto",
+      }
+
+      const res = await client.banca.$post(
+        { json: newBancaData },
+        { headers: { Authorization: `Bearer ${teacherToken}` } }
+      )
+
+      expect(res.status).toBe(409)
+      const data = await res.json()
+      expect((data as any).message).toContain("Este aluno já possui uma banca cadastrada para este curso.")
     })
   })
 
