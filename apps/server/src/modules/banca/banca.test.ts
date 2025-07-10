@@ -1,3 +1,4 @@
+import bcrypt from "bcrypt"
 import { eq } from "drizzle-orm"
 import { testClient } from "hono/testing"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
@@ -7,16 +8,16 @@ import { fakeDeps, getFakeDb } from "../../tests/utils"
 import { type CreateBancaInput, type UpdateBancaInput } from "./banca.schema"
 
 import {
-  TEST_TEACHER,
-  TEST_STUDENT,
   TEST_ADMIN,
   TEST_CURSO,
-  getTestBancaData,
+  TEST_STUDENT,
+  TEST_TEACHER,
+  createLoginHelper,
   createTestBancaInput,
+  createTestStudent,
   createTestUserWithPasswordHash,
-  createLoginHelper
+  getTestBancaData,
 } from "@tcc/tests"
-
 
 describe("Rotas de Banca", async () => {
   const db = await getFakeDb()
@@ -42,18 +43,9 @@ describe("Rotas de Banca", async () => {
     const studentWithHash = await createTestUserWithPasswordHash(TEST_STUDENT)
     const adminWithHash = await createTestUserWithPasswordHash(TEST_ADMIN)
 
-    const [teacher] = await db
-      .insert(Users)
-      .values(teacherWithHash)
-      .returning()
-    const [student] = await db
-      .insert(Users)
-      .values(studentWithHash)
-      .returning()
-    await db
-      .insert(Users)
-      .values(adminWithHash)
-      .returning()
+    const [teacher] = await db.insert(Users).values(teacherWithHash).returning()
+    const [student] = await db.insert(Users).values(studentWithHash).returning()
+    await db.insert(Users).values(adminWithHash).returning()
     teacherId = teacher.id
     studentId = student.id
 
@@ -82,8 +74,9 @@ describe("Rotas de Banca", async () => {
 
   describe("POST /bancas", () => {
     it("permite um professor criar uma nova banca", async () => {
-      const newBancaData: CreateBancaInput = createTestBancaInput(cursoId, teacherId, studentId)
-
+      const student = await createTestStudent()
+      const [studentUser] = await db.insert(Users).values(student).returning()
+      const newBancaData: CreateBancaInput = createTestBancaInput(cursoId, teacherId, studentUser.id)
 
       const res = await client.banca.$post(
         { json: newBancaData },
@@ -154,10 +147,7 @@ describe("Rotas de Banca", async () => {
         updatedAt: new Date(),
       }
       const unrelatedUserWithHash = await createTestUserWithPasswordHash(unrelatedUserData)
-      const [unrelatedUser] = await db
-        .insert(Users)
-        .values(unrelatedUserWithHash)
-        .returning()
+      const [unrelatedUser] = await db.insert(Users).values(unrelatedUserWithHash).returning()
 
       const unrelatedLoginRes = await client.auth.login.$post({
         json: { email: "unrelated@test.com", password: "Password123!" },
@@ -258,10 +248,7 @@ describe("Rotas de Banca", async () => {
         updatedAt: new Date(),
       }
       const unrelatedUserWithHash2 = await createTestUserWithPasswordHash(unrelatedUserData2)
-      await db
-        .insert(Users)
-        .values(unrelatedUserWithHash2)
-        .returning()
+      await db.insert(Users).values(unrelatedUserWithHash2).returning()
 
       const unrelatedLoginRes = await client.auth.login.$post({
         json: { email: "unrelated2@test.com", password: "Password123!" },
