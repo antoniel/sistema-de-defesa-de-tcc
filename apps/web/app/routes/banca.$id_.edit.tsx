@@ -17,7 +17,8 @@ import { CalendarIcon } from "lucide-react"
 import { useFieldArray, useForm } from "react-hook-form"
 import { useNavigate, useParams } from "react-router"
 import { z } from "zod"
-import { BancaSkeleton, useBanca } from "./banca.$id"
+import { BancaSkeleton } from "./banca.$id"
+import { useBanca } from "@/hooks"
 
 const formSchema = z.object({
   tituloTrabalho: z.string().min(1, "Título é obrigatório"),
