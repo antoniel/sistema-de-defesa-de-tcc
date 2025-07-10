@@ -25,6 +25,7 @@ type CreateBancaError =
   | { type: "database_error"; error: unknown }
   | { type: "curso_not_found" }
   | { type: "invalid_input" }
+  | { type: "student_already_has_banca" }
 
 type UpdateBancaError =
   | { type: "banca_not_found" }
@@ -256,7 +257,10 @@ export const createBanca = async (
     }
 
     return ok(newBanca)
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === "23505" && error?.constraint === "aluno_curso_unique") {
+      return err({ type: "student_already_has_banca" })
+    }
     console.error("Error creating banca:", error)
     return err({ type: "database_error", error })
   }

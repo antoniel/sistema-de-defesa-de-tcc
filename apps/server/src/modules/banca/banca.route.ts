@@ -20,6 +20,10 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
         .with({ type: "database_error" }, () => new AppError(500, "Erro ao criar banca"))
         .with({ type: "curso_not_found" }, () => new AppError(404, "Curso não encontrado"))
         .with({ type: "invalid_input" }, () => new AppError(400, "Dados inválidos"))
+        .with(
+          { type: "student_already_has_banca" },
+          () => new AppError(409, "Este aluno já possui uma banca cadastrada para este curso.")
+        )
         .exhaustive()
     }
 
