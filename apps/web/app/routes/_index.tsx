@@ -155,19 +155,21 @@ export default function Home() {
           <TabsTrigger value="past">Defesas anteriores</TabsTrigger>
           {isTeacherOrAdmin && <TabsTrigger value="my-defesas">Minhas Defesas</TabsTrigger>}
         </TabsList>
-        <TabsContent value="upcoming">
-          <TableWithInfo
-            data={tableData.upcoming}
-            searchQuery={searchQuery}
-            sortField={sortField}
-            sortOrder={sortOrder}
-            onSort={handleSort}
-            rowsPerPage={rowsPerPage}
-            currentPage={currentPage}
-            onPageChange={setCurrentPage}
-            meta={tableData.meta}
-          />
-        </TabsContent>
+        {tableData.upcoming.length > 0 && (
+          <TabsContent value="upcoming">
+            <TableWithInfo
+              data={tableData.upcoming}
+              searchQuery={searchQuery}
+              sortField={sortField}
+              sortOrder={sortOrder}
+              onSort={handleSort}
+              rowsPerPage={rowsPerPage}
+              currentPage={currentPage}
+              onPageChange={setCurrentPage}
+              meta={tableData.meta}
+            />
+          </TabsContent>
+        )}
         <TabsContent value="past">
           <TableWithInfo
             data={tableData.past}
