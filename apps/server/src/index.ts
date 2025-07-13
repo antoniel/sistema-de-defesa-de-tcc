@@ -12,6 +12,7 @@ import { calendarRoutes } from "./modules/calendar/calendar.route"
 import { cursoRoutes } from "./modules/curso/curso.route"
 import { documentoRoutes } from "./modules/documento/documento.route"
 import { usuarioRoutes } from "./modules/usuario/usuario.route"
+import { teacherInviteRouter } from "./modules/usuario/teacher-invite.route"
 import { type AppVariables } from "./types"
 
 export const app = (depsMiddleware: MiddlewareHandler<{ Variables: AppVariables }>) =>
@@ -28,6 +29,7 @@ export const app = (depsMiddleware: MiddlewareHandler<{ Variables: AppVariables 
     .route("/cursos", cursoRoutes)
     .route("/documentos", documentoRoutes)
     .route("/usuario", usuarioRoutes)
+    .route("/teacher-invite", teacherInviteRouter)
     .notFound((c) => {
       return c.json({ message: "Not Found", ok: false }, 404)
     })

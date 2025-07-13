@@ -136,6 +136,21 @@ export const bancasDocumentos = pgTable("banca_documento", {
     .references(() => documentos.id),
 })
 
+// Nova tabela para convites de professores
+export const teacherInvites = pgTable("teacher_invite", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull(),
+  nome: text("nome").notNull(),
+  school: text("school").notNull(),
+  academicTitle: text("academic_title").notNull(),
+  inviteToken: text("invite_token").unique().notNull(),
+  status: text("status").notNull().default("pending"), // pending, accepted, expired
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  acceptedAt: timestamp("accepted_at"),
+  acceptedByUserId: integer("accepted_by_user_id").references(() => Users.id),
+})
+
 // === DEFINIÇÃO DAS RELAÇÕES ===
 
 export const usuariosRelations = relations(Users, ({ one, many }) => ({
@@ -143,6 +158,7 @@ export const usuariosRelations = relations(Users, ({ one, many }) => ({
   convitesEnviados: many(invites), // Se um admin pode convidar
   resetsSenha: many(resetPasswords),
   bancasAssociadas: many(usuariosBancas), // Relação através da tabela de junção
+  convitesProfessores: many(teacherInvites, { relationName: "acceptedByUser" }), // Relação com convites aceitos
   // bancasCriadas: many(bancas), // Descomentar se banca.userId for mantido
 }))
 
@@ -218,5 +234,13 @@ export const bancasDocumentosRelations = relations(bancasDocumentos, ({ one }) =
   documento: one(documentos, {
     fields: [bancasDocumentos.documentoId],
     references: [documentos.id],
+  }),
+}))
+
+// Relações para a tabela teacher_invite
+export const teacherInvitesRelations = relations(teacherInvites, ({ one }) => ({
+  acceptedByUser: one(Users, {
+    fields: [teacherInvites.acceptedByUserId],
+    references: [Users.id],
   }),
 }))
