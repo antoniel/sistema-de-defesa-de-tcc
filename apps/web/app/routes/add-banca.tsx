@@ -99,14 +99,23 @@ export default function AddBancaPage() {
     // Extract year and semester from periodoAcademico (format: YYYY.S)
     const [ano, semestreLetivo] = data.periodoAcademico.split(".")
 
+    // Combine date and time
+    let dataRealizacaoCompleta = data.dataRealizacao
+    if (data.hora && data.dataRealizacao) {
+      const dataStr = data.dataRealizacao.toISOString().split('T')[0]
+      dataRealizacaoCompleta = new Date(`${dataStr}T${data.hora}:00`)
+    }
+
+    const { hora, ...dataWithoutHora } = data
     const submissionData: SubmissionPayload = {
-      ...data,
+      ...dataWithoutHora,
       matricula: data.matricula || "",
       cursoId: Number(data.cursoId),
       periodoAcademico: data.periodoAcademico,
       visible: Boolean(data.visible),
       alunoId: Number(data.alunoId),
       orientadorId: Number(data.orientadorId),
+      dataRealizacao: dataRealizacaoCompleta,
     }
     addBancaMutation.mutate(
       { json: submissionData as query["input"]["json"] },
@@ -402,7 +411,7 @@ const AuthorInfoSection = () => {
               </Select>
             )}
           />
-          {errors.orientadorId && <p className="text-sm text-red-600 mt-1">{errors.orientadorId.message}</p>}
+          {errors.autor && <p className="text-sm text-red-600 mt-1">{errors.autor.message}</p>}
         </div>
         <div>
           <Label htmlFor="matricula">Matrícula</Label>
