@@ -1,130 +1,84 @@
-import { Router } from "express"
+import { zValidator } from "@hono/zod-validator"
+import { Hono } from "hono"
+import { HTTPException } from "hono/http-exception"
+import { checkRole } from "../auth/auth.middleware"
+import {
+  acceptTeacherInviteSchema,
+  createTeacherInviteSchema,
+  validateInviteTokenSchema,
+} from "./teacher-invite.schema"
 import { TeacherInviteService } from "./teacher-invite.service"
-import { createTeacherInviteSchema, acceptTeacherInviteSchema, validateInviteTokenSchema } from "./teacher-invite.schema"
-import { validateRequest } from "../../middleware/validate-request"
-import { requireAuth } from "../auth/auth.middleware"
 
-const router = Router()
+const router = new Hono()
 
-// Criar convite (apenas admins)
-router.post(
-  "/",
-  requireAuth(["ADMIN"]),
-  validateRequest(createTeacherInviteSchema),
-  async (req, res) => {
-    try {
-      const invite = await TeacherInviteService.createInvite(req.body)
-      res.status(201).json({
-        success: true,
-        data: invite,
-        message: "Convite enviado com sucesso",
-      })
-    } catch (error: any) {
-      res.status(400).json({
-        success: false,
-        message: error.message,
-      })
-    }
+router.post("/", checkRole(["ADMIN"]), zValidator("json", createTeacherInviteSchema), async (c) => {
+  try {
+    const data = c.req.valid("json")
+    const invite = await TeacherInviteService.createInvite(data)
+    return c.json({ success: true, data: invite, message: "Invite sent successfully" }, 201)
+  } catch (error: any) {
+    throw new HTTPException(400, { message: error.message })
   }
-)
+})
 
-// Listar convites (apenas admins)
-router.get(
-  "/",
-  requireAuth(["ADMIN"]),
-  async (req, res) => {
-    try {
-      const invites = await TeacherInviteService.listInvites()
-      res.json({
-        success: true,
-        data: invites,
-      })
-    } catch (error: any) {
-      res.status(500).json({
-        success: false,
-        message: error.message,
-      })
-    }
+router.get("/", checkRole(["ADMIN"]), async (c) => {
+  try {
+    const invites = await TeacherInviteService.listInvites()
+    return c.json({ success: true, data: invites })
+  } catch (error: any) {
+    throw new HTTPException(500, { message: error.message })
   }
-)
+})
 
-// Cancelar convite (apenas admins)
-router.delete(
-  "/:id",
-  requireAuth(["ADMIN"]),
-  async (req, res) => {
-    try {
-      const inviteId = parseInt(req.params.id)
-      if (isNaN(inviteId)) {
-        return res.status(400).json({
-          success: false,
-          message: "ID inválido",
-        })
-      }
-
-      await TeacherInviteService.cancelInvite(inviteId)
-      res.json({
-        success: true,
-        message: "Convite cancelado com sucesso",
-      })
-    } catch (error: any) {
-      res.status(400).json({
-        success: false,
-        message: error.message,
-      })
+router.delete("/:id", checkRole(["ADMIN"]), async (c) => {
+  try {
+    const idParam = c.req.param("id")
+    const inviteId = Number(idParam)
+    if (isNaN(inviteId)) {
+      throw new HTTPException(400, { message: "Invalid ID" })
     }
+    await TeacherInviteService.cancelInvite(inviteId)
+    return c.json({ success: true, message: "Invite cancelled successfully" })
+  } catch (error: any) {
+    throw new HTTPException(400, { message: error.message })
   }
-)
+})
 
-// Validar token de convite (público)
-router.post(
-  "/validate",
-  validateRequest(validateInviteTokenSchema),
-  async (req, res) => {
-    try {
-      const invite = await TeacherInviteService.validateInviteToken(req.body)
-      res.json({
-        success: true,
-        data: {
-          email: invite.email,
-          nome: invite.nome,
-          school: invite.school,
-          academicTitle: invite.academicTitle,
-        },
-      })
-    } catch (error: any) {
-      res.status(400).json({
-        success: false,
-        message: error.message,
-      })
-    }
+router.post("/validate", zValidator("json", validateInviteTokenSchema), async (c) => {
+  try {
+    const data = c.req.valid("json")
+    const invite = await TeacherInviteService.validateInviteToken(data)
+    return c.json({
+      success: true,
+      data: {
+        email: invite.email,
+        nome: invite.nome,
+        school: invite.school,
+        academicTitle: invite.academicTitle,
+      },
+    })
+  } catch (error: any) {
+    throw new HTTPException(400, { message: error.message })
   }
-)
+})
 
-// Aceitar convite (público)
-router.post(
-  "/accept",
-  validateRequest(acceptTeacherInviteSchema),
-  async (req, res) => {
-    try {
-      const user = await TeacherInviteService.acceptInvite(req.body)
-      res.json({
-        success: true,
-        data: {
-          id: user.id,
-          email: user.email,
-          nome: user.nome,
-          role: user.role,
-        },
-        message: "Conta criada com sucesso",
-      })
-    } catch (error: any) {
-      res.status(400).json({
-        success: false,
-        message: error.message,
-      })
-    }
+router.post("/accept", zValidator("json", acceptTeacherInviteSchema), async (c) => {
+  try {
+    const data = c.req.valid("json")
+    const user = await TeacherInviteService.acceptInvite(data)
+    return c.json({
+      success: true,
+      data: {
+        id: user.id,
+        email: user.email,
+        nome: user.nome,
+        role: user.role,
+      },
+      message: "Account created successfully",
+    })
+  } catch (error: any) {
+    throw new HTTPException(400, { message: error.message })
   }
-)
+})
 
 export default router
