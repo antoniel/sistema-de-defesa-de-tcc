@@ -102,6 +102,22 @@ export const resetPasswords = pgTable("reset_password", {
   expiresAt: timestamp("expires_at").notNull(), // Adicionado para controle
 })
 
+export const teacherInvites = pgTable("teacher_invite", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull(),
+  nome: text("nome").notNull(),
+  school: text("school").notNull(),
+  academicTitle: text("academic_title").notNull(),
+  inviteToken: text("invite_token").unique().notNull(),
+  status: text("status").notNull().default("pending"), // pending, accepted, expired
+  createdAt: timestamp("created_at")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+  expiresAt: timestamp("expires_at").notNull(),
+  acceptedAt: timestamp("accepted_at"),
+  userId: integer("user_id").references(() => Users.id), // FK para usuário criado após aceitar convite
+})
+
 export const sessions = pgTable("session", {
   id: text("id").primaryKey(), // Aumentado tamanho
   userId: integer("user_id").references(() => Users.id), // Associar sessão a usuário
@@ -143,6 +159,10 @@ export const usuariosRelations = relations(Users, ({ one, many }) => ({
   convitesEnviados: many(invites), // Se um admin pode convidar
   resetsSenha: many(resetPasswords),
   bancasAssociadas: many(usuariosBancas), // Relação através da tabela de junção
+  teacherInvite: one(teacherInvites, {
+    fields: [Users.id],
+    references: [teacherInvites.userId],
+  }),
   // bancasCriadas: many(bancas), // Descomentar se banca.userId for mantido
 }))
 
@@ -186,6 +206,13 @@ export const invitesRelations = relations(invites, ({ one }) => ({
 export const resetPasswordsRelations = relations(resetPasswords, ({ one }) => ({
   usuario: one(Users, {
     fields: [resetPasswords.userId],
+    references: [Users.id],
+  }),
+}))
+
+export const teacherInvitesRelations = relations(teacherInvites, ({ one }) => ({
+  usuario: one(Users, {
+    fields: [teacherInvites.userId],
     references: [Users.id],
   }),
 }))
