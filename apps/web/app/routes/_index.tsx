@@ -46,7 +46,6 @@ export default function Home() {
     searchQuery
   )
 
-  // Reset page when search query changes
   useEffect(() => {
     setCurrentPage(1)
   }, [searchQuery])
@@ -55,14 +54,43 @@ export default function Home() {
 
   const handleSort = (field: string) => {
     if (sortField === field) {
-      // Toggle order if same field
       setSortOrder(sortOrder === "asc" ? "desc" : "asc")
     } else {
-      // New field, default to ascending
       setSortField(field)
       setSortOrder("asc")
     }
-    setCurrentPage(1) // Reset to first page when sorting
+    setCurrentPage(1)
+  }
+
+  const getTableData = () => {
+    if (activeTab === "my-defesas") {
+      return {
+        upcoming: myDefesasQuery.data?.upcoming || [],
+        past: myDefesasQuery.data?.past || [],
+        meta: myDefesasQuery.data?.meta,
+      }
+    }
+    return {
+      upcoming: bancasDefesaQuery.data?.upcoming || [],
+      past: bancasDefesaQuery.data?.past || [],
+      meta: bancasDefesaQuery.data?.meta,
+    }
+  }
+
+  const tableData = getTableData()
+
+  const getUpcomingCount = () => {
+    if (activeTab === "upcoming") {
+      return tableData.meta?.total || 0
+    }
+    return tableData.upcoming.length
+  }
+
+  const getPastCount = () => {
+    if (activeTab === "past") {
+      return tableData.meta?.total || 0
+    }
+    return tableData.past.length
   }
 
   if (bancasDefesaQuery.isLoading) {
@@ -95,23 +123,6 @@ export default function Home() {
     )
   }
 
-  const getTableData = () => {
-    if (activeTab === "my-defesas") {
-      return {
-        upcoming: myDefesasQuery.data?.upcoming || [],
-        past: myDefesasQuery.data?.past || [],
-        meta: myDefesasQuery.data?.meta,
-      }
-    }
-    return {
-      upcoming: bancasDefesaQuery.data?.upcoming || [],
-      past: bancasDefesaQuery.data?.past || [],
-      meta: bancasDefesaQuery.data?.meta,
-    }
-  }
-
-  const tableData = getTableData()
-
   return (
     <div className="container mx-auto p-4 md:p-8">
       <Header className="mb-6" />
@@ -131,7 +142,7 @@ export default function Home() {
               value={rowsPerPage.toString()}
               onValueChange={(value) => {
                 setRowsPerPage(Number(value))
-                setCurrentPage(1) // Reset to first page when changing rows per page
+                setCurrentPage(1)
               }}
             >
               <SelectTrigger className="w-20">
@@ -167,6 +178,7 @@ export default function Home() {
               currentPage={currentPage}
               onPageChange={setCurrentPage}
               meta={tableData.meta}
+              totalCount={getUpcomingCount()}
             />
           </TabsContent>
         )}
@@ -181,6 +193,7 @@ export default function Home() {
             currentPage={currentPage}
             onPageChange={setCurrentPage}
             meta={tableData.meta}
+            totalCount={getPastCount()}
           />
         </TabsContent>
         {isTeacherOrAdmin && (
@@ -217,8 +230,8 @@ export default function Home() {
                   {tableData.meta && (
                     <div className="flex items-center justify-between px-4 pt-2">
                       <div className="text-sm text-muted-foreground">
-                        Exibindo {tableData.upcoming.length} de {tableData.meta.total} resultado
-                        {tableData.meta.total !== 1 ? "s" : ""}
+                        Exibindo {tableData.upcoming.length} de {getUpcomingCount()} resultado
+                        {getUpcomingCount() !== 1 ? "s" : ""}
                         {searchQuery && ` para "${searchQuery}"`}
                       </div>
                       <div className="flex items-center gap-2">
@@ -264,8 +277,8 @@ export default function Home() {
                   {tableData.meta && (
                     <div className="flex items-center justify-between px-4 pt-2">
                       <div className="text-sm text-muted-foreground">
-                        Exibindo {tableData.past.length} de {tableData.meta.total} resultado
-                        {tableData.meta.total !== 1 ? "s" : ""}
+                        Exibindo {tableData.past.length} de {getPastCount()} resultado
+                        {getPastCount() !== 1 ? "s" : ""}
                         {searchQuery && ` para "${searchQuery}"`}
                       </div>
                       <div className="flex items-center gap-2">
@@ -421,6 +434,7 @@ function TableWithInfo(props: {
     hasNext: boolean
     hasPrev: boolean
   }
+  totalCount: number
 }) {
   const meta = props.meta
 
@@ -432,7 +446,7 @@ function TableWithInfo(props: {
       {meta && (
         <div className="flex items-center justify-between px-4 pt-2">
           <div className="text-sm text-muted-foreground">
-            Exibindo {props.data.length} de {meta.total} resultado{meta.total !== 1 ? "s" : ""}
+            Exibindo {props.data.length} de {props.totalCount} resultado{props.totalCount !== 1 ? "s" : ""}
             {props.searchQuery && ` para "${props.searchQuery}"`}
           </div>
           <div className="flex items-center gap-2">

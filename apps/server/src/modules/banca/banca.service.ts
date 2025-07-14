@@ -89,10 +89,8 @@ export const getAllBancasVisible = async (
 > => {
   const dbInstance = c.get("db")
   try {
-    // Calculate offset for pagination
     const offset = (page - 1) * limit
 
-    // Build search condition
     const searchCondition = searchQuery
       ? or(
           ilike(Bancas.tituloTrabalho, `%${searchQuery}%`),
@@ -102,20 +100,7 @@ export const getAllBancasVisible = async (
         )
       : undefined
 
-    // Build where condition
-    const whereCondition = searchCondition ? and(eq(Bancas.visible, true), searchCondition) : eq(Bancas.visible, true)
-
-    // First, get the total count with search
-    const totalResult = await dbInstance
-      .select({ count: Bancas.id })
-      .from(Bancas)
-      .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
-      .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
-      .where(whereCondition)
-      .orderBy(desc(Bancas.dataRealizacao))
-
-    const total = totalResult.length
-    const totalPages = Math.ceil(total / limit)
+    const baseWhereCondition = searchCondition ? and(eq(Bancas.visible, true), searchCondition) : eq(Bancas.visible, true)
 
     const fieldMap: Record<string, any> = {
       dataRealizacao: Bancas.dataRealizacao,
@@ -131,9 +116,14 @@ export const getAllBancasVisible = async (
       return desc(Bancas.dataRealizacao)
     }
 
+    const pastWhereCondition = and(baseWhereCondition, lt(Bancas.dataRealizacao, new Date()))
+    const upcomingWhereCondition = and(baseWhereCondition, gte(Bancas.dataRealizacao, new Date()))
+
     const bancasWithMembrosPast = await dbInstance.query.Bancas.findMany({
-      where: and(whereCondition, lt(Bancas.dataRealizacao, new Date())),
+      where: pastWhereCondition,
       orderBy: hasOrder ? getOrderClause() : desc(Bancas.dataRealizacao),
+      limit,
+      offset,
       with: {
         orientador: true,
         curso: true,
@@ -144,9 +134,12 @@ export const getAllBancasVisible = async (
         },
       },
     })
+
     const bancasWithMembrosUpcoming = await dbInstance.query.Bancas.findMany({
-      where: and(whereCondition, gte(Bancas.dataRealizacao, new Date())),
+      where: upcomingWhereCondition,
       orderBy: hasOrder ? getOrderClause() : asc(Bancas.dataRealizacao),
+      limit,
+      offset,
       with: {
         orientador: true,
         curso: true,
@@ -157,6 +150,23 @@ export const getAllBancasVisible = async (
         },
       },
     })
+
+    const totalPast = await dbInstance
+      .select({ count: Bancas.id })
+      .from(Bancas)
+      .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
+      .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
+      .where(pastWhereCondition)
+
+    const totalUpcoming = await dbInstance
+      .select({ count: Bancas.id })
+      .from(Bancas)
+      .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
+      .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
+      .where(upcomingWhereCondition)
+
+    const total = totalPast.length + totalUpcoming.length
+    const totalPages = Math.ceil(total / limit)
 
     return ok({
       bancasWithMembrosPast,
@@ -686,10 +696,8 @@ export const getBancasByOrientador = async (
 > => {
   const dbInstance = c.get("db")
   try {
-    // Calculate offset for pagination
     const offset = (page - 1) * limit
 
-    // Build search condition
     const searchCondition = searchQuery
       ? or(
           ilike(Bancas.tituloTrabalho, `%${searchQuery}%`),
@@ -699,22 +707,13 @@ export const getBancasByOrientador = async (
         )
       : undefined
 
-    const whereCondition = searchCondition
+    const baseWhereCondition = searchCondition
       ? and(eq(Bancas.orientadorId, orientadorId), searchCondition)
       : eq(Bancas.orientadorId, orientadorId)
 
-    // First, get the total count with search
-    const totalResult = await dbInstance
-      .select({ count: Bancas.id })
-      .from(Bancas)
-      .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
-      .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
-      .where(whereCondition)
+    const pastWhereCondition = and(baseWhereCondition, lt(Bancas.dataRealizacao, new Date()))
+    const upcomingWhereCondition = and(baseWhereCondition, gte(Bancas.dataRealizacao, new Date()))
 
-    const total = totalResult.length
-    const totalPages = Math.ceil(total / limit)
-
-    // For related fields, use leftJoin
     let orderClause
     const fieldMap: Record<string, any> = {
       dataRealizacao: Bancas.dataRealizacao,
@@ -728,7 +727,7 @@ export const getBancasByOrientador = async (
     }
 
     const bancasWithMembrosPast = await dbInstance.query.Bancas.findMany({
-      where: and(whereCondition, lt(Bancas.dataRealizacao, new Date())),
+      where: pastWhereCondition,
       orderBy: hasOrder ? orderClause : desc(Bancas.dataRealizacao),
       limit,
       offset,
@@ -742,8 +741,9 @@ export const getBancasByOrientador = async (
         },
       },
     })
+
     const bancasWithMembrosUpcoming = await dbInstance.query.Bancas.findMany({
-      where: and(whereCondition, gte(Bancas.dataRealizacao, new Date())),
+      where: upcomingWhereCondition,
       orderBy: hasOrder ? orderClause : asc(Bancas.dataRealizacao),
       limit,
       offset,
@@ -757,6 +757,23 @@ export const getBancasByOrientador = async (
         },
       },
     })
+
+    const totalPast = await dbInstance
+      .select({ count: Bancas.id })
+      .from(Bancas)
+      .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
+      .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
+      .where(pastWhereCondition)
+
+    const totalUpcoming = await dbInstance
+      .select({ count: Bancas.id })
+      .from(Bancas)
+      .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
+      .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
+      .where(upcomingWhereCondition)
+
+    const total = totalPast.length + totalUpcoming.length
+    const totalPages = Math.ceil(total / limit)
 
     return ok({
       past: bancasWithMembrosPast,
