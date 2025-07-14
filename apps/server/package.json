@@ -21,12 +21,18 @@
     "@electric-sql/pglite": "^0.2.17",
     "@hono/node-server": "^1.14.0",
     "@tcc/tests": "*",
+    "@types/express": "^5.0.3",
+    "@types/nodemailer": "^6.4.17",
     "bcryptjs": "^3.0.2",
+    "date-fns": "^4.1.0",
     "drizzle-orm": "^0.41.0",
     "drizzle-zod": "^0.7.1",
+    "express": "^5.1.0",
     "hono": "^4.2.4",
+    "nodemailer": "^7.0.5",
     "pg": "^8.14.1",
-    "ts-pattern": "^5.7.0"
+    "ts-pattern": "^5.7.0",
+    "zod": "^4.0.5"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240405.0",
