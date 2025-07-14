@@ -36,6 +36,13 @@
       "when": 1752172712757,
       "tag": "0004_flaky_nuke",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1752527555055,
+      "tag": "0005_sloppy_legion",
+      "breakpoints": true
     }
   ]
 }
