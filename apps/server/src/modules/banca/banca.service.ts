@@ -92,8 +92,8 @@ export const getAllBancasVisible = async (
     // Calculate offset for pagination
     const offset = (page - 1) * limit
 
-    // Build search condition
-    const searchCondition = searchQuery
+    // Build search condition for count query (with joins - can reference related tables)
+    const searchConditionWithJoins = searchQuery
       ? or(
           ilike(Bancas.tituloTrabalho, `%${searchQuery}%`),
           ilike(Bancas.autor, `%${searchQuery}%`),
@@ -102,16 +102,27 @@ export const getAllBancasVisible = async (
         )
       : undefined
 
-    // Build where condition
-    const whereCondition = searchCondition ? and(eq(Bancas.visible, true), searchCondition) : eq(Bancas.visible, true)
+    // Build search condition for data queries (without joins - only main table fields)
+    const searchConditionMainTable = searchQuery
+      ? or(ilike(Bancas.tituloTrabalho, `%${searchQuery}%`), ilike(Bancas.autor, `%${searchQuery}%`))
+      : undefined
 
-    // First, get the total count with search
+    // Build where conditions
+    const whereConditionWithJoins = searchConditionWithJoins
+      ? and(eq(Bancas.visible, true), searchConditionWithJoins)
+      : eq(Bancas.visible, true)
+
+    const whereConditionMainTable = searchConditionMainTable
+      ? and(eq(Bancas.visible, true), searchConditionMainTable)
+      : eq(Bancas.visible, true)
+
+    // First, get the total count with search (using joins)
     const totalResult = await dbInstance
       .select({ count: Bancas.id })
       .from(Bancas)
       .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
       .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
-      .where(whereCondition)
+      .where(whereConditionWithJoins)
       .orderBy(desc(Bancas.dataRealizacao))
 
     const total = totalResult.length
@@ -124,16 +135,32 @@ export const getAllBancasVisible = async (
       local: Bancas.local,
     }
     const hasOrder = orderBy && fieldMap[orderBy]
-    const getOrderClause = () => {
+
+    // For date field, always use natural ordering (past: desc, upcoming: asc)
+    // For other fields, respect user's order preference
+    const getPastOrderClause = () => {
       if (hasOrder) {
+        if (orderBy === "dataRealizacao") {
+          return desc(fieldMap[orderBy]) // Past defenses: always descending (most recent first)
+        }
         return order === "desc" ? desc(fieldMap[orderBy]) : asc(fieldMap[orderBy])
       }
       return desc(Bancas.dataRealizacao)
     }
 
+    const getUpcomingOrderClause = () => {
+      if (hasOrder) {
+        if (orderBy === "dataRealizacao") {
+          return asc(fieldMap[orderBy]) // Upcoming defenses: always ascending (closest first)
+        }
+        return order === "desc" ? desc(fieldMap[orderBy]) : asc(fieldMap[orderBy])
+      }
+      return asc(Bancas.dataRealizacao)
+    }
+
     const bancasWithMembrosPast = await dbInstance.query.Bancas.findMany({
-      where: and(whereCondition, lt(Bancas.dataRealizacao, new Date())),
-      orderBy: hasOrder ? getOrderClause() : desc(Bancas.dataRealizacao),
+      where: and(whereConditionMainTable, lt(Bancas.dataRealizacao, new Date())),
+      orderBy: getPastOrderClause(),
       with: {
         orientador: true,
         curso: true,
@@ -145,8 +172,8 @@ export const getAllBancasVisible = async (
       },
     })
     const bancasWithMembrosUpcoming = await dbInstance.query.Bancas.findMany({
-      where: and(whereCondition, gte(Bancas.dataRealizacao, new Date())),
-      orderBy: hasOrder ? getOrderClause() : asc(Bancas.dataRealizacao),
+      where: and(whereConditionMainTable, gte(Bancas.dataRealizacao, new Date())),
+      orderBy: getUpcomingOrderClause(),
       with: {
         orientador: true,
         curso: true,
@@ -690,13 +717,10 @@ export const getBancasByOrientador = async (
     const offset = (page - 1) * limit
 
     // Build search condition
+    // Note: When using Drizzle query API, we can only search in the main table fields
+    // Related table fields are fetched via 'with' relations, so we search in Bancas fields only
     const searchCondition = searchQuery
-      ? or(
-          ilike(Bancas.tituloTrabalho, `%${searchQuery}%`),
-          ilike(Bancas.autor, `%${searchQuery}%`),
-          ilike(Users.nome, `%${searchQuery}%`),
-          ilike(Cursos.nome, `%${searchQuery}%`)
-        )
+      ? or(ilike(Bancas.tituloTrabalho, `%${searchQuery}%`), ilike(Bancas.autor, `%${searchQuery}%`))
       : undefined
 
     const whereCondition = searchCondition
@@ -715,7 +739,6 @@ export const getBancasByOrientador = async (
     const totalPages = Math.ceil(total / limit)
 
     // For related fields, use leftJoin
-    let orderClause
     const fieldMap: Record<string, any> = {
       dataRealizacao: Bancas.dataRealizacao,
       tituloTrabalho: Bancas.tituloTrabalho,
@@ -723,13 +746,32 @@ export const getBancasByOrientador = async (
       local: Bancas.local,
     }
     const hasOrder = orderBy && fieldMap[orderBy]
-    if (hasOrder) {
-      orderClause = order === "desc" ? desc(fieldMap[orderBy]) : asc(fieldMap[orderBy])
+
+    // For date field, always use natural ordering (past: desc, upcoming: asc)
+    // For other fields, respect user's order preference
+    const getPastOrderClause = () => {
+      if (hasOrder) {
+        if (orderBy === "dataRealizacao") {
+          return desc(fieldMap[orderBy]) // Past defenses: always descending (most recent first)
+        }
+        return order === "desc" ? desc(fieldMap[orderBy]) : asc(fieldMap[orderBy])
+      }
+      return desc(Bancas.dataRealizacao)
+    }
+
+    const getUpcomingOrderClause = () => {
+      if (hasOrder) {
+        if (orderBy === "dataRealizacao") {
+          return asc(fieldMap[orderBy]) // Upcoming defenses: always ascending (closest first)
+        }
+        return order === "desc" ? desc(fieldMap[orderBy]) : asc(fieldMap[orderBy])
+      }
+      return asc(Bancas.dataRealizacao)
     }
 
     const bancasWithMembrosPast = await dbInstance.query.Bancas.findMany({
       where: and(whereCondition, lt(Bancas.dataRealizacao, new Date())),
-      orderBy: hasOrder ? orderClause : desc(Bancas.dataRealizacao),
+      orderBy: getPastOrderClause(),
       limit,
       offset,
       with: {
@@ -744,7 +786,7 @@ export const getBancasByOrientador = async (
     })
     const bancasWithMembrosUpcoming = await dbInstance.query.Bancas.findMany({
       where: and(whereCondition, gte(Bancas.dataRealizacao, new Date())),
-      orderBy: hasOrder ? orderClause : asc(Bancas.dataRealizacao),
+      orderBy: getUpcomingOrderClause(),
       limit,
       offset,
       with: {
