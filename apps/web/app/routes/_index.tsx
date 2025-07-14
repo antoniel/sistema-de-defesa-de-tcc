@@ -8,10 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useQueryParamsState } from "@/hooks/use-query-param-state"
-import { rpcReturn } from "@/lib/utils"
-import apiClient from "@/services/apiClient"
 import { useUser } from "@/services/useUser"
-import { useQuery } from "@tanstack/react-query"
 import { ArrowUpDown, ChevronDown, ChevronUp } from "lucide-react"
 import { useEffect, useState } from "react"
 import { href, useNavigate } from "react-router"
@@ -153,7 +150,7 @@ export default function Home() {
         <TabsList className="mb-4">
           <TabsTrigger value="upcoming">Próximas defesas</TabsTrigger>
           <TabsTrigger value="past">Defesas anteriores</TabsTrigger>
-          {isTeacherOrAdmin && <TabsTrigger value="my-defesas">Minhas Defesas</TabsTrigger>}
+          {isTeacherOrAdmin && <TabsTrigger value="my-defesas">Minhas defesas</TabsTrigger>}
         </TabsList>
         {tableData.upcoming.length > 0 && (
           <TabsContent value="upcoming">
