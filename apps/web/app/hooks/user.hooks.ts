@@ -74,7 +74,14 @@ export const useStudents = () => {
     queryKey: ["students"],
     queryFn: async () => {
       const response = await apiClient.usuario.students.$get()
-      return rpcReturn(response) as unknown as any[]
+      return rpcReturn(response) as {
+        id: number
+        nome: string
+        matricula: string
+        academicTitle: string
+        school: string
+        email: string
+      }[]
     },
   })
 }

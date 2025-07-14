@@ -82,6 +82,7 @@ export default function AddBancaPage() {
       autor: user?.nome,
       matricula: user?.matricula,
       cursoId: undefined,
+      alunoId: 0,
     },
     mode: "onBlur",
   })
@@ -99,6 +100,13 @@ export default function AddBancaPage() {
     // Extract year and semester from periodoAcademico (format: YYYY.S)
     const [ano, semestreLetivo] = data.periodoAcademico.split(".")
 
+    // Combine date and time
+    let dataRealizacaoCompleta = data.dataRealizacao
+    if (data.hora && data.dataRealizacao) {
+      const dataStr = data.dataRealizacao.toISOString().split('T')[0]
+      dataRealizacaoCompleta = new Date(`${dataStr}T${data.hora}:00`)
+    }
+
     const submissionData: SubmissionPayload = {
       ...data,
       matricula: data.matricula || "",
@@ -107,6 +115,7 @@ export default function AddBancaPage() {
       visible: Boolean(data.visible),
       alunoId: Number(data.alunoId),
       orientadorId: Number(data.orientadorId),
+      dataRealizacao: dataRealizacaoCompleta,
     }
     addBancaMutation.mutate(
       { json: submissionData as query["input"]["json"] },
@@ -157,7 +166,7 @@ export default function AddBancaPage() {
       case 0:
         return ["tituloTrabalho", "resumo", "abstract"]
       case 1:
-        return ["autor", "matricula", "orientadorId"]
+        return ["autor", "matricula", "orientadorId", "alunoId"]
       case 2:
         return [
           "palavrasChave",
@@ -361,48 +370,55 @@ const AuthorInfoSection = () => {
         <div>
           <Label htmlFor="autor">Aluno</Label>
           <Controller
-            name="autor"
+            name="alunoId"
             control={control}
-            rules={{ required: "Aluno é obrigatório" }}
+            rules={{ required: "Aluno é obrigatório", min: { value: 1, message: "Selecione um aluno" } }}
             render={({ field }) => (
-              <Select
-                onValueChange={(value) => {
-                  const student = studentsQuery.data?.find((student) => student.id.toString() === value)
-                  if (student) {
-                    field.onChange(student.nome)
-                    setValue("matricula", student.matricula)
-                    setValue("alunoId", Number(value))
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o aluno..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {studentsQuery.isLoading ? (
-                    <SelectItem value="0" disabled>
-                      Carregando alunos...
-                    </SelectItem>
-                  ) : studentsQuery.error ? (
-                    <SelectItem value="0" disabled>
-                      Erro ao carregar alunos
-                    </SelectItem>
-                  ) : studentsQuery.data && studentsQuery.data.length > 0 ? (
-                    studentsQuery.data.map((student) => (
-                      <SelectItem key={student.id} value={student.id.toString()}>
-                        {student.nome}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="0" disabled>
-                      Nenhum aluno encontrado
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+              <Controller
+                name="autor"
+                control={control}
+                rules={{ required: "Aluno é obrigatório" }}
+                render={({ field: autorField }) => (
+                  <Select
+                    onValueChange={(value) => {
+                      const student = studentsQuery.data?.find((student) => student.id.toString() === value)
+                      if (student) {
+                        autorField.onChange(student.nome)
+                        setValue("matricula", student.matricula)
+                        field.onChange(Number(value))
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o aluno..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {studentsQuery.isLoading ? (
+                        <SelectItem value="0" disabled>
+                          Carregando alunos...
+                        </SelectItem>
+                      ) : studentsQuery.error ? (
+                        <SelectItem value="0" disabled>
+                          Erro ao carregar alunos
+                        </SelectItem>
+                      ) : studentsQuery.data && studentsQuery.data.length > 0 ? (
+                        studentsQuery.data.map((student) => (
+                          <SelectItem key={student.id} value={student.id.toString()}>
+                            {student.nome}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="0" disabled>
+                          Nenhum aluno encontrado
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             )}
           />
-          {errors.orientadorId && <p className="text-sm text-red-600 mt-1">{errors.orientadorId.message}</p>}
+          {errors.alunoId && <p className="text-sm text-red-600 mt-1">{errors.alunoId.message}</p>}
         </div>
         <div>
           <Label htmlFor="matricula">Matrícula</Label>

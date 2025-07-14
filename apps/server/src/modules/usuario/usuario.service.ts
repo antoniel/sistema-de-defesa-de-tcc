@@ -313,7 +313,7 @@ type GetStudentsError = { type: "database_error"; error: unknown }
 export const getStudents = async (
   c: Context<{ Variables: AppVariables }>
 ): Promise<
-  AppResult<Pick<SelectUser, "id" | "nome" | "matricula" | "academicTitle" | "email">[], GetStudentsError>
+  AppResult<Pick<SelectUser, "id" | "nome" | "matricula" | "academicTitle" | "email" | "school">[], GetStudentsError>
 > => {
   const dbInstance = c.get("db")
   try {
