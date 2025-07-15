@@ -140,3 +140,29 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json(result.data)
   })
+  .post("/request-password-reset", zValidator("json", schema.requestPasswordResetSchema), async (c) => {
+    const { email } = c.req.valid("json")
+    const result = await service.requestPasswordReset(c, email)
+    if (!result.ok) {
+      throw match(result.error)
+        .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))
+        .with({ type: "email_error" }, () => new AppError(500, "Erro ao enviar email"))
+        .with({ type: "database_error" }, () => new AppError(500, "Erro interno do servidor"))
+        .exhaustive()
+    }
+    return c.json({ message: "Email de recuperação enviado com sucesso" })
+  })
+  .post("/reset-password", zValidator("json", schema.resetPasswordSchema), async (c) => {
+    const { token, newPassword } = c.req.valid("json")
+    const result = await service.resetPassword(c, token, newPassword)
+    if (!result.ok) {
+      throw match(result.error)
+        .with({ type: "invalid_token" }, () => new AppError(400, "Token inválido"))
+        .with({ type: "token_expired" }, () => new AppError(400, "Token expirado"))
+        .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))
+        .with({ type: "hashing_error" }, () => new AppError(500, "Erro ao processar senha"))
+        .with({ type: "database_error" }, () => new AppError(500, "Erro interno do servidor"))
+        .exhaustive()
+    }
+    return c.json({ message: "Senha redefinida com sucesso" })
+  })
