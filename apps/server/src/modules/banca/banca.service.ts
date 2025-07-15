@@ -161,6 +161,8 @@ export const getAllBancasVisible = async (
     const bancasWithMembrosPast = await dbInstance.query.Bancas.findMany({
       where: and(whereConditionMainTable, lt(Bancas.dataRealizacao, new Date())),
       orderBy: getPastOrderClause(),
+      limit,
+      offset,
       with: {
         orientador: true,
         curso: true,
@@ -174,6 +176,8 @@ export const getAllBancasVisible = async (
     const bancasWithMembrosUpcoming = await dbInstance.query.Bancas.findMany({
       where: and(whereConditionMainTable, gte(Bancas.dataRealizacao, new Date())),
       orderBy: getUpcomingOrderClause(),
+      limit,
+      offset,
       with: {
         orientador: true,
         curso: true,

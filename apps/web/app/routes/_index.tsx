@@ -24,7 +24,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useQueryParamsState("activeTab", "upcoming")
   const [sortField, setSortField] = useState<string>("")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
-  const [rowsPerPage, setRowsPerPage] = useState<number>(10)
+  const [rowsPerPage, setRowsPerPage] = useState<number>(5)
   const [currentPage, setCurrentPage] = useState<number>(1)
 
   const userQuery = useUser()
