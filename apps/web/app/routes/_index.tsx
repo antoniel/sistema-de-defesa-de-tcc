@@ -15,6 +15,11 @@ import { href, useNavigate } from "react-router"
 import { match } from "ts-pattern"
 
 import { useMyDefesas, usePastBancasDefesa, useUpcomingBancasDefesa } from "@/hooks"
+import type { Route } from "./+types/_index"
+
+export const meta: Route.MetaFunction = () => [
+  { title: "SISDEF" },
+]
 
 type BancasDefesa = ReturnType<typeof useUpcomingBancasDefesa>["data"] & {}
 

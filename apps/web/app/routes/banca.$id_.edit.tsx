@@ -1,4 +1,9 @@
 import { Header } from "@/components/layout/Header"
+import type { Route } from "./+types/banca.$id_.edit"
+
+export const meta: Route.MetaFunction = () => [
+  { title: "SISDEF - Editar Defesa" },
+]
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
