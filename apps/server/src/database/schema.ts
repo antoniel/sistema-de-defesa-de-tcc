@@ -102,6 +102,24 @@ export const resetPasswords = pgTable("reset_password", {
   expiresAt: timestamp("expires_at").notNull(), // Adicionado para controle
 })
 
+export const teacherInvitations = pgTable("teacher_invitation", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  nome: text("nome").notNull(),
+  invitationHash: text("invitation_hash").unique().notNull(),
+  status: text("status").default("pending").notNull(), // pending, used, expired
+  createdAt: timestamp("created_at")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+  expiresAt: timestamp("expires_at").notNull(),
+  invitedBy: integer("invited_by")
+    .notNull()
+    .references(() => Users.id), // Admin who sent the invitation
+  userId: integer("user_id").references(() => Users.id), // Set when account is created
+})
+export type InsertTeacherInvitation = typeof teacherInvitations.$inferInsert
+export type SelectTeacherInvitation = typeof teacherInvitations.$inferSelect
+
 export const sessions = pgTable("session", {
   id: text("id").primaryKey(), // Aumentado tamanho
   userId: integer("user_id").references(() => Users.id), // Associar sessão a usuário
@@ -143,6 +161,8 @@ export const usuariosRelations = relations(Users, ({ one, many }) => ({
   convitesEnviados: many(invites), // Se um admin pode convidar
   resetsSenha: many(resetPasswords),
   bancasAssociadas: many(usuariosBancas), // Relação através da tabela de junção
+  teacherInvitationsSent: many(teacherInvitations),
+  teacherInvitationReceived: one(teacherInvitations),
   // bancasCriadas: many(bancas), // Descomentar se banca.userId for mantido
 }))
 
@@ -186,6 +206,17 @@ export const invitesRelations = relations(invites, ({ one }) => ({
 export const resetPasswordsRelations = relations(resetPasswords, ({ one }) => ({
   usuario: one(Users, {
     fields: [resetPasswords.userId],
+    references: [Users.id],
+  }),
+}))
+
+export const teacherInvitationsRelations = relations(teacherInvitations, ({ one }) => ({
+  invitedBy: one(Users, {
+    fields: [teacherInvitations.invitedBy],
+    references: [Users.id],
+  }),
+  user: one(Users, {
+    fields: [teacherInvitations.userId],
     references: [Users.id],
   }),
 }))

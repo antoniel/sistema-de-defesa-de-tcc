@@ -29,6 +29,26 @@ export const useRegisterMutation = () => {
   })
 }
 
+export const useRequestPasswordResetMutation = () => {
+  type Query = RpcType<typeof apiClient.usuario["request-password-reset"]["$post"]>
+  return useMutation({
+    mutationFn: async (request: Query["input"]) => {
+      const response = await apiClient.usuario["request-password-reset"]["$post"](request)
+      return rpcReturn(response)
+    },
+  })
+}
+
+export const useResetPasswordMutation = () => {
+  type Query = RpcType<typeof apiClient.usuario["reset-password"]["$post"]>
+  return useMutation({
+    mutationFn: async (request: Query["input"]) => {
+      const response = await apiClient.usuario["reset-password"]["$post"](request)
+      return rpcReturn(response)
+    },
+  })
+}
+
 export const storeAuthToken = (token: string): void => {
   try {
     localStorage.setItem(AUTH_TOKEN_KEY, token)

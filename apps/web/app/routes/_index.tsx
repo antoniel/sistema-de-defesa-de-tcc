@@ -28,6 +28,7 @@ export default function Home() {
   const [upcomingCurrentPage, setUpcomingCurrentPage] = useState<number>(1)
   const [pastCurrentPage, setPastCurrentPage] = useState<number>(1)
 
+
   const userQuery = useUser()
   const upcomingBancasQuery = useUpcomingBancasDefesa(
     sortField || undefined,
@@ -154,7 +155,7 @@ export default function Home() {
             placeholder="Buscar defesas, alunos, orientadores ou avaliadores..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="max-w-lg w-full"
+            className="max-w-2xl w-full"
           />
           <div className="flex items-center gap-2 whitespace-nowrap">
             <span className="text-sm text-muted-foreground">Exibir:</span>
