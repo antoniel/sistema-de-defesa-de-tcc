@@ -2,6 +2,7 @@
 export * from "./banca.hooks"
 export * from "./user.hooks"
 export * from "./cursos.hooks"
+export * from "./teacher-invitation.hooks"
 
 // Re-export existing hooks
 export { useToast } from "./use-toast"
