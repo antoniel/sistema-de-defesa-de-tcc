@@ -162,6 +162,25 @@ export default function Home() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="max-w-2xl w-full"
           />
+        </div>
+        {!!userQuery.data && <Button onClick={() => navigate("/add-banca")}>Cadastrar Defesa de TCC</Button>}
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className="flex items-center justify-between mb-4">
+          <TabsList>
+            <TabsTrigger value="upcoming" data-testid="upcoming-tab">
+              Próximas defesas
+            </TabsTrigger>
+            <TabsTrigger value="past" data-testid="past-tab">
+              Defesas anteriores
+            </TabsTrigger>
+            {isTeacherOrAdmin && (
+              <TabsTrigger value="my-defesas" data-testid="my-defesas-tab">
+                Minhas defesas
+              </TabsTrigger>
+            )}
+          </TabsList>
           <div className="flex items-center gap-2 whitespace-nowrap">
             <span className="text-sm text-muted-foreground">Exibir:</span>
             <Select
@@ -184,23 +203,6 @@ export default function Home() {
             <span className="text-sm text-muted-foreground">linhas</span>
           </div>
         </div>
-        {!!userQuery.data && <Button onClick={() => navigate("/add-banca")}>Cadastrar Defesa de TCC</Button>}
-      </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="upcoming" data-testid="upcoming-tab">
-            Próximas defesas
-          </TabsTrigger>
-          <TabsTrigger value="past" data-testid="past-tab">
-            Defesas anteriores
-          </TabsTrigger>
-          {isTeacherOrAdmin && (
-            <TabsTrigger value="my-defesas" data-testid="my-defesas-tab">
-              Minhas defesas
-            </TabsTrigger>
-          )}
-        </TabsList>
         {tableData.upcoming.length > 0 && (
           <TabsContent value="upcoming">
             <div data-testid="defense-table">
