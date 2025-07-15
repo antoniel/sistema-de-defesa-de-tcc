@@ -14,7 +14,7 @@
     "db:push": "cd apps/server && drizzle-kit push",
     "sync": "git checkout production-web && git merge main && git checkout production-server && git merge main",
     "push:web": "npm run sync && git checkout production-web && git push dokku-web production-web:master --force",
-    "push:server": "npm run sync && git checkout production-server && git push dokku-server production-server:master",
+    "push:server": "npm run sync && git checkout production-server && git push dokku-server production-server:master --force",
     "typecheck": "turbo run typecheck",
     "test:e2e": "turbo run test --filter=@tcc/web",
     "test": "turbo run test --ui=tui",
