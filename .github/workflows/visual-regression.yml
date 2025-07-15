@@ -1,0 +1,185 @@
+name: Visual Regression Testing
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'apps/web/**'
+      - 'apps/server/**'
+      - '.github/workflows/visual-regression.yml'
+
+jobs:
+  visual-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: |
+          cd apps/web
+          npx playwright install chromium
+          npx playwright install-deps
+
+      - name: Download baseline screenshots
+        id: download-baselines
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: visual-baselines
+          path: apps/web/test-results/baseline/
+
+      - name: Start Docker services
+        run: npm run docker:up
+
+      - name: Wait for database
+        run: |
+          timeout 60 bash -c 'until nc -z localhost 5432; do sleep 1; done'
+
+      - name: Run database migrations
+        run: npm run migration:run
+
+      - name: Seed test data
+        run: npm run seed
+
+      - name: Run visual regression tests
+        run: |
+          cd apps/web
+          npm run test:visual
+        env:
+          CI: true
+
+      - name: Generate visual diff report
+        if: always()
+        run: |
+          cd apps/web
+          npm run test:visual:report
+        continue-on-error: true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-test-results-${{ github.sha }}
+          path: |
+            apps/web/test-results/
+            apps/web/playwright-report/
+          retention-days: 30
+
+      - name: Upload new baselines
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-baselines
+          path: apps/web/test-results/screenshots/
+          retention-days: 90
+
+      - name: Comment PR with visual diff results
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Try to read the visual test results
+            let commentBody = '## 🎯 Visual Regression Test Results\n\n';
+            
+            try {
+              const reportPath = 'apps/web/test-results/reports/visual-regression-report.html';
+              
+              if (fs.existsSync(reportPath)) {
+                // Count screenshot files
+                const screenshotsDir = 'apps/web/test-results/screenshots';
+                const diffDir = 'apps/web/test-results/diff';
+                
+                let screenshotCount = 0;
+                let diffCount = 0;
+                
+                if (fs.existsSync(screenshotsDir)) {
+                  screenshotCount = fs.readdirSync(screenshotsDir).filter(f => f.endsWith('.png')).length;
+                }
+                
+                if (fs.existsSync(diffDir)) {
+                  diffCount = fs.readdirSync(diffDir).filter(f => f.endsWith('.png')).length;
+                }
+                
+                if (diffCount > 0) {
+                  commentBody += `❌ **${diffCount} visual changes detected!**\n\n`;
+                  commentBody += `📸 **Screenshots captured:** ${screenshotCount}\n`;
+                  commentBody += `🔍 **Visual differences found:** ${diffCount}\n\n`;
+                  commentBody += `### 📊 Detailed Report\n`;
+                  commentBody += `A detailed visual regression report has been generated. `;
+                  commentBody += `Download the \`visual-test-results-${context.sha}\` artifact to view the full report.\n\n`;
+                  commentBody += `### 🔗 Artifacts\n`;
+                  commentBody += `- [Visual Test Results](${context.payload.repository.html_url}/actions/runs/${context.runId})\n`;
+                  commentBody += `- Screenshots and diffs are available in the artifacts\n\n`;
+                  commentBody += `### 🛠️ Next Steps\n`;
+                  commentBody += `1. Download and review the visual diff report\n`;
+                  commentBody += `2. If changes are intentional, update baselines with: \`npm run test:visual:update\`\n`;
+                  commentBody += `3. Commit the updated baseline screenshots\n`;
+                } else {
+                  commentBody += `✅ **All visual tests passed!**\n\n`;
+                  commentBody += `📸 **Screenshots captured:** ${screenshotCount}\n`;
+                  commentBody += `🎉 No visual regressions detected.\n`;
+                }
+              } else {
+                commentBody += `⚠️ **Visual tests completed but no report generated**\n\n`;
+                commentBody += `The visual regression tests ran but no comparison report was created. `;
+                commentBody += `This might be because no baseline screenshots exist yet.\n\n`;
+                commentBody += `### 🚀 First time setup\n`;
+                commentBody += `If this is the first time running visual tests:\n`;
+                commentBody += `1. Run \`npm run test:visual:update\` locally to create baseline screenshots\n`;
+                commentBody += `2. Commit the baseline screenshots to the repository\n`;
+              }
+              
+            } catch (error) {
+              commentBody += `❌ **Error generating visual test report**\n\n`;
+              commentBody += `\`\`\`\n${error.message}\n\`\`\`\n`;
+            }
+            
+            commentBody += `\n---\n*Automated visual regression testing powered by Playwright*`;
+            
+            // Find existing visual regression comment
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const existingComment = comments.data.find(comment => 
+              comment.body.includes('🎯 Visual Regression Test Results')
+            );
+            
+            if (existingComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: commentBody
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: commentBody
+              });
+            }
+
+      - name: Stop Docker services
+        if: always()
+        run: npm run docker:down
