@@ -112,7 +112,59 @@ export const useAddBancaMutation = () => {
   })
 }
 
-// Hook to fetch all bancas with filtering and pagination
+// Hook to fetch upcoming bancas with filtering and pagination
+export const useUpcomingBancasDefesa = (
+  orderBy?: string,
+  order?: "asc" | "desc",
+  page?: number,
+  limit?: number,
+  searchQuery?: string
+) => {
+  return useQuery({
+    queryKey: ["bancas", "upcoming", orderBy, order, page, limit, searchQuery],
+    queryFn: async () => {
+      const params = new URLSearchParams()
+      if (orderBy) params.set("orderBy", orderBy)
+      if (order) params.set("order", order)
+      if (page) params.set("page", page.toString())
+      if (limit) params.set("limit", limit.toString())
+      if (searchQuery) params.set("searchQuery", searchQuery)
+
+      const res = await apiClient.banca.upcoming.$get({
+        query: Object.fromEntries(params),
+      })
+      return rpcReturn(res)
+    },
+  })
+}
+
+// Hook to fetch past bancas with filtering and pagination
+export const usePastBancasDefesa = (
+  orderBy?: string,
+  order?: "asc" | "desc",
+  page?: number,
+  limit?: number,
+  searchQuery?: string
+) => {
+  return useQuery({
+    queryKey: ["bancas", "past", orderBy, order, page, limit, searchQuery],
+    queryFn: async () => {
+      const params = new URLSearchParams()
+      if (orderBy) params.set("orderBy", orderBy)
+      if (order) params.set("order", order)
+      if (page) params.set("page", page.toString())
+      if (limit) params.set("limit", limit.toString())
+      if (searchQuery) params.set("searchQuery", searchQuery)
+
+      const res = await apiClient.banca.past.$get({
+        query: Object.fromEntries(params),
+      })
+      return rpcReturn(res)
+    },
+  })
+}
+
+// Hook to fetch all bancas with filtering and pagination (legacy - will be deprecated)
 export const useBancasDefesa = (
   orderBy?: string,
   order?: "asc" | "desc",
