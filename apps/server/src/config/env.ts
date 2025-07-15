@@ -6,6 +6,7 @@ const TEST_MODE = mode === "test"
 export const envSchema = z.object({
   DATABASE_URL: TEST_MODE ? z.string().url().optional() : z.string().url(),
   PORT: z.string().optional().default("9000"),
+  FRONTEND_URL: z.string().url().optional(),
 })
 
 export const env = envSchema.parse(process.env)
