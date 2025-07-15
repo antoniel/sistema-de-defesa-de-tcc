@@ -29,6 +29,20 @@
       "when": 1752152736174,
       "tag": "0003_student-course-unique-constraint",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1752172712757,
+      "tag": "0004_flaky_nuke",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1752539645959,
+      "tag": "0005_bouncy_fenris",
+      "breakpoints": true
     }
   ]
 }

@@ -3,10 +3,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { useLoginMutation } from "@/services/authService"
+import { useLoginMutation, useRequestPasswordResetMutation } from "@/services/authService"
 import { useUser } from "@/services/useUser"
 import { useQueryClient } from "@tanstack/react-query"
 import { AlertCircle } from "lucide-react"
+import { useState } from "react"
 import { useForm } from "react-hook-form"
 
 interface LoginFormValues {
@@ -14,8 +15,14 @@ interface LoginFormValues {
   password: string
 }
 
+interface PasswordResetFormValues {
+  email: string
+}
+
 export function LoginForm(p: { onSuccess?: () => void }) {
+  const [showPasswordReset, setShowPasswordReset] = useState(false)
   const loginMutation = useLoginMutation()
+  const requestPasswordResetMutation = useRequestPasswordResetMutation()
 
   const {
     register,
@@ -25,6 +32,17 @@ export function LoginForm(p: { onSuccess?: () => void }) {
     defaultValues: {
       email: "",
       password: "",
+    },
+  })
+  
+  const {
+    register: resetRegister,
+    handleSubmit: handleResetSubmit,
+    formState: { errors: resetErrors },
+    reset: resetForm,
+  } = useForm<PasswordResetFormValues>({
+    defaultValues: {
+      email: "",
     },
   })
   const { toast } = useToast()
@@ -51,7 +69,71 @@ export function LoginForm(p: { onSuccess?: () => void }) {
       }
     )
   }
+  
+  const onPasswordResetSubmit = (data: PasswordResetFormValues) => {
+    requestPasswordResetMutation.mutate(
+      { json: { email: data.email } },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Email enviado com sucesso ✅",
+            description: "Verifique sua caixa de entrada para redefinir sua senha",
+          })
+          resetForm()
+          setShowPasswordReset(false)
+        },
+        onError: (error) => {
+          toast({
+            title: "Erro ao enviar email ❌",
+            description: error.message || "Ocorreu um erro ao enviar o email",
+          })
+        },
+      }
+    )
+  }
 
+  if (showPasswordReset) {
+    return (
+      <form onSubmit={handleResetSubmit(onPasswordResetSubmit)} className="grid gap-4">
+        <div className="text-center mb-4">
+          <h3 className="text-lg font-semibold">Recuperar Senha</h3>
+          <p className="text-sm text-muted-foreground">
+            Digite seu email para receber instruções de recuperação
+          </p>
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="reset-email">Email</Label>
+          <Input
+            id="reset-email"
+            type="email"
+            placeholder="exemplo@ufba.br"
+            disabled={requestPasswordResetMutation.isPending}
+            {...resetRegister("email", {
+              required: "Email é obrigatório",
+              pattern: {
+                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                message: "Email inválido",
+              },
+            })}
+          />
+          {resetErrors.email && <p className="text-sm text-destructive mt-1">{resetErrors.email.message}</p>}
+        </div>
+        <Button type="submit" className="w-full" disabled={requestPasswordResetMutation.isPending}>
+          {requestPasswordResetMutation.isPending ? "Enviando..." : "Enviar Email de Recuperação"}
+        </Button>
+        <Button 
+          type="button" 
+          variant="outline" 
+          className="w-full" 
+          onClick={() => setShowPasswordReset(false)}
+          disabled={requestPasswordResetMutation.isPending}
+        >
+          Voltar ao Login
+        </Button>
+      </form>
+    )
+  }
+  
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
       {loginMutation.error && (
@@ -96,6 +178,14 @@ export function LoginForm(p: { onSuccess?: () => void }) {
       </div>
       <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
         {loginMutation.isPending ? "Entrando..." : "Entrar"}
+      </Button>
+      <Button 
+        type="button" 
+        variant="link" 
+        className="w-full text-sm" 
+        onClick={() => setShowPasswordReset(true)}
+      >
+        Esqueci minha senha
       </Button>
     </form>
   )

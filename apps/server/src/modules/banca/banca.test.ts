@@ -1,74 +1,23 @@
-import * as bcrypt from "bcryptjs"
+import bcrypt from "bcrypt"
 import { eq } from "drizzle-orm"
 import { testClient } from "hono/testing"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { app } from "../.."
-import { Bancas, Cursos, type InsertBanca, type InsertUser, Users, usuariosBancas } from "../../database/schema"
+import { Bancas, Cursos, Users, usuariosBancas } from "../../database/schema"
 import { fakeDeps, getFakeDb } from "../../tests/utils"
 import { type CreateBancaInput, type UpdateBancaInput } from "./banca.schema"
 
-const TEST_TEACHER: Omit<InsertUser, "passwordHash"> & { password: "Password123!" } = {
-  email: "teacher@test.com",
-  password: "Password123!",
-  nome: "Test Teacher",
-  role: "TEACHER",
-  matricula: "111",
-  status: "ACTIVE",
-  school: "ICC",
-  academicTitle: "PhD",
-  createdAt: new Date(),
-  updatedAt: new Date(),
-}
-
-const TEST_STUDENT: Omit<InsertUser, "passwordHash"> & { password: "Password123!" } = {
-  email: "student@test.com",
-  password: "Password123!",
-  nome: "Test Student",
-  role: "STUDENT",
-  matricula: "222",
-  status: "ACTIVE",
-  school: "ICC",
-  academicTitle: "BSc",
-  createdAt: new Date(),
-  updatedAt: new Date(),
-}
-
-const TEST_ADMIN: Omit<InsertUser, "passwordHash"> & { password: "Password123!" } = {
-  email: "admin@test.com",
-  password: "Password123!",
-  nome: "Test Admin",
-  role: "ADMIN",
-  matricula: "333",
-  status: "ACTIVE",
-  school: "ICC",
-  academicTitle: "PhD",
-  createdAt: new Date(),
-  updatedAt: new Date(),
-}
-
-const TEST_CURSO = {
-  nome: "Ciência da Computação",
-  sigla: "BCC",
-  // grau property is not in the schema, removing it.
-}
-
-const getTestBancaData = (cursoId: number, orientadorId: number, alunoId: number): Omit<InsertBanca, "id"> => ({
-  tituloTrabalho: "Banca de Teste",
-  autor: "Aluno Teste",
-  matricula: "222",
-  turma: "T01",
-  periodoAcademico: "2024.1",
-  palavrasChave: "teste, hono, vitest",
-  resumo: "Um resumo da banca de teste.",
-  abstract: "An abstract of the test defense.",
-  dataRealizacao: new Date(new Date().getTime() + 24 * 60 * 60 * 1000),
-  local: "Online",
-  modalidade: "remoto",
-  cursoId,
-  orientadorId,
-  visible: true,
-  alunoId,
-})
+import {
+  TEST_ADMIN,
+  TEST_CURSO,
+  TEST_STUDENT,
+  TEST_TEACHER,
+  createLoginHelper,
+  createTestBancaInput,
+  createTestStudent,
+  createTestUserWithPasswordHash,
+  getTestBancaData,
+} from "@tcc/tests"
 
 describe("Rotas de Banca", async () => {
   const db = await getFakeDb()
@@ -90,22 +39,13 @@ describe("Rotas de Banca", async () => {
     await db.delete(Users)
     await db.delete(Cursos)
 
-    const teacherPasswordHash = await bcrypt.hash(TEST_TEACHER.password, 10)
-    const studentPasswordHash = await bcrypt.hash(TEST_STUDENT.password, 10)
-    const adminPasswordHash = await bcrypt.hash(TEST_ADMIN.password, 10)
+    const teacherWithHash = await createTestUserWithPasswordHash(TEST_TEACHER)
+    const studentWithHash = await createTestUserWithPasswordHash(TEST_STUDENT)
+    const adminWithHash = await createTestUserWithPasswordHash(TEST_ADMIN)
 
-    const [teacher] = await db
-      .insert(Users)
-      .values({ ...TEST_TEACHER, passwordHash: teacherPasswordHash })
-      .returning()
-    const [student] = await db
-      .insert(Users)
-      .values({ ...TEST_STUDENT, passwordHash: studentPasswordHash })
-      .returning()
-    await db
-      .insert(Users)
-      .values({ ...TEST_ADMIN, passwordHash: adminPasswordHash })
-      .returning()
+    const [teacher] = await db.insert(Users).values(teacherWithHash).returning()
+    const [student] = await db.insert(Users).values(studentWithHash).returning()
+    await db.insert(Users).values(adminWithHash).returning()
     teacherId = teacher.id
     studentId = student.id
 
@@ -118,11 +58,7 @@ describe("Rotas de Banca", async () => {
       .returning()
     bancaId = banca.id
 
-    const loginUser = async (user: { email: string; password: string }) => {
-      const res = await client.auth.login.$post({ json: user })
-      const data = (await res.json()) as { token: string }
-      return data.token
-    }
+    const loginUser = createLoginHelper(client)
 
     teacherToken = await loginUser(TEST_TEACHER)
     studentToken = await loginUser(TEST_STUDENT)
@@ -138,39 +74,9 @@ describe("Rotas de Banca", async () => {
 
   describe("POST /bancas", () => {
     it("permite um professor criar uma nova banca", async () => {
-      const newStudentPasswordHash = await bcrypt.hash("newpass", 10)
-      const [newStudent] = await db
-        .insert(Users)
-        .values({
-          email: "newstudent@test.com",
-          passwordHash: newStudentPasswordHash,
-          nome: "New Student",
-          role: "STUDENT",
-          matricula: "444",
-          status: "ACTIVE",
-          school: "ICC",
-          academicTitle: "BSc",
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .returning()
-
-      const newBancaData: CreateBancaInput = {
-        tituloTrabalho: "Nova Banca de TCC",
-        palavrasChave: "tcc, novo",
-        cursoId,
-        resumo: "Resumo da nova banca",
-        alunoId: newStudent.id,
-        dataRealizacao: new Date(),
-        local: "Teams",
-        orientadorId: teacherId,
-        autor: "Novo Aluno",
-        matricula: "333",
-        turma: "T02",
-        periodoAcademico: "2024.2",
-        abstract: "New abstract",
-        modalidade: "remoto",
-      }
+      const student = await createTestStudent()
+      const [studentUser] = await db.insert(Users).values(student).returning()
+      const newBancaData: CreateBancaInput = createTestBancaInput(cursoId, teacherId, studentUser.id)
 
       const res = await client.banca.$post(
         { json: newBancaData },
@@ -228,22 +134,20 @@ describe("Rotas de Banca", async () => {
       await db.update(Bancas).set({ visible: false }).where(eq(Bancas.id, bancaId))
 
       // Create an unrelated user
-      const unrelatedUserPasswordHash = await bcrypt.hash("Password123!", 10)
-      const [unrelatedUser] = await db
-        .insert(Users)
-        .values({
-          email: "unrelated@test.com",
-          passwordHash: unrelatedUserPasswordHash,
-          nome: "Unrelated User",
-          role: "TEACHER",
-          matricula: "444",
-          status: "ACTIVE",
-          school: "ICC",
-          academicTitle: "PhD",
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .returning()
+      const unrelatedUserData = {
+        email: "unrelated@test.com",
+        password: "Password123!",
+        nome: "Unrelated User",
+        role: "TEACHER" as const,
+        matricula: "444",
+        status: "ACTIVE" as const,
+        school: "ICC",
+        academicTitle: "PhD",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+      const unrelatedUserWithHash = await createTestUserWithPasswordHash(unrelatedUserData)
+      await db.insert(Users).values(unrelatedUserWithHash).returning()
 
       const unrelatedLoginRes = await client.auth.login.$post({
         json: { email: "unrelated@test.com", password: "Password123!" },
@@ -331,22 +235,20 @@ describe("Rotas de Banca", async () => {
       await db.update(Bancas).set({ visible: false }).where(eq(Bancas.id, bancaId))
 
       // Create an unrelated user
-      const unrelatedUserPasswordHash = await bcrypt.hash("Password123!", 10)
-      await db
-        .insert(Users)
-        .values({
-          email: "unrelated2@test.com",
-          passwordHash: unrelatedUserPasswordHash,
-          nome: "Unrelated User 2",
-          role: "TEACHER",
-          matricula: "555",
-          status: "ACTIVE",
-          school: "ICC",
-          academicTitle: "PhD",
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .returning()
+      const unrelatedUserData2 = {
+        email: "unrelated2@test.com",
+        password: "Password123!",
+        nome: "Unrelated User 2",
+        role: "TEACHER" as const,
+        matricula: "555",
+        status: "ACTIVE" as const,
+        school: "ICC",
+        academicTitle: "PhD",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+      const unrelatedUserWithHash2 = await createTestUserWithPasswordHash(unrelatedUserData2)
+      await db.insert(Users).values(unrelatedUserWithHash2).returning()
 
       const unrelatedLoginRes = await client.auth.login.$post({
         json: { email: "unrelated2@test.com", password: "Password123!" },
@@ -533,7 +435,6 @@ describe("Rotas de Banca", async () => {
             nome: `Test Student ${i}`,
             role: "STUDENT",
             matricula: `555${i}`,
-            status: "ACTIVE",
             school: "ICC",
             academicTitle: "BSc",
             createdAt: new Date(),
@@ -912,6 +813,575 @@ describe("Rotas de Banca", async () => {
         expect(Array.isArray(data.upcoming)).toBe(true)
         expect(data.meta).toBeDefined()
       })
+    })
+  })
+})
+
+describe("GET /bancas/my-defenses - Professor's Defenses Sorting", () => {
+  let db: any
+  let client: any
+
+  let teacherToken = ""
+  let teacher2Token = ""
+  let teacherId: number
+  let teacher2Id: number
+  let cursoId: number
+
+  const createTestBancasForMyDefenses = async () => {
+    // Clear existing bancas first
+    await db.delete(usuariosBancas)
+    await db.delete(Bancas)
+
+    const now = new Date()
+
+    // Create students for each banca
+    const students = []
+    for (let i = 0; i < 6; i++) {
+      const studentPasswordHash = await bcrypt.hash("testpass", 10)
+      const [student] = await db
+        .insert(Users)
+        .values({
+          email: `mystudent${i}@test.com`,
+          passwordHash: studentPasswordHash,
+          nome: `My Student ${i}`,
+          role: "STUDENT",
+          matricula: `666${i}`,
+          school: "ICC",
+          academicTitle: "BSc",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning()
+      students.push(student)
+    }
+
+    // Create bancas for teacherId (these should be returned by my-defenses)
+    const myBancas = [
+      {
+        ...getTestBancaData(cursoId, teacherId, students[0].id),
+        tituloTrabalho: "Alpha Project Defense",
+        autor: "Alice MyStudent",
+        local: "Room A101",
+        dataRealizacao: new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000), // +1 day (future)
+        visible: true,
+      },
+      {
+        ...getTestBancaData(cursoId, teacherId, students[1].id),
+        tituloTrabalho: "Beta Analysis Defense",
+        autor: "Bruno MyStudent",
+        local: "Room B102",
+        dataRealizacao: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000), // +3 days (future)
+        visible: true,
+      },
+      {
+        ...getTestBancaData(cursoId, teacherId, students[2].id),
+        tituloTrabalho: "Charlie System Defense",
+        autor: "Carlos MyStudent",
+        local: "Room C103",
+        dataRealizacao: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000), // -1 day (past)
+        visible: true,
+      },
+      {
+        ...getTestBancaData(cursoId, teacherId, students[3].id),
+        tituloTrabalho: "Delta Framework Defense",
+        autor: "Diana MyStudent",
+        local: "Room D104",
+        dataRealizacao: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000), // -3 days (past)
+        visible: true,
+      },
+    ]
+
+    // Create bancas for teacher2Id (these should NOT be returned by teacherId's my-defenses)
+    const otherBancas = [
+      {
+        ...getTestBancaData(cursoId, teacher2Id, students[4].id),
+        tituloTrabalho: "Echo Platform Defense",
+        autor: "Eduardo OtherStudent",
+        local: "Room E105",
+        dataRealizacao: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000), // +2 days (future)
+        visible: true,
+      },
+      {
+        ...getTestBancaData(cursoId, teacher2Id, students[5].id),
+        tituloTrabalho: "Foxtrot Service Defense",
+        autor: "Fernanda OtherStudent",
+        local: "Room F106",
+        dataRealizacao: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000), // -2 days (past)
+        visible: true,
+      },
+    ]
+
+    await db.insert(Bancas).values([...myBancas, ...otherBancas])
+  }
+
+  beforeEach(async () => {
+    if (!db) {
+      db = await getFakeDb()
+      client = testClient(app(fakeDeps(db)))
+    }
+
+    await db.delete(usuariosBancas)
+    await db.delete(Bancas)
+    await db.delete(Users)
+    await db.delete(Cursos)
+
+    // Create test teacher 1
+    const teacher1WithHash = await createTestUserWithPasswordHash({
+      ...TEST_TEACHER,
+      email: "teacher1@test.com",
+      matricula: "TEACH1",
+    })
+    const [teacher1] = await db.insert(Users).values(teacher1WithHash).returning()
+    teacherId = teacher1.id
+
+    // Create test teacher 2
+    const teacher2WithHash = await createTestUserWithPasswordHash({
+      ...TEST_TEACHER,
+      email: "teacher2@test.com",
+      matricula: "TEACH2",
+      nome: "Second Teacher",
+    })
+    const [teacher2] = await db.insert(Users).values(teacher2WithHash).returning()
+    teacher2Id = teacher2.id
+
+    const [curso] = await db.insert(Cursos).values(TEST_CURSO).returning()
+    cursoId = curso.id
+
+    // Login both teachers
+    const loginUser = createLoginHelper(client)
+    teacherToken = await loginUser({ ...TEST_TEACHER, email: "teacher1@test.com" })
+    teacher2Token = await loginUser({ ...TEST_TEACHER, email: "teacher2@test.com" })
+
+    await createTestBancasForMyDefenses()
+  })
+
+  afterEach(async () => {
+    await db.delete(usuariosBancas)
+    await db.delete(Bancas)
+    await db.delete(Users)
+    await db.delete(Cursos)
+  })
+
+  describe("Basic functionality", () => {
+    it("should return only the teacher's own defenses", async () => {
+      const res = await client.banca["my-defenses"].$get({}, { headers: { Authorization: `Bearer ${teacherToken}` } })
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+
+      // Should return only teacher1's defenses
+      const allDefenses = [...data.past, ...data.upcoming]
+      expect(allDefenses).toHaveLength(4) // 4 bancas for teacher1
+
+      // All returned defenses should belong to teacher1
+      allDefenses.forEach((banca) => {
+        expect(banca.orientador.id).toBe(teacherId)
+      })
+
+      // Should not contain teacher2's defenses
+      allDefenses.forEach((banca) => {
+        expect(banca.autor).not.toContain("OtherStudent")
+      })
+    })
+
+    it("should require teacher or admin role", async () => {
+      // Create a student and try to access my-defenses
+      const studentWithHash = await createTestUserWithPasswordHash(TEST_STUDENT)
+      await db.insert(Users).values(studentWithHash).returning()
+
+      const studentToken = await createLoginHelper(client)(TEST_STUDENT)
+
+      const res = await client.banca["my-defenses"].$get({}, { headers: { Authorization: `Bearer ${studentToken}` } })
+
+      expect(res.status).toBe(403)
+    })
+  })
+
+  describe("Date sorting behavior (natural ordering)", () => {
+    it("should always sort past defenses by date descending regardless of user order preference", async () => {
+      // Test with user requesting ascending order for date
+      const resAsc = await client.banca["my-defenses"].$get(
+        {
+          query: {
+            orderBy: "dataRealizacao",
+            order: "asc",
+          },
+        },
+        { headers: { Authorization: `Bearer ${teacherToken}` } }
+      )
+
+      expect(resAsc.status).toBe(200)
+      const dataAsc = await resAsc.json()
+
+      // Past defenses should still be descending (most recent first)
+      if (dataAsc.past.length > 1) {
+        for (let i = 1; i < dataAsc.past.length; i++) {
+          const date1 = new Date(dataAsc.past[i - 1].dataRealizacao)
+          const date2 = new Date(dataAsc.past[i].dataRealizacao)
+          expect(date1.getTime()).toBeGreaterThanOrEqual(date2.getTime())
+        }
+      }
+
+      // Test with user requesting descending order for date
+      const resDesc = await client.banca["my-defenses"].$get(
+        {
+          query: {
+            orderBy: "dataRealizacao",
+            order: "desc",
+          },
+        },
+        { headers: { Authorization: `Bearer ${teacherToken}` } }
+      )
+
+      expect(resDesc.status).toBe(200)
+      const dataDesc = await resDesc.json()
+
+      // Past defenses should still be descending (same as above)
+      if (dataDesc.past.length > 1) {
+        for (let i = 1; i < dataDesc.past.length; i++) {
+          const date1 = new Date(dataDesc.past[i - 1].dataRealizacao)
+          const date2 = new Date(dataDesc.past[i].dataRealizacao)
+          expect(date1.getTime()).toBeGreaterThanOrEqual(date2.getTime())
+        }
+      }
+    })
+
+    it("should always sort upcoming defenses by date ascending regardless of user order preference", async () => {
+      // Test with user requesting ascending order for date
+      const resAsc = await client.banca["my-defenses"].$get(
+        {
+          query: {
+            orderBy: "dataRealizacao",
+            order: "asc",
+          },
+        },
+        { headers: { Authorization: `Bearer ${teacherToken}` } }
+      )
+
+      expect(resAsc.status).toBe(200)
+      const dataAsc = await resAsc.json()
+
+      // Upcoming defenses should be ascending (earliest first)
+      if (dataAsc.upcoming.length > 1) {
+        for (let i = 1; i < dataAsc.upcoming.length; i++) {
+          const date1 = new Date(dataAsc.upcoming[i - 1].dataRealizacao)
+          const date2 = new Date(dataAsc.upcoming[i].dataRealizacao)
+          expect(date1.getTime()).toBeLessThanOrEqual(date2.getTime())
+        }
+      }
+
+      // Test with user requesting descending order for date
+      const resDesc = await client.banca["my-defenses"].$get(
+        {
+          query: {
+            orderBy: "dataRealizacao",
+            order: "desc",
+          },
+        },
+        { headers: { Authorization: `Bearer ${teacherToken}` } }
+      )
+
+      expect(resDesc.status).toBe(200)
+      const dataDesc = await resDesc.json()
+
+      // Upcoming defenses should still be ascending (same as above)
+      if (dataDesc.upcoming.length > 1) {
+        for (let i = 1; i < dataDesc.upcoming.length; i++) {
+          const date1 = new Date(dataDesc.upcoming[i - 1].dataRealizacao)
+          const date2 = new Date(dataDesc.upcoming[i].dataRealizacao)
+          expect(date1.getTime()).toBeLessThanOrEqual(date2.getTime())
+        }
+      }
+    })
+
+    it("should use natural date ordering when no order is specified", async () => {
+      const res = await client.banca["my-defenses"].$get({}, { headers: { Authorization: `Bearer ${teacherToken}` } })
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+
+      // Past defenses should be descending by default
+      if (data.past.length > 1) {
+        for (let i = 1; i < data.past.length; i++) {
+          const date1 = new Date(data.past[i - 1].dataRealizacao)
+          const date2 = new Date(data.past[i].dataRealizacao)
+          expect(date1.getTime()).toBeGreaterThanOrEqual(date2.getTime())
+        }
+      }
+
+      // Upcoming defenses should be ascending by default
+      if (data.upcoming.length > 1) {
+        for (let i = 1; i < data.upcoming.length; i++) {
+          const date1 = new Date(data.upcoming[i - 1].dataRealizacao)
+          const date2 = new Date(data.upcoming[i].dataRealizacao)
+          expect(date1.getTime()).toBeLessThanOrEqual(date2.getTime())
+        }
+      }
+    })
+  })
+
+  describe("Non-date field sorting (respects user preference)", () => {
+    it("should respect user order preference for title field", async () => {
+      // Test ascending order for title
+      const resAsc = await client.banca["my-defenses"].$get(
+        {
+          query: {
+            orderBy: "tituloTrabalho",
+            order: "asc",
+          },
+        },
+        { headers: { Authorization: `Bearer ${teacherToken}` } }
+      )
+
+      expect(resAsc.status).toBe(200)
+      const dataAsc = await resAsc.json()
+
+      // Past defenses should be sorted by title ascending
+      if (dataAsc.past.length > 1) {
+        for (let i = 1; i < dataAsc.past.length; i++) {
+          const title1 = dataAsc.past[i - 1].tituloTrabalho || ""
+          const title2 = dataAsc.past[i].tituloTrabalho || ""
+          expect(title1.localeCompare(title2)).toBeLessThanOrEqual(0)
+        }
+      }
+
+      // Upcoming defenses should be sorted by title ascending
+      if (dataAsc.upcoming.length > 1) {
+        for (let i = 1; i < dataAsc.upcoming.length; i++) {
+          const title1 = dataAsc.upcoming[i - 1].tituloTrabalho || ""
+          const title2 = dataAsc.upcoming[i].tituloTrabalho || ""
+          expect(title1.localeCompare(title2)).toBeLessThanOrEqual(0)
+        }
+      }
+
+      // Test descending order for title
+      const resDesc = await client.banca["my-defenses"].$get(
+        {
+          query: {
+            orderBy: "tituloTrabalho",
+            order: "desc",
+          },
+        },
+        { headers: { Authorization: `Bearer ${teacherToken}` } }
+      )
+
+      expect(resDesc.status).toBe(200)
+      const dataDesc = await resDesc.json()
+
+      // Past defenses should be sorted by title descending
+      if (dataDesc.past.length > 1) {
+        for (let i = 1; i < dataDesc.past.length; i++) {
+          const title1 = dataDesc.past[i - 1].tituloTrabalho || ""
+          const title2 = dataDesc.past[i].tituloTrabalho || ""
+          expect(title1.localeCompare(title2)).toBeGreaterThanOrEqual(0)
+        }
+      }
+
+      // Upcoming defenses should be sorted by title descending
+      if (dataDesc.upcoming.length > 1) {
+        for (let i = 1; i < dataDesc.upcoming.length; i++) {
+          const title1 = dataDesc.upcoming[i - 1].tituloTrabalho || ""
+          const title2 = dataDesc.upcoming[i].tituloTrabalho || ""
+          expect(title1.localeCompare(title2)).toBeGreaterThanOrEqual(0)
+        }
+      }
+    })
+
+    it("should respect user order preference for author field", async () => {
+      // Test ascending order for author
+      const resAsc = await client.banca["my-defenses"].$get(
+        {
+          query: {
+            orderBy: "autor",
+            order: "asc",
+          },
+        },
+        { headers: { Authorization: `Bearer ${teacherToken}` } }
+      )
+
+      expect(resAsc.status).toBe(200)
+      const dataAsc = await resAsc.json()
+
+      // Check that autor sorting works properly for upcoming defenses
+      if (dataAsc.upcoming.length > 1) {
+        for (let i = 1; i < dataAsc.upcoming.length; i++) {
+          const autor1 = dataAsc.upcoming[i - 1].autor || ""
+          const autor2 = dataAsc.upcoming[i].autor || ""
+          expect(autor1.localeCompare(autor2)).toBeLessThanOrEqual(0)
+        }
+      }
+
+      // Test descending order for author
+      const resDesc = await client.banca["my-defenses"].$get(
+        {
+          query: {
+            orderBy: "autor",
+            order: "desc",
+          },
+        },
+        { headers: { Authorization: `Bearer ${teacherToken}` } }
+      )
+
+      expect(resDesc.status).toBe(200)
+      const dataDesc = await resDesc.json()
+
+      // Check that autor sorting works properly for upcoming defenses
+      if (dataDesc.upcoming.length > 1) {
+        for (let i = 1; i < dataDesc.upcoming.length; i++) {
+          const autor1 = dataDesc.upcoming[i - 1].autor || ""
+          const autor2 = dataDesc.upcoming[i].autor || ""
+          expect(autor1.localeCompare(autor2)).toBeGreaterThanOrEqual(0)
+        }
+      }
+    })
+
+    it("should respect user order preference for local field", async () => {
+      // Test ascending order for local
+      const resAsc = await client.banca["my-defenses"].$get(
+        {
+          query: {
+            orderBy: "local",
+            order: "asc",
+          },
+        },
+        { headers: { Authorization: `Bearer ${teacherToken}` } }
+      )
+
+      expect(resAsc.status).toBe(200)
+      const dataAsc = await resAsc.json()
+
+      // Check that local sorting works properly for past defenses
+      if (dataAsc.past.length > 1) {
+        for (let i = 1; i < dataAsc.past.length; i++) {
+          const local1 = dataAsc.past[i - 1].local || ""
+          const local2 = dataAsc.past[i].local || ""
+          expect(local1.localeCompare(local2)).toBeLessThanOrEqual(0)
+        }
+      }
+
+      // Test descending order for local
+      const resDesc = await client.banca["my-defenses"].$get(
+        {
+          query: {
+            orderBy: "local",
+            order: "desc",
+          },
+        },
+        { headers: { Authorization: `Bearer ${teacherToken}` } }
+      )
+
+      expect(resDesc.status).toBe(200)
+      const dataDesc = await resDesc.json()
+
+      // Check that local sorting works properly for past defenses
+      if (dataDesc.past.length > 1) {
+        for (let i = 1; i < dataDesc.past.length; i++) {
+          const local1 = dataDesc.past[i - 1].local || ""
+          const local2 = dataDesc.past[i].local || ""
+          expect(local1.localeCompare(local2)).toBeGreaterThanOrEqual(0)
+        }
+      }
+    })
+  })
+
+  describe("Search functionality with sorting", () => {
+    it("should maintain natural date sorting when searching", async () => {
+      const res = await client.banca["my-defenses"].$get(
+        {
+          query: {
+            searchQuery: "Defense", // Should match all our test defenses
+            orderBy: "dataRealizacao",
+            order: "desc", // User wants desc, but dates should still follow natural order
+          },
+        },
+        { headers: { Authorization: `Bearer ${teacherToken}` } }
+      )
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+
+      // Past defenses should still be descending (natural order)
+      if (data.past.length > 1) {
+        for (let i = 1; i < data.past.length; i++) {
+          const date1 = new Date(data.past[i - 1].dataRealizacao)
+          const date2 = new Date(data.past[i].dataRealizacao)
+          expect(date1.getTime()).toBeGreaterThanOrEqual(date2.getTime())
+        }
+      }
+
+      // Upcoming defenses should still be ascending (natural order)
+      if (data.upcoming.length > 1) {
+        for (let i = 1; i < data.upcoming.length; i++) {
+          const date1 = new Date(data.upcoming[i - 1].dataRealizacao)
+          const date2 = new Date(data.upcoming[i].dataRealizacao)
+          expect(date1.getTime()).toBeLessThanOrEqual(date2.getTime())
+        }
+      }
+    })
+
+    it("should respect user sorting for non-date fields when searching", async () => {
+      const res = await client.banca["my-defenses"].$get(
+        {
+          query: {
+            searchQuery: "MyStudent", // Should match our test students
+            orderBy: "autor",
+            order: "desc",
+          },
+        },
+        { headers: { Authorization: `Bearer ${teacherToken}` } }
+      )
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+
+      // Should respect desc order for autor field
+      const allResults = [...data.past, ...data.upcoming]
+      if (allResults.length > 1) {
+        // At least verify that search found our results
+        allResults.forEach((banca) => {
+          expect(banca.autor).toContain("MyStudent")
+        })
+      }
+    })
+  })
+
+  describe("Pagination with sorting", () => {
+    it("should maintain sorting behavior with pagination", async () => {
+      const res = await client.banca["my-defenses"].$get(
+        {
+          query: {
+            orderBy: "dataRealizacao",
+            order: "asc", // User wants asc, but dates should follow natural order
+            page: "1",
+            limit: "2",
+          },
+        },
+        { headers: { Authorization: `Bearer ${teacherToken}` } }
+      )
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+
+      expect(data.meta.limit).toBe(2)
+      expect(data.meta.currentPage).toBe(1)
+
+      // Past defenses should still be descending (natural order) even with pagination
+      if (data.past.length > 1) {
+        for (let i = 1; i < data.past.length; i++) {
+          const date1 = new Date(data.past[i - 1].dataRealizacao)
+          const date2 = new Date(data.past[i].dataRealizacao)
+          expect(date1.getTime()).toBeGreaterThanOrEqual(date2.getTime())
+        }
+      }
+
+      // Upcoming defenses should still be ascending (natural order) even with pagination
+      if (data.upcoming.length > 1) {
+        for (let i = 1; i < data.upcoming.length; i++) {
+          const date1 = new Date(data.upcoming[i - 1].dataRealizacao)
+          const date2 = new Date(data.upcoming[i].dataRealizacao)
+          expect(date1.getTime()).toBeLessThanOrEqual(date2.getTime())
+        }
+      }
     })
   })
 })

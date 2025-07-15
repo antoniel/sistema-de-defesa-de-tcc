@@ -92,8 +92,8 @@ export const getAllBancasVisible = async (
     // Calculate offset for pagination
     const offset = (page - 1) * limit
 
-    // Build search condition
-    const searchCondition = searchQuery
+    // Build search condition for count query (with joins - can reference related tables)
+    const searchConditionWithJoins = searchQuery
       ? or(
           ilike(Bancas.tituloTrabalho, `%${searchQuery}%`),
           ilike(Bancas.autor, `%${searchQuery}%`),
@@ -102,16 +102,27 @@ export const getAllBancasVisible = async (
         )
       : undefined
 
-    // Build where condition
-    const whereCondition = searchCondition ? and(eq(Bancas.visible, true), searchCondition) : eq(Bancas.visible, true)
+    // Build search condition for data queries (without joins - only main table fields)
+    const searchConditionMainTable = searchQuery
+      ? or(ilike(Bancas.tituloTrabalho, `%${searchQuery}%`), ilike(Bancas.autor, `%${searchQuery}%`))
+      : undefined
 
-    // First, get the total count with search
+    // Build where conditions
+    const whereConditionWithJoins = searchConditionWithJoins
+      ? and(eq(Bancas.visible, true), searchConditionWithJoins)
+      : eq(Bancas.visible, true)
+
+    const whereConditionMainTable = searchConditionMainTable
+      ? and(eq(Bancas.visible, true), searchConditionMainTable)
+      : eq(Bancas.visible, true)
+
+    // First, get the total count with search (using joins)
     const totalResult = await dbInstance
       .select({ count: Bancas.id })
       .from(Bancas)
       .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
       .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
-      .where(whereCondition)
+      .where(whereConditionWithJoins)
       .orderBy(desc(Bancas.dataRealizacao))
 
     const total = totalResult.length
@@ -124,16 +135,32 @@ export const getAllBancasVisible = async (
       local: Bancas.local,
     }
     const hasOrder = orderBy && fieldMap[orderBy]
-    const getOrderClause = () => {
+
+    // For date field, always use natural ordering (past: desc, upcoming: asc)
+    // For other fields, respect user's order preference
+    const getPastOrderClause = () => {
       if (hasOrder) {
+        if (orderBy === "dataRealizacao") {
+          return desc(fieldMap[orderBy]) // Past defenses: always descending (most recent first)
+        }
         return order === "desc" ? desc(fieldMap[orderBy]) : asc(fieldMap[orderBy])
       }
       return desc(Bancas.dataRealizacao)
     }
 
+    const getUpcomingOrderClause = () => {
+      if (hasOrder) {
+        if (orderBy === "dataRealizacao") {
+          return asc(fieldMap[orderBy]) // Upcoming defenses: always ascending (closest first)
+        }
+        return order === "desc" ? desc(fieldMap[orderBy]) : asc(fieldMap[orderBy])
+      }
+      return asc(Bancas.dataRealizacao)
+    }
+
     const bancasWithMembrosPast = await dbInstance.query.Bancas.findMany({
-      where: and(whereCondition, lt(Bancas.dataRealizacao, new Date())),
-      orderBy: hasOrder ? getOrderClause() : desc(Bancas.dataRealizacao),
+      where: and(whereConditionMainTable, lt(Bancas.dataRealizacao, new Date())),
+      orderBy: getPastOrderClause(),
       with: {
         orientador: true,
         curso: true,
@@ -145,8 +172,8 @@ export const getAllBancasVisible = async (
       },
     })
     const bancasWithMembrosUpcoming = await dbInstance.query.Bancas.findMany({
-      where: and(whereCondition, gte(Bancas.dataRealizacao, new Date())),
-      orderBy: hasOrder ? getOrderClause() : asc(Bancas.dataRealizacao),
+      where: and(whereConditionMainTable, gte(Bancas.dataRealizacao, new Date())),
+      orderBy: getUpcomingOrderClause(),
       with: {
         orientador: true,
         curso: true,
@@ -670,7 +697,8 @@ export const getBancasByOrientador = async (
 ): Promise<
   AppResult<
     {
-      data: InferResultType<"Bancas", { curso: true; orientador: true; membros: { with: { usuario: true } } }>[]
+      past: InferResultType<"Bancas", { curso: true; orientador: true; membros: { with: { usuario: true } } }>[]
+      upcoming: InferResultType<"Bancas", { curso: true; orientador: true; membros: { with: { usuario: true } } }>[]
       meta: {
         total: number
         totalPages: number
@@ -689,16 +717,12 @@ export const getBancasByOrientador = async (
     const offset = (page - 1) * limit
 
     // Build search condition
+    // Note: When using Drizzle query API, we can only search in the main table fields
+    // Related table fields are fetched via 'with' relations, so we search in Bancas fields only
     const searchCondition = searchQuery
-      ? or(
-          ilike(Bancas.tituloTrabalho, `%${searchQuery}%`),
-          ilike(Bancas.autor, `%${searchQuery}%`),
-          ilike(Users.nome, `%${searchQuery}%`),
-          ilike(Cursos.nome, `%${searchQuery}%`)
-        )
+      ? or(ilike(Bancas.tituloTrabalho, `%${searchQuery}%`), ilike(Bancas.autor, `%${searchQuery}%`))
       : undefined
 
-    // Build where condition
     const whereCondition = searchCondition
       ? and(eq(Bancas.orientadorId, orientadorId), searchCondition)
       : eq(Bancas.orientadorId, orientadorId)
@@ -714,143 +738,71 @@ export const getBancasByOrientador = async (
     const total = totalResult.length
     const totalPages = Math.ceil(total / limit)
 
-    // For simple fields, use the query API with orderBy
-    const simpleFields = ["dataRealizacao", "tituloTrabalho", "autor", "local"]
-
-    if (!orderBy || simpleFields.includes(orderBy)) {
-      const fieldMap: Record<string, any> = {
-        dataRealizacao: Bancas.dataRealizacao,
-        tituloTrabalho: Bancas.tituloTrabalho,
-        autor: Bancas.autor,
-        local: Bancas.local,
-      }
-
-      let orderClause
-      if (orderBy && fieldMap[orderBy]) {
-        orderClause = order === "desc" ? desc(fieldMap[orderBy]) : asc(fieldMap[orderBy])
-      } else {
-        // Default order by dataRealizacao ascending
-        orderClause = asc(Bancas.dataRealizacao)
-      }
-
-      // For search, we need to use leftJoin even for simple fields
-      if (searchQuery) {
-        const result = await dbInstance
-          .select({
-            banca: Bancas,
-            orientador: Users,
-            curso: Cursos,
-          })
-          .from(Bancas)
-          .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
-          .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
-          .where(whereCondition)
-          .orderBy(orderClause)
-          .limit(limit)
-          .offset(offset)
-
-        // Fetch membros separately for each banca
-        const bancasWithMembros = await Promise.all(
-          result.map(async (row) => {
-            const membros = await dbInstance.query.usuariosBancas.findMany({
-              where: eq(usuariosBancas.bancaId, row.banca.id),
-              with: {
-                usuario: true,
-              },
-            })
-
-            return {
-              ...row.banca,
-              orientador: row.orientador,
-              curso: row.curso,
-              membros,
-            }
-          })
-        )
-
-        return ok({
-          data: bancasWithMembros as any,
-          meta: {
-            total,
-            totalPages,
-            currentPage: page,
-            limit,
-            hasNext: page < totalPages,
-            hasPrev: page > 1,
-          },
-        })
-      } else {
-        const result = await dbInstance.query.Bancas.findMany({
-          where: eq(Bancas.orientadorId, orientadorId),
-          with: {
-            orientador: true,
-            curso: true,
-            membros: {
-              with: {
-                usuario: true,
-              },
-            },
-          },
-          orderBy: orderClause,
-          limit: limit,
-          offset: offset,
-        })
-
-        return ok({
-          data: result,
-          meta: {
-            total,
-            totalPages,
-            currentPage: page,
-            limit,
-            hasNext: page < totalPages,
-            hasPrev: page > 1,
-          },
-        })
-      }
-    }
-
     // For related fields, use leftJoin
-    let orderClause
-    if (orderBy === "orientador") {
-      orderClause = order === "desc" ? desc(Users.nome) : asc(Users.nome)
-    } else if (orderBy === "curso") {
-      orderClause = order === "desc" ? desc(Cursos.nome) : asc(Cursos.nome)
-    } else {
-      orderClause = asc(Bancas.dataRealizacao)
+    const fieldMap: Record<string, any> = {
+      dataRealizacao: Bancas.dataRealizacao,
+      tituloTrabalho: Bancas.tituloTrabalho,
+      autor: Bancas.autor,
+      local: Bancas.local,
+    }
+    const hasOrder = orderBy && fieldMap[orderBy]
+
+    // For date field, always use natural ordering (past: desc, upcoming: asc)
+    // For other fields, respect user's order preference
+    const getPastOrderClause = () => {
+      if (hasOrder) {
+        if (orderBy === "dataRealizacao") {
+          return desc(fieldMap[orderBy]) // Past defenses: always descending (most recent first)
+        }
+        return order === "desc" ? desc(fieldMap[orderBy]) : asc(fieldMap[orderBy])
+      }
+      return desc(Bancas.dataRealizacao)
     }
 
-    const result = await dbInstance
-      .select()
-      .from(Bancas)
-      .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
-      .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
-      .where(whereCondition)
-      .orderBy(orderClause)
-      .limit(limit)
-      .offset(offset)
+    const getUpcomingOrderClause = () => {
+      if (hasOrder) {
+        if (orderBy === "dataRealizacao") {
+          return asc(fieldMap[orderBy]) // Upcoming defenses: always ascending (closest first)
+        }
+        return order === "desc" ? desc(fieldMap[orderBy]) : asc(fieldMap[orderBy])
+      }
+      return asc(Bancas.dataRealizacao)
+    }
 
-    // Fetch membros separately for each banca (this is still needed due to the many-to-many relationship)
-    const bancasWithMembros = await Promise.all(
-      result.map(async (row) => {
-        const membros = await dbInstance.query.usuariosBancas.findMany({
-          where: eq(usuariosBancas.bancaId, row.banca.id),
+    const bancasWithMembrosPast = await dbInstance.query.Bancas.findMany({
+      where: and(whereCondition, lt(Bancas.dataRealizacao, new Date())),
+      orderBy: getPastOrderClause(),
+      limit,
+      offset,
+      with: {
+        orientador: true,
+        curso: true,
+        membros: {
           with: {
             usuario: true,
           },
-        })
-
-        return {
-          ...row.banca,
-          orientador: row.usuario,
-          curso: row.cursos,
-          membros,
-        }
-      })
-    )
+        },
+      },
+    })
+    const bancasWithMembrosUpcoming = await dbInstance.query.Bancas.findMany({
+      where: and(whereCondition, gte(Bancas.dataRealizacao, new Date())),
+      orderBy: getUpcomingOrderClause(),
+      limit,
+      offset,
+      with: {
+        orientador: true,
+        curso: true,
+        membros: {
+          with: {
+            usuario: true,
+          },
+        },
+      },
+    })
 
     return ok({
-      data: bancasWithMembros as any,
+      past: bancasWithMembrosPast,
+      upcoming: bancasWithMembrosUpcoming,
       meta: {
         total,
         totalPages,
