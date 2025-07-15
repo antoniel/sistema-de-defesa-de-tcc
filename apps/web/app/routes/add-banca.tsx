@@ -50,38 +50,7 @@ const DEV_SEED_DATA: Partial<BancaFormData> = {
   orientadorId: 1,
 }
 
-// Hook para buscar professores da API
-const useTeachers = () => {
-  return useQuery({
-    queryKey: ["teachers"],
-    queryFn: async () => {
-      const response = await apiClient.usuario.teachers.$get()
-      return rpcReturn(response) as unknown as SelectUser[]
-    },
-  })
-}
-const useStudents = () => {
-  return useQuery({
-    queryKey: ["students"],
-    queryFn: async () => {
-      const response = await apiClient.usuario.students.$get()
-      return rpcReturn(response) as unknown as SelectUser[]
-    },
-  })
-}
-
-const useAddBancaMutation = () => {
-  return useMutation({
-    mutationFn: async (data: query["input"]) => {
-      const response = await apiClient.banca.$post(data)
-      const body = await response.json()
-      if (!response.ok) {
-        throw body // Throw the error body
-      }
-      return body
-    },
-  })
-}
+import { useTeachers, useStudents, useAddBancaMutation } from "@/hooks"
 
 const FORM_STEPS = [
   { id: 0, name: "Informações Básicas" },
@@ -130,14 +99,23 @@ export default function AddBancaPage() {
     // Extract year and semester from periodoAcademico (format: YYYY.S)
     const [ano, semestreLetivo] = data.periodoAcademico.split(".")
 
+    // Combine date and time
+    let dataRealizacaoCompleta = data.dataRealizacao
+    if (data.hora && data.dataRealizacao) {
+      const dataStr = data.dataRealizacao.toISOString().split('T')[0]
+      dataRealizacaoCompleta = new Date(`${dataStr}T${data.hora}:00`)
+    }
+
+    const { hora, ...dataWithoutHora } = data
     const submissionData: SubmissionPayload = {
-      ...data,
+      ...dataWithoutHora,
       matricula: data.matricula || "",
       cursoId: Number(data.cursoId),
       periodoAcademico: data.periodoAcademico,
       visible: Boolean(data.visible),
       alunoId: Number(data.alunoId),
       orientadorId: Number(data.orientadorId),
+      dataRealizacao: dataRealizacaoCompleta,
     }
     addBancaMutation.mutate(
       { json: submissionData as query["input"]["json"] },
@@ -433,7 +411,7 @@ const AuthorInfoSection = () => {
               </Select>
             )}
           />
-          {errors.orientadorId && <p className="text-sm text-red-600 mt-1">{errors.orientadorId.message}</p>}
+          {errors.autor && <p className="text-sm text-red-600 mt-1">{errors.autor.message}</p>}
         </div>
         <div>
           <Label htmlFor="matricula">Matrícula</Label>

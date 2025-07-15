@@ -8,67 +8,13 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useQueryParamsState } from "@/hooks/use-query-param-state"
-import { rpcReturn } from "@/lib/utils"
-import apiClient from "@/services/apiClient"
 import { useUser } from "@/services/useUser"
-import { useQuery } from "@tanstack/react-query"
 import { ArrowUpDown, ChevronDown, ChevronUp } from "lucide-react"
 import { useEffect, useState } from "react"
 import { href, useNavigate } from "react-router"
 import { match } from "ts-pattern"
 
-const useBancasDefesa = (
-  orderBy?: string,
-  order?: "asc" | "desc",
-  page?: number,
-  limit?: number,
-  searchQuery?: string
-) => {
-  return useQuery({
-    queryKey: ["bancas", orderBy, order, page, limit, searchQuery],
-    queryFn: async () => {
-      const params = new URLSearchParams()
-      if (orderBy) params.set("orderBy", orderBy)
-      if (order) params.set("order", order)
-      if (page) params.set("page", page.toString())
-      if (limit) params.set("limit", limit.toString())
-      if (searchQuery) params.set("searchQuery", searchQuery)
-
-      const res = await apiClient.banca.$get({
-        query: Object.fromEntries(params),
-      })
-      return rpcReturn(res)
-    },
-  })
-}
-
-const useMyDefesas = (
-  orderBy?: string,
-  order?: "asc" | "desc",
-  page?: number,
-  limit?: number,
-  searchQuery?: string
-) => {
-  const userQuery = useUser()
-
-  return useQuery({
-    queryKey: ["user", userQuery.data?.id, "my-defesas", orderBy, order, page, limit, searchQuery],
-    queryFn: async () => {
-      const params = new URLSearchParams()
-      if (orderBy) params.set("orderBy", orderBy)
-      if (order) params.set("order", order)
-      if (page) params.set("page", page.toString())
-      if (limit) params.set("limit", limit.toString())
-      if (searchQuery) params.set("searchQuery", searchQuery)
-
-      const res = await apiClient.banca["my-defenses"].$get({
-        query: Object.fromEntries(params),
-      })
-      return rpcReturn(res)
-    },
-    enabled: !!userQuery.data && (userQuery.data.role === "TEACHER" || userQuery.data.role === "ADMIN"),
-  })
-}
+import { useBancasDefesa, useMyDefesas } from "@/hooks"
 
 type BancasDefesa = (ReturnType<typeof useBancasDefesa>["data"] & {})["past"]
 
@@ -174,7 +120,7 @@ export default function Home() {
             placeholder="Buscar defesas, alunos, orientadores ou avaliadores..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="max-w-lg w-full"
+            className="max-w-2xl w-full"
           />
           <div className="flex items-center gap-2 whitespace-nowrap">
             <span className="text-sm text-muted-foreground">Exibir:</span>
@@ -204,21 +150,23 @@ export default function Home() {
         <TabsList className="mb-4">
           <TabsTrigger value="upcoming">Próximas defesas</TabsTrigger>
           <TabsTrigger value="past">Defesas anteriores</TabsTrigger>
-          {isTeacherOrAdmin && <TabsTrigger value="my-defesas">Minhas Defesas</TabsTrigger>}
+          {isTeacherOrAdmin && <TabsTrigger value="my-defesas">Minhas defesas</TabsTrigger>}
         </TabsList>
-        <TabsContent value="upcoming">
-          <TableWithInfo
-            data={tableData.upcoming}
-            searchQuery={searchQuery}
-            sortField={sortField}
-            sortOrder={sortOrder}
-            onSort={handleSort}
-            rowsPerPage={rowsPerPage}
-            currentPage={currentPage}
-            onPageChange={setCurrentPage}
-            meta={tableData.meta}
-          />
-        </TabsContent>
+        {tableData.upcoming.length > 0 && (
+          <TabsContent value="upcoming">
+            <TableWithInfo
+              data={tableData.upcoming}
+              searchQuery={searchQuery}
+              sortField={sortField}
+              sortOrder={sortOrder}
+              onSort={handleSort}
+              rowsPerPage={rowsPerPage}
+              currentPage={currentPage}
+              onPageChange={setCurrentPage}
+              meta={tableData.meta}
+            />
+          </TabsContent>
+        )}
         <TabsContent value="past">
           <TableWithInfo
             data={tableData.past}
