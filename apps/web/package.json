@@ -13,11 +13,9 @@
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
     "test:report": "playwright show-report",
-    "visual:baseline": "tsx scripts/visual-baseline.ts baseline",
-    "visual:update": "tsx scripts/visual-baseline.ts update",
-    "visual:compare": "tsx scripts/visual-baseline.ts compare",
-    "visual:diff": "tsx scripts/visual-baseline.ts diff",
-    "visual:test": "playwright test visual-regression.spec.ts"
+    "test:visual": "playwright test tests/visual-regression.spec.ts",
+    "test:visual:update": "playwright test tests/visual-regression.spec.ts --update-snapshots",
+    "test:visual:report": "node scripts/generate-visual-report.js"
   },
   "dependencies": {
     "@date-io/date-fns": "^1.3.13",
@@ -86,9 +84,13 @@
     "@react-router/dev": "^7.2.0",
     "@tailwindcss/vite": "^4.0.8",
     "@types/node": "^20.17.19",
+    "@types/pixelmatch": "^5.2.6",
+    "@types/pngjs": "^6.0.5",
     "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.19",
     "autoprefixer": "^10.4.21",
+    "pixelmatch": "^7.1.0",
+    "pngjs": "^7.0.0",
     "postcss": "^8.5.3",
     "tailwind-merge": "^3.0.2",
     "tailwindcss": "3",

@@ -30,11 +30,31 @@ npm run test:report
 npm run test:e2e
 ```
 
+### Visual Regression Testing
+
+```bash
+# Run visual regression tests
+npm run test:visual
+
+# Update baseline screenshots
+npm run test:visual:update
+
+# Generate visual diff report
+npm run test:visual:report
+
+# Helper script for visual testing
+./scripts/visual-testing.sh help
+```
+
 ## Test Structure
 
-- `example.spec.ts` - Basic example tests
 - `app.spec.ts` - Application-specific tests
 - `api.spec.ts` - API integration tests with fake database
+- `pagination.spec.ts` - Pagination component tests
+- `visual-regression.spec.ts` - Visual regression tests
+- `utils/` - Shared test utilities
+  - `visual-helpers.ts` - Visual testing helpers
+  - `image-diff.ts` - Image comparison utilities
 
 ## Writing Tests
 
@@ -124,3 +144,29 @@ Tests are configured to run in CI environments with:
 - Reduced parallelism on CI
 - Retry logic for flaky tests
 - Proper exit codes for build failures
+
+## Visual Regression Testing
+
+This project includes comprehensive visual regression testing to automatically detect UI changes:
+
+### Features
+- 📸 Automatic screenshot capture of key pages
+- 🔍 Pixel-perfect comparison with baseline images
+- 📊 Detailed HTML reports with side-by-side comparisons
+- 🤖 Automatic PR comments with visual diff results
+- 📱 Multi-viewport testing (mobile, tablet, desktop)
+
+### Quick Start
+```bash
+# Initialize visual testing
+./scripts/visual-testing.sh init
+
+# Create baseline screenshots
+./scripts/visual-testing.sh update
+
+# Run visual tests
+./scripts/visual-testing.sh test
+```
+
+### Documentation
+For complete documentation, see [VISUAL_TESTING.md](./VISUAL_TESTING.md)

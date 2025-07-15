@@ -1,60 +1,115 @@
 import { test, expect } from "@playwright/test"
-import { createVisualHelper, setupVisualTest } from "./utils/visual-helpers"
+import { takePageScreenshot, takeComponentScreenshot, VIEWPORTS, hideDynamicElements, waitForAnimations } from "./utils/visual-helpers"
 
 test.describe("Visual Regression Tests", () => {
   test.beforeEach(async ({ page }) => {
-    // Setup consistent visual test environment
-    await setupVisualTest(page)
-    
-    // Wait for page to be fully loaded before taking screenshots
+    // Set viewport for consistent screenshots
+    await page.setViewportSize(VIEWPORTS.desktop)
+  })
+
+  test("home page screenshot", async ({ page }) => {
     await page.goto("/")
     await page.waitForLoadState("networkidle")
+    await waitForAnimations(page)
+    await hideDynamicElements(page)
+    
+    await takePageScreenshot(page, "home-page.png", { fullPage: true })
   })
 
-  test("Homepage visual regression", async ({ page }) => {
-    const visual = createVisualHelper(page, "homepage")
+  test("login page screenshot", async ({ page }) => {
+    await page.goto("/")
     
-    await visual.hideDynamicContent()
-    await visual.waitForStableState()
-    
-    await visual.compareScreenshot("full", { fullPage: true })
-  })
-
-  test("Login page visual regression", async ({ page }) => {
-    const visual = createVisualHelper(page, "login")
-    
-    // Navigate to login if it exists
-    const loginButton = page.locator('a[href*="login"], button:has-text("Login"), a:has-text("Entrar")')
-    
-    if (await loginButton.count() > 0) {
-      await loginButton.first().click()
-      await visual.waitForStableState()
-      await visual.hideDynamicContent()
+    // Navigate to login if there's a login link/button
+    const loginButton = page.locator("text=Login").or(page.locator("text=Entrar")).first()
+    if (await loginButton.isVisible()) {
+      await loginButton.click()
+      await page.waitForLoadState("networkidle")
+      await waitForAnimations(page)
+      await hideDynamicElements(page)
       
-      await visual.compareScreenshot("page", { fullPage: true })
+      await takePageScreenshot(page, "login-page.png", { fullPage: true })
     }
   })
 
-  test("Responsive homepage visual regression", async ({ page }) => {
-    const visual = createVisualHelper(page, "responsive")
+  test("responsive mobile view", async ({ page }) => {
+    await page.setViewportSize(VIEWPORTS.mobile)
+    await page.goto("/")
+    await page.waitForLoadState("networkidle")
+    await waitForAnimations(page)
+    await hideDynamicElements(page)
     
-    await visual.hideDynamicContent()
-    await visual.compareResponsive("homepage", { fullPage: true })
+    await takePageScreenshot(page, "home-mobile.png")
   })
 
-  test("Navigation components visual regression", async ({ page }) => {
-    // Take screenshot of just the navigation area
-    const nav = page.locator("nav, header").first()
+  test("responsive tablet view", async ({ page }) => {
+    await page.setViewportSize(VIEWPORTS.tablet)
+    await page.goto("/")
+    await page.waitForLoadState("networkidle")
+    await waitForAnimations(page)
+    await hideDynamicElements(page)
     
-    if (await nav.count() > 0) {
-      await expect(nav).toHaveScreenshot("navigation.png", {
-        animations: "disabled",
-      })
+    await takePageScreenshot(page, "home-tablet.png")
+  })
+
+  test("responsive desktop view", async ({ page }) => {
+    await page.setViewportSize(VIEWPORTS.large)
+    await page.goto("/")
+    await page.waitForLoadState("networkidle")
+    await waitForAnimations(page)
+    await hideDynamicElements(page)
+    
+    await takePageScreenshot(page, "home-desktop-large.png")
+  })
+})
+
+test.describe("Component Visual Tests", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize(VIEWPORTS.desktop)
+    await page.goto("/")
+    await page.waitForLoadState("networkidle")
+    await waitForAnimations(page)
+    await hideDynamicElements(page)
+  })
+
+  test("navigation component", async ({ page }) => {
+    const nav = page.locator("nav").first()
+    if (await nav.isVisible()) {
+      await takeComponentScreenshot(page, "nav", "navigation-component.png")
     }
   })
 
-  test("Forms visual regression", async ({ page }) => {
-    // Look for any forms on the page
+  test("footer component", async ({ page }) => {
+    const footer = page.locator("footer").first()
+    if (await footer.isVisible()) {
+      await takeComponentScreenshot(page, "footer", "footer-component.png")
+    }
+  })
+
+  test("header component", async ({ page }) => {
+    const header = page.locator("header").first()
+    if (await header.isVisible()) {
+      await takeComponentScreenshot(page, "header", "header-component.png")
+    }
+  })
+
+  test("main content area", async ({ page }) => {
+    const main = page.locator("main").first()
+    if (await main.isVisible()) {
+      await takeComponentScreenshot(page, "main", "main-content.png")
+    }
+  })
+})
+
+test.describe("Form Components Visual Tests", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize(VIEWPORTS.desktop)
+    await page.goto("/")
+    await page.waitForLoadState("networkidle")
+    await waitForAnimations(page)
+    await hideDynamicElements(page)
+  })
+
+  test("forms visual regression", async ({ page }) => {
     const forms = page.locator("form")
     const formCount = await forms.count()
     
@@ -62,14 +117,11 @@ test.describe("Visual Regression Tests", () => {
       const form = forms.nth(i)
       const formId = await form.getAttribute("id") || `form-${i}`
       
-      await expect(form).toHaveScreenshot(`form-${formId}.png`, {
-        animations: "disabled",
-      })
+      await takeComponentScreenshot(page, `form:nth-of-type(${i + 1})`, `form-${formId}.png`)
     }
   })
 
-  test("Button states visual regression", async ({ page }) => {
-    // Find buttons and test different states
+  test("button states visual regression", async ({ page }) => {
     const buttons = page.locator("button")
     const buttonCount = await buttons.count()
     
@@ -81,16 +133,27 @@ test.describe("Visual Regression Tests", () => {
       
       // Hover state
       await firstButton.hover()
+      await page.waitForTimeout(100)
       await expect(firstButton).toHaveScreenshot("button-hover.png")
       
       // Focus state (if button is focusable)
       await firstButton.focus()
+      await page.waitForTimeout(100)
       await expect(firstButton).toHaveScreenshot("button-focus.png")
     }
   })
+})
 
-  test("Error states visual regression", async ({ page }) => {
-    // Try to trigger error states by submitting empty forms
+test.describe("Interactive Elements Visual Tests", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize(VIEWPORTS.desktop)
+    await page.goto("/")
+    await page.waitForLoadState("networkidle")
+    await waitForAnimations(page)
+    await hideDynamicElements(page)
+  })
+
+  test("error states visual regression", async ({ page }) => {
     const forms = page.locator("form")
     
     if (await forms.count() > 0) {
@@ -99,48 +162,49 @@ test.describe("Visual Regression Tests", () => {
       
       if (await submitButton.count() > 0) {
         await submitButton.click()
-        
-        // Wait for potential error messages
         await page.waitForTimeout(1000)
+        await waitForAnimations(page)
         
-        await expect(firstForm).toHaveScreenshot("form-with-errors.png", {
-          animations: "disabled",
-        })
+        await takeComponentScreenshot(page, "form", "form-with-errors.png")
       }
     }
   })
 
-  test("Dark mode visual regression", async ({ page }) => {
-    // Check if dark mode toggle exists
+  test("dark mode visual regression", async ({ page }) => {
     const darkModeToggle = page.locator('[data-theme], [data-mode], button:has-text("Dark"), button:has-text("Escuro")')
     
     if (await darkModeToggle.count() > 0) {
       await darkModeToggle.first().click()
-      await page.waitForTimeout(500) // Wait for theme transition
+      await page.waitForTimeout(500)
+      await waitForAnimations(page)
       
-      await expect(page).toHaveScreenshot("homepage-dark-mode.png", {
-        fullPage: true,
-        animations: "disabled",
-      })
+      await takePageScreenshot(page, "homepage-dark-mode.png", { fullPage: true })
     }
   })
+})
 
-  test("Responsive breakpoints visual regression", async ({ page }) => {
-    const breakpoints = [
-      { name: "mobile", width: 375, height: 667 },
-      { name: "tablet", width: 768, height: 1024 },
-      { name: "desktop", width: 1920, height: 1080 },
-    ]
+test.describe("Comprehensive Responsive Tests", () => {
+  const testPages = ["/"]
+  
+  for (const pagePath of testPages) {
+    test(`responsive breakpoints for ${pagePath}`, async ({ page }) => {
+      const breakpoints = [
+        { name: "mobile", ...VIEWPORTS.mobile },
+        { name: "tablet", ...VIEWPORTS.tablet },
+        { name: "desktop", ...VIEWPORTS.desktop },
+        { name: "large", ...VIEWPORTS.large },
+      ]
 
-    for (const breakpoint of breakpoints) {
-      await page.setViewportSize({ width: breakpoint.width, height: breakpoint.height })
-      await page.goto("/")
-      await page.waitForLoadState("networkidle")
-      
-      await expect(page).toHaveScreenshot(`homepage-${breakpoint.name}.png`, {
-        fullPage: true,
-        animations: "disabled",
-      })
-    }
-  })
+      for (const breakpoint of breakpoints) {
+        await page.setViewportSize({ width: breakpoint.width, height: breakpoint.height })
+        await page.goto(pagePath)
+        await page.waitForLoadState("networkidle")
+        await waitForAnimations(page)
+        await hideDynamicElements(page)
+        
+        const pageName = pagePath === "/" ? "homepage" : pagePath.replace(/\//g, "-")
+        await takePageScreenshot(page, `${pageName}-${breakpoint.name}.png`, { fullPage: true })
+      }
+    })
+  }
 })

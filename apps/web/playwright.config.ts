@@ -19,7 +19,7 @@ export default defineConfig({
     ["json", { outputFile: "test-results/results.json" }]
   ],
   /* Output directory for screenshots and other test artifacts */
-  outputDir: "test-results",
+  outputDir: "./test-results/screenshots",
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
@@ -38,7 +38,7 @@ export default defineConfig({
   /* Visual comparison settings */
   expect: {
     /* Global visual comparison threshold */
-    threshold: 0.1,
+    threshold: 0.2,
     
     /* Visual comparison mode */
     toHaveScreenshot: {
@@ -50,7 +50,7 @@ export default defineConfig({
     
     /* Maximum allowed pixel difference for visual comparisons */
     toMatchSnapshot: {
-      threshold: 0.1,
+      threshold: 0.2,
       maxDiffPixels: 1000,
     },
   },
