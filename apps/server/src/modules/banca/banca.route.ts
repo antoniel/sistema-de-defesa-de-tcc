@@ -76,6 +76,46 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
       meta: result.data.meta,
     })
   })
+  .get("/upcoming", async (c) => {
+    const orderBy = c.req.query("orderBy")
+    const order = c.req.query("order") as "asc" | "desc" | undefined
+    const page = Math.max(1, parseInt(c.req.query("page") || "1", 10))
+    const limit = Math.max(1, Math.min(100, parseInt(c.req.query("limit") || "10", 10)))
+    const searchQuery = c.req.query("searchQuery")
+
+    const result = await service.getUpcomingBancasVisible(c, orderBy, order, page, limit, searchQuery)
+
+    if (!result.ok) {
+      throw match(result.error)
+        .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar defesas próximas"))
+        .exhaustive()
+    }
+
+    return c.json({
+      data: result.data.bancasWithMembros,
+      meta: result.data.meta,
+    })
+  })
+  .get("/past", async (c) => {
+    const orderBy = c.req.query("orderBy")
+    const order = c.req.query("order") as "asc" | "desc" | undefined
+    const page = Math.max(1, parseInt(c.req.query("page") || "1", 10))
+    const limit = Math.max(1, Math.min(100, parseInt(c.req.query("limit") || "10", 10)))
+    const searchQuery = c.req.query("searchQuery")
+
+    const result = await service.getPastBancasVisible(c, orderBy, order, page, limit, searchQuery)
+
+    if (!result.ok) {
+      throw match(result.error)
+        .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar defesas anteriores"))
+        .exhaustive()
+    }
+
+    return c.json({
+      data: result.data.bancasWithMembros,
+      meta: result.data.meta,
+    })
+  })
   .get("/:id", async (c) => {
     const id = Number(c.req.param("id"))
     const result = await service.getBancaById(c, id)

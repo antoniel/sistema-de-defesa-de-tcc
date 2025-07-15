@@ -797,6 +797,84 @@ describe("Rotas de Banca", async () => {
         expect(Array.isArray(data.upcoming)).toBe(true)
       })
 
+      it("deve retornar apenas o número de resultados especificado no limite", async () => {
+        const limit = 2
+        const res = await client.banca.$get({
+          query: {
+            limit: limit.toString(),
+          },
+        })
+
+        expect(res.status).toBe(200)
+        const data = await res.json()
+
+        // Check that pagination metadata is correct
+        expect(data.meta.limit).toBe(limit)
+
+        // Check that the actual number of results doesn't exceed the limit
+        expect(data.past.length).toBeLessThanOrEqual(limit)
+        expect(data.upcoming.length).toBeLessThanOrEqual(limit)
+
+        // Test with a smaller limit to ensure it's working
+        const smallLimit = 1
+        const smallRes = await client.banca.$get({
+          query: {
+            limit: smallLimit.toString(),
+          },
+        })
+
+        expect(smallRes.status).toBe(200)
+        const smallData = await smallRes.json()
+
+        expect(smallData.meta.limit).toBe(smallLimit)
+        expect(smallData.past.length).toBeLessThanOrEqual(smallLimit)
+        expect(smallData.upcoming.length).toBeLessThanOrEqual(smallLimit)
+      })
+
+      it("deve aplicar paginação corretamente na busca de defesas públicas", async () => {
+        const limit = 2
+        const res = await client.banca.$get({
+          query: {
+            searchQuery: "Test", // Should match our test defenses
+            limit: limit.toString(),
+            page: "1",
+          },
+        })
+
+        expect(res.status).toBe(200)
+        const data = await res.json()
+
+        // Verify pagination metadata
+        expect(data.meta.limit).toBe(limit)
+        expect(data.meta.currentPage).toBe(1)
+
+        // Verify that search results don't exceed the limit
+        expect(data.past.length).toBeLessThanOrEqual(limit)
+        expect(data.upcoming.length).toBeLessThanOrEqual(limit)
+
+        // Note: The limit applies to each category separately in the pagination implementation
+        // So we verify that each category respects the limit individually
+
+        // Test second page to ensure pagination is working
+        const page2Res = await client.banca.$get({
+          query: {
+            searchQuery: "Test",
+            limit: limit.toString(),
+            page: "2",
+          },
+        })
+
+        expect(page2Res.status).toBe(200)
+        const page2Data = await page2Res.json()
+
+        expect(page2Data.meta.limit).toBe(limit)
+        expect(page2Data.meta.currentPage).toBe(2)
+
+        // Verify that page 2 results also don't exceed the limit
+        expect(page2Data.past.length).toBeLessThanOrEqual(limit)
+        expect(page2Data.upcoming.length).toBeLessThanOrEqual(limit)
+      })
+
       it("deve lidar com parâmetros de ordenação inválidos", async () => {
         const res = await client.banca.$get({
           query: {
@@ -812,6 +890,76 @@ describe("Rotas de Banca", async () => {
         expect(Array.isArray(data.past)).toBe(true)
         expect(Array.isArray(data.upcoming)).toBe(true)
         expect(data.meta).toBeDefined()
+      })
+
+      it("deve retornar defesas próximas com paginação individual", async () => {
+        const limit = 2
+        const res = await client.banca.upcoming.$get({
+          query: {
+            limit: limit.toString(),
+            page: "1",
+          },
+        })
+
+        expect(res.status).toBe(200)
+        const data = await res.json()
+
+        // Verify pagination metadata
+        expect(data.meta.limit).toBe(limit)
+        expect(data.meta.currentPage).toBe(1)
+
+        // Verify that upcoming results don't exceed the limit
+        expect(data.data.length).toBeLessThanOrEqual(limit)
+
+        // Test with search query
+        const searchRes = await client.banca.upcoming.$get({
+          query: {
+            searchQuery: "Test",
+            limit: limit.toString(),
+            page: "1",
+          },
+        })
+
+        expect(searchRes.status).toBe(200)
+        const searchData = await searchRes.json()
+
+        expect(searchData.meta.limit).toBe(limit)
+        expect(searchData.data.length).toBeLessThanOrEqual(limit)
+      })
+
+      it("deve retornar defesas passadas com paginação individual", async () => {
+        const limit = 2
+        const res = await client.banca.past.$get({
+          query: {
+            limit: limit.toString(),
+            page: "1",
+          },
+        })
+
+        expect(res.status).toBe(200)
+        const data = await res.json()
+
+        // Verify pagination metadata
+        expect(data.meta.limit).toBe(limit)
+        expect(data.meta.currentPage).toBe(1)
+
+        // Verify that past results don't exceed the limit
+        expect(data.data.length).toBeLessThanOrEqual(limit)
+
+        // Test with search query
+        const searchRes = await client.banca.past.$get({
+          query: {
+            searchQuery: "Test",
+            limit: limit.toString(),
+            page: "1",
+          },
+        })
+
+        expect(searchRes.status).toBe(200)
+        const searchData = await searchRes.json()
+
+        expect(searchData.meta.limit).toBe(limit)
+        expect(searchData.data.length).toBeLessThanOrEqual(limit)
       })
     })
   })
@@ -1342,6 +1490,54 @@ describe("GET /bancas/my-defenses - Professor's Defenses Sorting", () => {
           expect(banca.autor).toContain("MyStudent")
         })
       }
+    })
+
+    it("should apply pagination correctly when searching", async () => {
+      const limit = 2
+      const res = await client.banca["my-defenses"].$get(
+        {
+          query: {
+            searchQuery: "Defense", // Should match all our test defenses
+            limit: limit.toString(),
+            page: "1",
+          },
+        },
+        { headers: { Authorization: `Bearer ${teacherToken}` } }
+      )
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+
+      // Verify pagination metadata
+      expect(data.meta.limit).toBe(limit)
+      expect(data.meta.currentPage).toBe(1)
+
+      // Verify that search results don't exceed the limit
+      expect(data.past.length).toBeLessThanOrEqual(limit)
+      expect(data.upcoming.length).toBeLessThanOrEqual(limit)
+
+      // Note: The limit applies to each category separately in the pagination implementation
+      // So we verify that each category respects the limit individually
+
+      // Test with a smaller limit
+      const smallLimit = 1
+      const smallRes = await client.banca["my-defenses"].$get(
+        {
+          query: {
+            searchQuery: "Defense",
+            limit: smallLimit.toString(),
+            page: "1",
+          },
+        },
+        { headers: { Authorization: `Bearer ${teacherToken}` } }
+      )
+
+      expect(smallRes.status).toBe(200)
+      const smallData = await smallRes.json()
+
+      expect(smallData.meta.limit).toBe(smallLimit)
+      expect(smallData.past.length).toBeLessThanOrEqual(smallLimit)
+      expect(smallData.upcoming.length).toBeLessThanOrEqual(smallLimit)
     })
   })
 
