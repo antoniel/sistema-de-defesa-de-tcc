@@ -1,7 +1,8 @@
-import { drizzle, PgliteDatabase } from "drizzle-orm/pglite"
+import { drizzle } from "drizzle-orm/pglite"
 import { migrate } from "drizzle-orm/pglite/migrator"
 import { createMiddleware } from "hono/factory"
 import path from "path"
+import type { Database } from "../database"
 import * as schema from "../database/schema"
 import { type AppVariables } from "../types"
 
@@ -14,7 +15,7 @@ export const getFakeDb = async () => {
     migrationsFolder,
     migrationsTable: "migrations",
   })
-  return db
+  return db as unknown as Database
 }
 
 export const fakeDeps = (db: Awaited<ReturnType<typeof getFakeDb>>) => {
