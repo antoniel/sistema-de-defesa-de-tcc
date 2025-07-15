@@ -76,9 +76,13 @@ test.describe("Pagination Display", () => {
     // Wait for the defense table to load
     await page.waitForSelector('[data-testid="defense-table"]', { timeout: 10000 })
     
-    // Select a specific number of rows per page
-    const rowsPerPageSelect = page.locator('select').filter({ hasText: /10|5|30/ }).first()
-    await rowsPerPageSelect.selectOption("5")
+    // Click on the select trigger to open the dropdown
+    const selectTrigger = page.locator('[role="combobox"]').first()
+    await selectTrigger.click()
+    
+    // Wait for the dropdown to open and click on the "5" option
+    await page.waitForSelector('[role="option"]')
+    await page.locator('[role="option"]').filter({ hasText: "5" }).click()
     
     // Wait for the page to update
     await page.waitForTimeout(1000)
@@ -135,8 +139,12 @@ test.describe("Pagination Display", () => {
     await page.waitForSelector('[data-testid="defense-table"]', { timeout: 10000 })
     
     // Set a small limit to ensure pagination
-    const rowsPerPageSelect = page.locator('select').filter({ hasText: /10|5|30/ }).first()
-    await rowsPerPageSelect.selectOption("5")
+    const selectTrigger = page.locator('[role="combobox"]').first()
+    await selectTrigger.click()
+    
+    // Wait for the dropdown to open and click on the "5" option
+    await page.waitForSelector('[role="option"]')
+    await page.locator('[role="option"]').filter({ hasText: "5" }).click()
     
     // Wait for the page to update
     await page.waitForTimeout(1000)
