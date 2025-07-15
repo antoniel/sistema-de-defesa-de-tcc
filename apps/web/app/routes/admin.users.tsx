@@ -24,7 +24,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useUser } from "@/services/useUser"
 import { zodResolver } from "@hookform/resolvers/zod"
 import type { SelectUser } from "@tcc/server"
-import { MoreHorizontal, Search } from "lucide-react"
+import { MoreHorizontal, Search, UserPlus } from "lucide-react"
 import React, { useState } from "react"
 import { useForm } from "react-hook-form"
 import { Navigate, useNavigate } from "react-router"
@@ -99,7 +99,7 @@ export default function AdminUsersPage() {
         <p className="text-muted-foreground">Visualize e gerencie todos os usuários do sistema.</p>
       </div>
 
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -109,6 +109,10 @@ export default function AdminUsersPage() {
             className="pl-10"
           />
         </div>
+        <Button onClick={() => navigate("/admin/teacher-invitations")} variant="outline">
+          <UserPlus className="h-4 w-4 mr-2" />
+          Convites para Professores
+        </Button>
       </div>
 
       <div className="border rounded-md overflow-x-auto">
