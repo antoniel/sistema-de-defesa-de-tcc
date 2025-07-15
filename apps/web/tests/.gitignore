@@ -1,0 +1,20 @@
+# Playwright test results
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Visual regression test files
+visual-baseline/*.png
+visual-baseline/**/*.png
+
+# Generated diff files (these will be uploaded to CI)
+visual-diffs/
+*.png
+*-actual.png
+*-expected.png
+*-diff.png
+
+# Test output
+results.json
+visual-report.json
+visual-diff-report.html

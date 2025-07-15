@@ -1,0 +1,8 @@
+# This directory stores baseline screenshots for visual regression testing
+# Keep this directory in git but ignore the actual screenshot files
+
+# Baseline images are generated with:
+# npm run visual:baseline
+
+# Compare current with baseline with:
+# npm run visual:compare
