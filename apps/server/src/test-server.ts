@@ -1,10 +1,14 @@
 import { serve } from "@hono/node-server"
 import { getFakeDb, fakeDeps } from "./tests/utils"
 import { app } from "./index"
+import { seedTestData } from "./tests/seed-test-data"
 
 const startTestServer = async () => {
   // Get fake database for testing
   const fakeDb = await getFakeDb()
+  
+  // Seed test data
+  await seedTestData(fakeDb)
   
   // Create test dependencies middleware
   const testDeps = fakeDeps(fakeDb)
