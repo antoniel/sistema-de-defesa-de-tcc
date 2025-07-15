@@ -1,4 +1,9 @@
 import { Header } from "@/components/layout/Header"
+import type { Route } from "./+types/banca.$id_.edit"
+
+export const meta: Route.MetaFunction = () => [
+  { title: "SISDEF - Editar Defesa" },
+]
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
@@ -28,6 +33,7 @@ const formSchema = z.object({
   dataRealizacao: z.date({ required_error: "Data de realização é obrigatória" }),
   local: z.string().min(1, "Local é obrigatório"),
   turma: z.string().min(1, "Turma é obrigatória"),
+  periodoAcademico: z.string().min(1, "Período acadêmico é obrigatório").regex(/^\d{4}\.[12]$/, "Formato inválido. Use YYYY.S (S=1 ou 2)"),
   cursoId: z.string().min(1, "Curso é obrigatório"),
   orientadorId: z.string().min(1, "Orientador é obrigatório"),
   autor: z.string().min(1, "Autor é obrigatório"),
@@ -68,6 +74,7 @@ export default function EditBancaPage() {
           dataRealizacao: new Date(banca.dataRealizacao),
           local: banca.local || "",
           turma: banca.turma || "",
+          periodoAcademico: banca.periodoAcademico || "",
           cursoId: banca.cursoId?.toString() || "",
           orientadorId: banca.orientadorId?.toString() || "",
           autor: banca.autor || "",
@@ -91,6 +98,43 @@ export default function EditBancaPage() {
     name: "avaliadores",
   })
 
+  // Handler for masking inputs with YYYY.S format
+  const handleYearSemesterFormat = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/[^\d.]/g, "") // Remove non-digit and non-dot characters
+
+    // Handle backspace correctly (if the dot is the last character, remove it)
+    if (e.nativeEvent instanceof InputEvent && e.nativeEvent.inputType === "deleteContentBackward") {
+      if (value.endsWith(".")) {
+        value = value.slice(0, -1)
+      }
+    }
+
+    // If we have more than 4 digits and no dot yet, insert it
+    if (value.length > 4 && !value.includes(".")) {
+      value = value.slice(0, 4) + "." + value.slice(4)
+    }
+
+    // Limit the input after the dot to one digit
+    if (value.includes(".")) {
+      const [year, semester] = value.split(".")
+      // Keep only first 4 digits for year
+      const formattedYear = year.slice(0, 4)
+      // Keep only first digit for semester
+      const formattedSemester = semester.slice(0, 1)
+      // Only allow 1 or 2 for semester
+      if (formattedSemester && !["1", "2"].includes(formattedSemester)) {
+        value = formattedYear + "."
+      } else {
+        value = formattedYear + (formattedSemester ? "." + formattedSemester : "")
+      }
+    } else {
+      // Limit year to 4 digits
+      value = value.slice(0, 4)
+    }
+
+    form.setValue("periodoAcademico", value)
+  }
+
   const onSubmit = (data: FormValues) => {
     const submitData: updateBanca = {
       tituloTrabalho: data.tituloTrabalho,
@@ -100,6 +144,7 @@ export default function EditBancaPage() {
       dataRealizacao: new Date(data.dataRealizacao),
       local: data.local,
       turma: data.turma,
+      periodoAcademico: data.periodoAcademico,
       cursoId: Number(data.cursoId),
       orientadorId: Number(data.orientadorId),
       membros: data.avaliadores.map((a) => ({ id: a.usuarioId })),
@@ -230,29 +275,51 @@ export default function EditBancaPage() {
 
             <FormField
               control={form.control}
-              name="cursoId"
+              name="periodoAcademico"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Curso</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o curso" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {cursos?.map((curso) => (
-                        <SelectItem key={curso.id} value={String(curso.id)}>
-                          {curso.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormLabel>Período Acadêmico</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Ex: 2024.2"
+                      value={field.value || ""}
+                      onChange={(e) => {
+                        field.onChange(e)
+                        handleYearSemesterFormat(e)
+                      }}
+                      onBlur={field.onBlur}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </div>
+
+          <FormField
+            control={form.control}
+            name="cursoId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Curso</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o curso" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {cursos?.map((curso) => (
+                      <SelectItem key={curso.id} value={String(curso.id)}>
+                        {curso.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <FormField

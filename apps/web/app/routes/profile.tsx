@@ -1,4 +1,9 @@
 import { Header } from "@/components/layout/Header"
+import type { Route } from "./+types/profile"
+
+export const meta: Route.MetaFunction = () => [
+  { title: "SISDEF - Perfil" },
+]
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"

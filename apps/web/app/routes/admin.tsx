@@ -1,5 +1,10 @@
 import { useUser } from "@/services/useUser"
 import { Navigate, Outlet } from "react-router"
+import type { Route } from "./+types/admin"
+
+export const meta: Route.MetaFunction = () => [
+  { title: "SISDEF - Administração" },
+]
 
 export default function AdminLayout() {
   const { data: user, isLoading, isError } = useUser()

@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer"
 import { env } from "../config/env"
 import { err, ok, type AppResult } from "../result"
+import { createTeacherInvitationEmail as createTeacherInvitationEmailTemplate, createPasswordResetEmail as createPasswordResetEmailTemplate } from "../templates/email"
 
 interface SendEmailInput {
   to: string
@@ -64,88 +65,9 @@ export const sendEmail = async (input: SendEmailInput): Promise<AppResult<void, 
 }
 
 export const createTeacherInvitationEmail = (nome: string, invitationUrl: string): string => {
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>Convite para Professor - Sistema Banca</title>
-      <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #2563eb; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }
-        .content { background: #f8fafc; padding: 30px; border-radius: 0 0 8px 8px; }
-        .button { display: inline-block; background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
-        .footer { margin-top: 30px; font-size: 12px; color: #666; text-align: center; }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h1>Sistema Banca</h1>
-        <p>Convite para Professor</p>
-      </div>
-      <div class="content">
-        <h2>Olá, ${nome}!</h2>
-        <p>Você foi convidado(a) para participar do Sistema Banca como professor(a).</p>
-        <p>Para aceitar o convite e completar seu cadastro, clique no botão abaixo:</p>
-        <p style="text-align: center;">
-          <a href="${invitationUrl}" class="button">Aceitar Convite</a>
-        </p>
-        <p>Este convite expira em 7 dias.</p>
-        <p>Se você não solicitou este convite, pode ignorar este email.</p>
-      </div>
-      <div class="footer">
-        <p>Sistema Banca - Gerenciamento de Bancas de TCC</p>
-      </div>
-    </body>
-    </html>
-  `
+  return createTeacherInvitationEmailTemplate({ nome, invitationUrl })
 }
 
 export const createPasswordResetEmail = (nome: string, resetUrl: string): string => {
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>Recuperação de Senha - Sistema Banca</title>
-      <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #dc2626; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }
-        .content { background: #f8fafc; padding: 30px; border-radius: 0 0 8px 8px; }
-        .button { display: inline-block; background: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
-        .footer { margin-top: 30px; font-size: 12px; color: #666; text-align: center; }
-        .warning { background: #fef3c7; border: 1px solid #f59e0b; padding: 15px; border-radius: 6px; margin: 20px 0; }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h1>Sistema Banca</h1>
-        <p>Recuperação de Senha</p>
-      </div>
-      <div class="content">
-        <h2>Olá, ${nome}!</h2>
-        <p>Você solicitou a recuperação de senha para sua conta no Sistema Banca.</p>
-        <p>Para redefinir sua senha, clique no botão abaixo:</p>
-        <p style="text-align: center;">
-          <a href="${resetUrl}" class="button">Redefinir Senha</a>
-        </p>
-        <div class="warning">
-          <strong>⚠️ Importante:</strong>
-          <ul>
-            <li>Este link expira em 1 hora</li>
-            <li>Só pode ser usado uma vez</li>
-            <li>Se você não solicitou esta recuperação, ignore este email</li>
-          </ul>
-        </div>
-        <p>Se você não conseguir clicar no botão, copie e cole este link no seu navegador:</p>
-        <p style="word-break: break-all; background: #f1f5f9; padding: 10px; border-radius: 4px; font-size: 14px;">
-          ${resetUrl}
-        </p>
-      </div>
-      <div class="footer">
-        <p>Sistema Banca - Gerenciamento de Bancas de TCC</p>
-      </div>
-    </body>
-    </html>
-  `
+  return createPasswordResetEmailTemplate({ nome, resetUrl })
 }
