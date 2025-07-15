@@ -9,8 +9,9 @@ This is a monorepo containing an academic thesis committee ("banca") management 
 - **Root**: Turborepo workspace with shared scripts and deployment tools
 - **apps/web**: React Router v7 frontend with TypeScript, TailwindCSS, and Radix UI components
 - **apps/server**: Hono API server with TypeScript, Drizzle ORM, and PostgreSQL
+- **apps/frontend-old**: Legacy frontend (deprecated)
 - **apps/yii2-organizacao-de-defesas**: Legacy PHP/Yii2 application (deprecated)
-- **packages/**: Shared packages and types (if any)
+- **packages/tests**: Shared test utilities and fixtures
 
 ## Development Commands
 
@@ -19,20 +20,27 @@ This is a monorepo containing an academic thesis committee ("banca") management 
 - `npm run typecheck` - Run TypeScript type checking across all workspaces
 - `npm run test` - Run all tests with TUI interface
 - `npm run test:e2e` - Run end-to-end tests for web app
+- `npm run deploy` - Run deployment script
 
 ### Database Management
 - `npm run migration:gen` - Generate Drizzle migrations
 - `npm run migration:run` - Run pending migrations
+- `npm run migration:drop` - Drop database migrations
 - `npm run db:push` - Push schema changes to database
 - `npm run docker:up` - Start PostgreSQL database container
 - `npm run docker:down` - Stop database container
+- `npm run docker:clean` - Stop database container and remove volumes
 - `npm run docker:connect` - Connect to PostgreSQL database via psql
 
 ### Frontend (apps/web)
-- `npm run dev` - Start development server on port 5173
+- `npm run dev` - Start development server
 - `npm run build` - Build for production
+- `npm run start` - Start production server
 - `npm run test` - Run Playwright tests
 - `npm run test:ui` - Run Playwright tests with UI
+- `npm run test:headed` - Run Playwright tests with headed browser
+- `npm run test:debug` - Run Playwright tests in debug mode
+- `npm run test:report` - Show Playwright test report
 - `npm run typecheck` - Type checking with React Router typegen
 
 ### Backend (apps/server)
@@ -41,55 +49,71 @@ This is a monorepo containing an academic thesis committee ("banca") management 
 - `npm run test` - Run Vitest unit tests
 - `npm run seed` - Seed database with test data
 - `npm run typecheck` - TypeScript type checking
+- `npm run migration:gen` - Generate Drizzle migrations
+- `npm run migration:run` - Run pending migrations
+- `npm run db:push` - Push schema changes to database
 
 ## Technology Stack
 
 ### Frontend
 - **Framework**: React Router v7 with SSR
-- **Styling**: TailwindCSS with Radix UI primitives
+- **Styling**: TailwindCSS v4 with Radix UI primitives
 - **State Management**: TanStack Query for server state
 - **Forms**: React Hook Form with Zod validation
 - **Testing**: Playwright for E2E tests
+- **HTTP Client**: Hono RPC client for type-safe API calls
+- **UI Components**: Extensive Radix UI component library
+- **Notifications**: Sonner for toast notifications
 
 ### Backend
 - **Framework**: Hono (lightweight web framework)
 - **Database**: PostgreSQL with Drizzle ORM
 - **Authentication**: JWT-based with bcryptjs
 - **Email**: Nodemailer for notifications
-- **Testing**: Vitest for unit tests
+- **Testing**: Vitest for unit tests, PGlite for test database
+- **Error Handling**: ts-pattern for exhaustive error matching
+- **Validation**: Zod schemas with Hono zValidator
 
 ### Database Schema
 Key entities include:
-- Users (students, teachers, admins) with role-based access
-- Cursos (academic programs)
-- Bancas (thesis committees) with scheduling and participants
-- Teacher invitations system (`teacherInvitations` table)
-- Password reset system (`resetPasswords` table)
-- Document management
+- **Users** (`usuario` table) - Students, teachers, admins with role-based access
+- **Cursos** (`cursos` table) - Academic programs with names and abbreviations
+- **Bancas** (`banca` table) - Thesis committees with scheduling, participants, and metadata
+- **Teacher Invitations** (`teacher_invitation` table) - Secure hash-based teacher invitations
+- **Password Reset** (`reset_password` table) - Secure token-based password reset system
+- **Documents** (`documento` table) - File management with status tracking
+- **Sessions** (`session` table) - User session management
+- **Invites** (`invite` table) - Committee participation invitations
+- **Usuario Bancas** (`usuario_banca` table) - Many-to-many relationship between users and committees
+- **Banca Documentos** (`banca_documento` table) - Many-to-many relationship between committees and documents
 
 ## Architecture Notes
 
 ### Module Structure
 The server follows a modular architecture in `apps/server/src/modules/`:
-- `auth/` - Authentication and authorization
-- `banca/` - Thesis committee management
-- `usuario/` - User management
+- `auth/` - Authentication and authorization (JWT middleware)
+- `banca/` - Thesis committee management with full CRUD operations
+- `usuario/` - User management and profile operations
 - `curso/` - Academic program management
-- `teacher-invitation/` - Teacher invitation system
-- `calendario/` - Calendar integration
-- `documento/` - Document handling
+- `teacher-invitation/` - Teacher invitation system with secure hash validation
+- `calendar/` - Calendar integration
+- `documento/` - Document handling and file management
 
 ### Database Configuration
-- Uses Drizzle ORM with PostgreSQL
-- Migrations are auto-generated and version-controlled
+- Uses Drizzle ORM with PostgreSQL for production
+- Migrations are auto-generated and version-controlled in `apps/server/src/database/drizzle/`
 - Connection configured via `DATABASE_URL` environment variable
 - Test database uses PGlite for faster test execution
+- Schema defined in `apps/server/src/database/schema.ts` with full type safety
+- Database seeding available through `npm run seed`
 
 ### Testing Strategy
 - Unit tests for business logic using Vitest
 - E2E tests using Playwright that start both frontend and backend
-- Test server runs on port 9000, frontend on 5173
+- Test server runs on separate port with `npm run dev:test`
 - Database seeding available for consistent test data
+- Test fixtures in `packages/tests/src/fixtures/`
+- Shared test utilities in `packages/tests/src/utils/`
 
 ## Environment Setup
 
@@ -104,8 +128,11 @@ Required environment variables:
 ## Deployment
 
 The project includes deployment scripts and Docker configurations:
-- `npm run deploy` - Runs deployment script
+- `npm run deploy` - Runs deployment script (`scripts/deploy.ts`)
 - Separate production branches for web and server
+- `npm run sync` - Syncs production branches with main
+- `npm run push:web` - Deploys web app to Dokku
+- `npm run push:server` - Deploys server to Dokku
 - Docker Compose for local development database
 
 ## API Client Pattern
@@ -295,12 +322,14 @@ const onSubmit = (data: LoginFormValues) => {
 - Use toast notifications for user feedback
 
 ### Security Conventions
-- Hash passwords with bcrypt (10 rounds)
+- Hash passwords with bcryptjs
 - Use crypto.randomBytes for secure tokens
 - Include token expiration for all secure operations
 - Clean up expired/used tokens
 - Never log sensitive information
 - Use environment variables for secrets
+- JWT tokens for authentication
+- Secure hash validation for invitations
 
 ### Testing Conventions
 - Use Vitest for unit tests

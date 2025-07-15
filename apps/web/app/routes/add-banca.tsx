@@ -1,4 +1,9 @@
 import { KeywordsList } from "@/components/banca/KeywordsList"
+import type { Route } from "./+types/add-banca"
+
+export const meta: Route.MetaFunction = () => [
+  { title: "SISDEF - Cadastrar Defesa" },
+]
 import { Header } from "@/components/layout/Header"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"

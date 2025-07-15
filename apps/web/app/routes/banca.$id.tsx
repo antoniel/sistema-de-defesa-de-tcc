@@ -1,5 +1,10 @@
 import React from "react"
 import { Header } from "@/components/layout/Header"
+import type { Route } from "./+types/banca.$id"
+
+export const meta: Route.MetaFunction = () => [
+  { title: "SISDEF - Detalhes da Defesa" },
+]
 import {
   AlertDialog,
   AlertDialogAction,
