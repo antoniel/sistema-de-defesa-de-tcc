@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils"
 import { removeAuthToken } from "@/services/authService"
 import { useUser } from "@/services/useUser"
 import { useQueryClient } from "@tanstack/react-query"
-import { ChevronDown, LogOut, Menu, User, Users, X } from "lucide-react"
+import { ChevronDown, LogOut, Mail, Menu, User, Users, X } from "lucide-react"
 import { useState } from "react"
 import { Link } from "react-router"
 import { match } from "ts-pattern"
@@ -207,6 +207,18 @@ function RightSideButtons(props: RightSideButtonsProps) {
                   Gerenciar Usuários
                 </Link>
               </DropdownMenuItem>
+              {process.env.NODE_ENV === 'development' && (
+                <DropdownMenuItem asChild>
+                  <Link
+                    to="/dev/email-templates"
+                    className="flex w-full items-center focus:bg-accent focus:text-accent-foreground"
+                    onClick={() => (document.activeElement as HTMLElement)?.blur?.()}
+                  >
+                    <Mail className="mr-2 h-4 w-4" aria-hidden="true" />
+                    Email Templates (Dev)
+                  </Link>
+                </DropdownMenuItem>
+              )}
             </>
           )}
 
@@ -288,12 +300,22 @@ function MobileRightSideButtons(props: MobileRightSideButtonsProps) {
         </Button>
 
         {user.role === "ADMIN" && (
-          <Button variant="ghost" className="w-full justify-start" asChild>
-            <Link to="/admin/users" onClick={props.onClose} className="flex items-center">
-              <Users className="mr-2 h-4 w-4" aria-hidden="true" />
-              Gerenciar Usuários
-            </Link>
-          </Button>
+          <>
+            <Button variant="ghost" className="w-full justify-start" asChild>
+              <Link to="/admin/users" onClick={props.onClose} className="flex items-center">
+                <Users className="mr-2 h-4 w-4" aria-hidden="true" />
+                Gerenciar Usuários
+              </Link>
+            </Button>
+            {process.env.NODE_ENV === 'development' && (
+              <Button variant="ghost" className="w-full justify-start" asChild>
+                <Link to="/dev/email-templates" onClick={props.onClose} className="flex items-center">
+                  <Mail className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Email Templates (Dev)
+                </Link>
+              </Button>
+            )}
+          </>
         )}
 
         <Button
