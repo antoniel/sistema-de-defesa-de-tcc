@@ -148,14 +148,31 @@ export default function Home() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-4">
-          <TabsTrigger value="upcoming">Próximas defesas</TabsTrigger>
-          <TabsTrigger value="past">Defesas anteriores</TabsTrigger>
-          {isTeacherOrAdmin && <TabsTrigger value="my-defesas">Minhas defesas</TabsTrigger>}
+          <TabsTrigger value="upcoming" data-testid="upcoming-tab">Próximas defesas</TabsTrigger>
+          <TabsTrigger value="past" data-testid="past-tab">Defesas anteriores</TabsTrigger>
+          {isTeacherOrAdmin && <TabsTrigger value="my-defesas" data-testid="my-defesas-tab">Minhas defesas</TabsTrigger>}
         </TabsList>
         {tableData.upcoming.length > 0 && (
           <TabsContent value="upcoming">
+            <div data-testid="defense-table">
+              <TableWithInfo
+                data={tableData.upcoming}
+                searchQuery={searchQuery}
+                sortField={sortField}
+                sortOrder={sortOrder}
+                onSort={handleSort}
+                rowsPerPage={rowsPerPage}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                meta={tableData.meta}
+              />
+            </div>
+          </TabsContent>
+        )}
+        <TabsContent value="past">
+          <div data-testid="defense-table">
             <TableWithInfo
-              data={tableData.upcoming}
+              data={tableData.past}
               searchQuery={searchQuery}
               sortField={sortField}
               sortOrder={sortOrder}
@@ -165,20 +182,7 @@ export default function Home() {
               onPageChange={setCurrentPage}
               meta={tableData.meta}
             />
-          </TabsContent>
-        )}
-        <TabsContent value="past">
-          <TableWithInfo
-            data={tableData.past}
-            searchQuery={searchQuery}
-            sortField={sortField}
-            sortOrder={sortOrder}
-            onSort={handleSort}
-            rowsPerPage={rowsPerPage}
-            currentPage={currentPage}
-            onPageChange={setCurrentPage}
-            meta={tableData.meta}
-          />
+          </div>
         </TabsContent>
         {isTeacherOrAdmin && (
           <TabsContent value="my-defesas">
