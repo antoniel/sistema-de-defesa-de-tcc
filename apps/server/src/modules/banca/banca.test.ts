@@ -891,6 +891,76 @@ describe("Rotas de Banca", async () => {
         expect(Array.isArray(data.upcoming)).toBe(true)
         expect(data.meta).toBeDefined()
       })
+
+      it("deve retornar defesas próximas com paginação individual", async () => {
+        const limit = 2
+        const res = await client.banca.upcoming.$get({
+          query: {
+            limit: limit.toString(),
+            page: "1",
+          },
+        })
+
+        expect(res.status).toBe(200)
+        const data = await res.json()
+
+        // Verify pagination metadata
+        expect(data.meta.limit).toBe(limit)
+        expect(data.meta.currentPage).toBe(1)
+
+        // Verify that upcoming results don't exceed the limit
+        expect(data.data.length).toBeLessThanOrEqual(limit)
+
+        // Test with search query
+        const searchRes = await client.banca.upcoming.$get({
+          query: {
+            searchQuery: "Test",
+            limit: limit.toString(),
+            page: "1",
+          },
+        })
+
+        expect(searchRes.status).toBe(200)
+        const searchData = await searchRes.json()
+
+        expect(searchData.meta.limit).toBe(limit)
+        expect(searchData.data.length).toBeLessThanOrEqual(limit)
+      })
+
+      it("deve retornar defesas passadas com paginação individual", async () => {
+        const limit = 2
+        const res = await client.banca.past.$get({
+          query: {
+            limit: limit.toString(),
+            page: "1",
+          },
+        })
+
+        expect(res.status).toBe(200)
+        const data = await res.json()
+
+        // Verify pagination metadata
+        expect(data.meta.limit).toBe(limit)
+        expect(data.meta.currentPage).toBe(1)
+
+        // Verify that past results don't exceed the limit
+        expect(data.data.length).toBeLessThanOrEqual(limit)
+
+        // Test with search query
+        const searchRes = await client.banca.past.$get({
+          query: {
+            searchQuery: "Test",
+            limit: limit.toString(),
+            page: "1",
+          },
+        })
+
+        expect(searchRes.status).toBe(200)
+        const searchData = await searchRes.json()
+
+        expect(searchData.meta.limit).toBe(limit)
+        expect(searchData.data.length).toBeLessThanOrEqual(limit)
+      })
     })
   })
 })

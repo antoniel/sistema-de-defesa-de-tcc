@@ -14,7 +14,7 @@ test.describe("Pagination Display", () => {
     await page.waitForSelector('[data-testid="defense-table"]', { timeout: 10000 })
     
     // Check if there are upcoming defenses
-    const upcomingTab = page.locator('[data-value="upcoming"]')
+    const upcomingTab = page.locator('[data-testid="upcoming-tab"]')
     await upcomingTab.click()
     
     // Wait for pagination info to appear
@@ -44,7 +44,7 @@ test.describe("Pagination Display", () => {
 
   test("should display correct pagination info for past defenses", async ({ page }) => {
     // Check if there are past defenses
-    const pastTab = page.locator('[data-value="past"]')
+    const pastTab = page.locator('[data-testid="past-tab"]')
     await pastTab.click()
     
     // Wait for pagination info to appear

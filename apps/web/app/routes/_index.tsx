@@ -14,9 +14,9 @@ import { useEffect, useState } from "react"
 import { href, useNavigate } from "react-router"
 import { match } from "ts-pattern"
 
-import { useBancasDefesa, useMyDefesas } from "@/hooks"
+import { useUpcomingBancasDefesa, usePastBancasDefesa, useMyDefesas } from "@/hooks"
 
-type BancasDefesa = (ReturnType<typeof useBancasDefesa>["data"] & {})["past"]
+type BancasDefesa = ReturnType<typeof useUpcomingBancasDefesa>["data"] & {}
 
 export default function Home() {
   const navigate = useNavigate()
@@ -25,28 +25,43 @@ export default function Home() {
   const [sortField, setSortField] = useState<string>("")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
   const [rowsPerPage, setRowsPerPage] = useState<number>(10)
-  const [currentPage, setCurrentPage] = useState<number>(1)
+  const [upcomingCurrentPage, setUpcomingCurrentPage] = useState<number>(1)
+  const [pastCurrentPage, setPastCurrentPage] = useState<number>(1)
 
   const userQuery = useUser()
-  const bancasDefesaQuery = useBancasDefesa(
+  const upcomingBancasQuery = useUpcomingBancasDefesa(
     sortField || undefined,
     sortField ? sortOrder : undefined,
-    currentPage,
+    upcomingCurrentPage,
+    rowsPerPage,
+    searchQuery
+  )
+  const pastBancasQuery = usePastBancasDefesa(
+    sortField || undefined,
+    sortField ? sortOrder : undefined,
+    pastCurrentPage,
     rowsPerPage,
     searchQuery
   )
   const myDefesasQuery = useMyDefesas(
     sortField || undefined,
     sortField ? sortOrder : undefined,
-    currentPage,
+    activeTab === "upcoming" ? upcomingCurrentPage : pastCurrentPage,
     rowsPerPage,
     searchQuery
   )
 
-  // Reset page when search query changes
+  // Reset pages when search query changes
   useEffect(() => {
-    setCurrentPage(1)
+    setUpcomingCurrentPage(1)
+    setPastCurrentPage(1)
   }, [searchQuery])
+
+  // Reset pages when tab changes
+  useEffect(() => {
+    setUpcomingCurrentPage(1)
+    setPastCurrentPage(1)
+  }, [activeTab])
 
   const isTeacherOrAdmin = userQuery.data?.role === "TEACHER" || userQuery.data?.role === "ADMIN"
 
@@ -59,10 +74,11 @@ export default function Home() {
       setSortField(field)
       setSortOrder("asc")
     }
-    setCurrentPage(1) // Reset to first page when sorting
+    setUpcomingCurrentPage(1) // Reset to first page when sorting
+    setPastCurrentPage(1)
   }
 
-  if (bancasDefesaQuery.isLoading) {
+  if (upcomingBancasQuery.isLoading && pastBancasQuery.isLoading) {
     return (
       <div className="container mx-auto p-4 md:p-8 space-y-4">
         <Header className="mb-6" />
@@ -81,12 +97,12 @@ export default function Home() {
     )
   }
 
-  if (bancasDefesaQuery.isError) {
+  if (upcomingBancasQuery.isError || pastBancasQuery.isError) {
     return (
       <div className="container mx-auto p-4 md:p-8">
         <Header className="mb-6" />
         <div className="text-red-600">
-          Erro ao carregar as defesas: {bancasDefesaQuery.error?.message || "Erro desconhecido"}
+          Erro ao carregar as defesas: {upcomingBancasQuery.error?.message || pastBancasQuery.error?.message || "Erro desconhecido"}
         </div>
       </div>
     )
@@ -100,10 +116,28 @@ export default function Home() {
         meta: myDefesasQuery.data?.meta,
       }
     }
+    
+    if (activeTab === "upcoming") {
+      return {
+        upcoming: upcomingBancasQuery.data?.data || [],
+        past: [],
+        meta: upcomingBancasQuery.data?.meta,
+      }
+    }
+    
+    if (activeTab === "past") {
+      return {
+        upcoming: [],
+        past: pastBancasQuery.data?.data || [],
+        meta: pastBancasQuery.data?.meta,
+      }
+    }
+    
+    // Default fallback
     return {
-      upcoming: bancasDefesaQuery.data?.upcoming || [],
-      past: bancasDefesaQuery.data?.past || [],
-      meta: bancasDefesaQuery.data?.meta,
+      upcoming: upcomingBancasQuery.data?.data || [],
+      past: pastBancasQuery.data?.data || [],
+      meta: activeTab === "upcoming" ? upcomingBancasQuery.data?.meta : pastBancasQuery.data?.meta,
     }
   }
 
@@ -128,7 +162,8 @@ export default function Home() {
               value={rowsPerPage.toString()}
               onValueChange={(value) => {
                 setRowsPerPage(Number(value))
-                setCurrentPage(1) // Reset to first page when changing rows per page
+                setUpcomingCurrentPage(1) // Reset to first page when changing rows per page
+    setPastCurrentPage(1)
               }}
             >
               <SelectTrigger className="w-20">
@@ -162,8 +197,8 @@ export default function Home() {
                 sortOrder={sortOrder}
                 onSort={handleSort}
                 rowsPerPage={rowsPerPage}
-                currentPage={currentPage}
-                onPageChange={setCurrentPage}
+                currentPage={upcomingCurrentPage}
+                onPageChange={setUpcomingCurrentPage}
                 meta={tableData.meta}
               />
             </div>
@@ -178,8 +213,8 @@ export default function Home() {
               sortOrder={sortOrder}
               onSort={handleSort}
               rowsPerPage={rowsPerPage}
-              currentPage={currentPage}
-              onPageChange={setCurrentPage}
+              currentPage={pastCurrentPage}
+              onPageChange={setPastCurrentPage}
               meta={tableData.meta}
             />
           </div>
@@ -226,7 +261,7 @@ export default function Home() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setCurrentPage(currentPage - 1)}
+                          onClick={() => setUpcomingCurrentPage(upcomingCurrentPage - 1)}
                           disabled={!tableData.meta.hasPrev}
                         >
                           Anterior
@@ -237,7 +272,7 @@ export default function Home() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setCurrentPage(currentPage + 1)}
+                          onClick={() => setUpcomingCurrentPage(upcomingCurrentPage + 1)}
                           disabled={!tableData.meta.hasNext}
                         >
                           Próximo
@@ -273,7 +308,7 @@ export default function Home() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setCurrentPage(currentPage - 1)}
+                          onClick={() => setPastCurrentPage(pastCurrentPage - 1)}
                           disabled={!tableData.meta.hasPrev}
                         >
                           Anterior
@@ -284,7 +319,7 @@ export default function Home() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setCurrentPage(currentPage + 1)}
+                          onClick={() => setPastCurrentPage(pastCurrentPage + 1)}
                           disabled={!tableData.meta.hasNext}
                         >
                           Próximo

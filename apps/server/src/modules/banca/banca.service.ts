@@ -57,6 +57,242 @@ type SetBancaGradeError = { type: "banca_not_found" } | { type: "database_error"
 
 type GetBancasByOrientadorError = { type: "database_error"; error: unknown }
 
+export const getUpcomingBancasVisible = async (
+  c: Context<{ Variables: AppVariables }>,
+  orderBy?: string,
+  order?: "asc" | "desc",
+  page: number = 1,
+  limit: number = 10,
+  searchQuery?: string
+): Promise<
+  AppResult<
+    {
+      bancasWithMembros: InferResultType<
+        "Bancas",
+        { curso: true; orientador: true; membros: { with: { usuario: true } } }
+      >[]
+      meta: {
+        total: number
+        totalPages: number
+        currentPage: number
+        limit: number
+        hasNext: boolean
+        hasPrev: boolean
+      }
+    },
+    GetAllBancasError
+  >
+> => {
+  const dbInstance = c.get("db")
+  try {
+    // Calculate offset for pagination
+    const offset = (page - 1) * limit
+
+    // Build search condition for count query (with joins - can reference related tables)
+    const searchConditionWithJoins = searchQuery
+      ? or(
+          ilike(Bancas.tituloTrabalho, `%${searchQuery}%`),
+          ilike(Bancas.autor, `%${searchQuery}%`),
+          ilike(Users.nome, `%${searchQuery}%`),
+          ilike(Cursos.nome, `%${searchQuery}%`)
+        )
+      : undefined
+
+    // Build search condition for data queries (without joins - only main table fields)
+    const searchConditionMainTable = searchQuery
+      ? or(ilike(Bancas.tituloTrabalho, `%${searchQuery}%`), ilike(Bancas.autor, `%${searchQuery}%`))
+      : undefined
+
+    // Build where conditions for upcoming defenses
+    const whereConditionWithJoins = searchConditionWithJoins
+      ? and(eq(Bancas.visible, true), gte(Bancas.dataRealizacao, new Date()), searchConditionWithJoins)
+      : and(eq(Bancas.visible, true), gte(Bancas.dataRealizacao, new Date()))
+
+    const whereConditionMainTable = searchConditionMainTable
+      ? and(eq(Bancas.visible, true), gte(Bancas.dataRealizacao, new Date()), searchConditionMainTable)
+      : and(eq(Bancas.visible, true), gte(Bancas.dataRealizacao, new Date()))
+
+    // Get the total count with search (using joins)
+    const totalResult = await dbInstance
+      .select({ count: Bancas.id })
+      .from(Bancas)
+      .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
+      .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
+      .where(whereConditionWithJoins)
+
+    const total = totalResult.length
+    const totalPages = Math.ceil(total / limit)
+
+    const fieldMap: Record<string, any> = {
+      dataRealizacao: Bancas.dataRealizacao,
+      tituloTrabalho: Bancas.tituloTrabalho,
+      autor: Bancas.autor,
+      local: Bancas.local,
+    }
+    const hasOrder = orderBy && fieldMap[orderBy]
+
+    // For upcoming defenses, use ascending order for dates (closest first)
+    const getOrderClause = () => {
+      if (hasOrder) {
+        if (orderBy === "dataRealizacao") {
+          return asc(fieldMap[orderBy]) // Upcoming defenses: always ascending (closest first)
+        }
+        return order === "desc" ? desc(fieldMap[orderBy]) : asc(fieldMap[orderBy])
+      }
+      return asc(Bancas.dataRealizacao)
+    }
+
+    const bancasWithMembros = await dbInstance.query.Bancas.findMany({
+      where: whereConditionMainTable,
+      orderBy: getOrderClause(),
+      limit,
+      offset,
+      with: {
+        orientador: true,
+        curso: true,
+        membros: {
+          with: {
+            usuario: true,
+          },
+        },
+      },
+    })
+
+    return ok({
+      bancasWithMembros,
+      meta: {
+        total,
+        totalPages,
+        currentPage: page,
+        limit,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+      },
+    })
+  } catch (error) {
+    console.error("Error fetching upcoming bancas:", error)
+    return err({ type: "database_error", error })
+  }
+}
+
+export const getPastBancasVisible = async (
+  c: Context<{ Variables: AppVariables }>,
+  orderBy?: string,
+  order?: "asc" | "desc",
+  page: number = 1,
+  limit: number = 10,
+  searchQuery?: string
+): Promise<
+  AppResult<
+    {
+      bancasWithMembros: InferResultType<
+        "Bancas",
+        { curso: true; orientador: true; membros: { with: { usuario: true } } }
+      >[]
+      meta: {
+        total: number
+        totalPages: number
+        currentPage: number
+        limit: number
+        hasNext: boolean
+        hasPrev: boolean
+      }
+    },
+    GetAllBancasError
+  >
+> => {
+  const dbInstance = c.get("db")
+  try {
+    // Calculate offset for pagination
+    const offset = (page - 1) * limit
+
+    // Build search condition for count query (with joins - can reference related tables)
+    const searchConditionWithJoins = searchQuery
+      ? or(
+          ilike(Bancas.tituloTrabalho, `%${searchQuery}%`),
+          ilike(Bancas.autor, `%${searchQuery}%`),
+          ilike(Users.nome, `%${searchQuery}%`),
+          ilike(Cursos.nome, `%${searchQuery}%`)
+        )
+      : undefined
+
+    // Build search condition for data queries (without joins - only main table fields)
+    const searchConditionMainTable = searchQuery
+      ? or(ilike(Bancas.tituloTrabalho, `%${searchQuery}%`), ilike(Bancas.autor, `%${searchQuery}%`))
+      : undefined
+
+    // Build where conditions for past defenses
+    const whereConditionWithJoins = searchConditionWithJoins
+      ? and(eq(Bancas.visible, true), lt(Bancas.dataRealizacao, new Date()), searchConditionWithJoins)
+      : and(eq(Bancas.visible, true), lt(Bancas.dataRealizacao, new Date()))
+
+    const whereConditionMainTable = searchConditionMainTable
+      ? and(eq(Bancas.visible, true), lt(Bancas.dataRealizacao, new Date()), searchConditionMainTable)
+      : and(eq(Bancas.visible, true), lt(Bancas.dataRealizacao, new Date()))
+
+    // Get the total count with search (using joins)
+    const totalResult = await dbInstance
+      .select({ count: Bancas.id })
+      .from(Bancas)
+      .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
+      .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
+      .where(whereConditionWithJoins)
+
+    const total = totalResult.length
+    const totalPages = Math.ceil(total / limit)
+
+    const fieldMap: Record<string, any> = {
+      dataRealizacao: Bancas.dataRealizacao,
+      tituloTrabalho: Bancas.tituloTrabalho,
+      autor: Bancas.autor,
+      local: Bancas.local,
+    }
+    const hasOrder = orderBy && fieldMap[orderBy]
+
+    // For past defenses, use descending order for dates (most recent first)
+    const getOrderClause = () => {
+      if (hasOrder) {
+        if (orderBy === "dataRealizacao") {
+          return desc(fieldMap[orderBy]) // Past defenses: always descending (most recent first)
+        }
+        return order === "desc" ? desc(fieldMap[orderBy]) : asc(fieldMap[orderBy])
+      }
+      return desc(Bancas.dataRealizacao)
+    }
+
+    const bancasWithMembros = await dbInstance.query.Bancas.findMany({
+      where: whereConditionMainTable,
+      orderBy: getOrderClause(),
+      limit,
+      offset,
+      with: {
+        orientador: true,
+        curso: true,
+        membros: {
+          with: {
+            usuario: true,
+          },
+        },
+      },
+    })
+
+    return ok({
+      bancasWithMembros,
+      meta: {
+        total,
+        totalPages,
+        currentPage: page,
+        limit,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+      },
+    })
+  } catch (error) {
+    console.error("Error fetching past bancas:", error)
+    return err({ type: "database_error", error })
+  }
+}
+
 export const getAllBancasVisible = async (
   c: Context<{ Variables: AppVariables }>,
   orderBy?: string,
