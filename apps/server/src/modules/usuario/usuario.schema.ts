@@ -22,6 +22,15 @@ export const changePasswordSchema = z.object({
   newPassword: z.string().min(8, "Nova senha deve ter pelo menos 8 caracteres"),
 })
 
+export const requestPasswordResetSchema = z.object({
+  email: z.string().email("Email inválido"),
+})
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Token é obrigatório"),
+  newPassword: z.string().min(8, "Nova senha deve ter pelo menos 8 caracteres"),
+})
+
 export const updateUserSchema = z.object({
   param: idParamSchema.shape.param,
   body: createUserSchema
