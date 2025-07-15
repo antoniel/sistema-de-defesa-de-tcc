@@ -4,7 +4,7 @@ const mode = process.env.NODE_ENV
 const TEST_MODE = mode === "test"
 
 export const envSchema = z.object({
-  NODE_ENV: z.string().optional().default("development"),
+  NODE_ENV: z.string().optional(),
   PORT: z.string().optional().default("9000"),
   // REQUIRED
   DATABASE_URL: TEST_MODE ? z.string().url().optional() : z.string().url(),
