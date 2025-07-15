@@ -1,4 +1,9 @@
 import { Header } from "@/components/layout/Header"
+import type { Route } from "./+types/admin.teacher-invitations"
+
+export const meta: Route.MetaFunction = () => [
+  { title: "SISDEF - Convites de Professores" },
+]
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
