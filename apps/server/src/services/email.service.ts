@@ -20,7 +20,7 @@ export const sendEmail = async (input: SendEmailInput): Promise<AppResult<void, 
       },
     })
 
-    if (env.NODE_ENV !== "production") {
+    if (env.NODE_ENV === "development") {
       console.log("No SMTP config found. Using test account for development.")
       const testAccount = await nodemailer.createTestAccount()
 
