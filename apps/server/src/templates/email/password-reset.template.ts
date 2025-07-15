@@ -33,6 +33,6 @@ export const createPasswordResetEmail = (props: PasswordResetEmailProps): string
     content,
     buttonText: 'Redefinir Senha',
     buttonUrl: resetUrl,
-    variant: 'destructive'
+    variant: 'default'
   })
 }
