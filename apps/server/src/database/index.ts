@@ -9,6 +9,7 @@ const pool = new pg.Pool({
 })
 
 export const db = drizzle(pool, { schema })
+export type Database = typeof db
 
 export * from "./schema"
 export * from "./type-utils"
