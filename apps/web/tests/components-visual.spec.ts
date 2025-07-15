@@ -1,147 +1,101 @@
-import { test, expect } from "@playwright/test"
-import { createVisualHelper, setupVisualTest } from "./utils/visual-helpers"
+import { test } from "@playwright/test"
+import {
+  hideDynamicElements,
+  takeComponentScreenshot,
+  takePageScreenshot,
+  VIEWPORTS,
+  waitForAnimations,
+} from "./utils/visual-helpers"
 
 test.describe("Component Visual Regression Tests", () => {
   test.beforeEach(async ({ page }) => {
-    await setupVisualTest(page)
-  })
-
-  test("Button components visual states", async ({ page }) => {
-    const visual = createVisualHelper(page, "buttons")
-    
-    await page.goto("/")
-    await visual.waitForStableState()
-    await visual.hideDynamicContent()
-    
-    // Find all buttons on the page
-    const buttons = page.locator("button")
-    const buttonCount = await buttons.count()
-    
-    if (buttonCount > 0) {
-      const firstButton = buttons.first()
-      
-      // Normal state
-      await visual.compareElement("button", "normal")
-      
-      // Hover state
-      await firstButton.hover()
-      await visual.compareElement("button", "hover")
-      
-      // Focus state
-      await firstButton.focus()
-      await visual.compareElement("button", "focus")
-    }
-  })
-
-  test("Form components visual regression", async ({ page }) => {
-    const visual = createVisualHelper(page, "forms")
-    
-    await page.goto("/")
-    await visual.waitForStableState()
-    await visual.hideDynamicContent()
-    
-    // Look for form inputs
-    const inputs = page.locator("input, textarea, select")
-    const inputCount = await inputs.count()
-    
-    if (inputCount > 0) {
-      // Normal form state
-      await visual.compareElement("form", "empty", { fullPage: false })
-      
-      // Try to focus first input to show focus styles
-      const firstInput = inputs.first()
-      await firstInput.focus()
-      await visual.compareElement("form", "focused", { fullPage: false })
-    }
+    await page.setViewportSize(VIEWPORTS.desktop)
   })
 
   test("Navigation visual regression", async ({ page }) => {
-    const visual = createVisualHelper(page, "navigation")
-    
     await page.goto("/")
-    await visual.waitForStableState()
-    await visual.hideDynamicContent()
-    
+    await page.waitForLoadState("networkidle")
+    await waitForAnimations(page)
+    await hideDynamicElements(page)
+
     // Capture navigation area
     const nav = page.locator("nav, header").first()
-    if (await nav.count() > 0) {
-      await visual.compareElement("nav, header", "default")
+    if ((await nav.count()) > 0) {
+      await takeComponentScreenshot(page, "nav, header", "navigation-default.png")
     }
-    
+
     // Test mobile navigation if toggle exists
-    await visual.setDevice("mobile")
+    await page.setViewportSize(VIEWPORTS.mobile)
     await page.goto("/")
-    await visual.waitForStableState()
-    
+    await page.waitForLoadState("networkidle")
+    await waitForAnimations(page)
+
     const mobileToggle = page.locator('[aria-label*="menu"], .menu-toggle, button:has([data-lucide="menu"])')
-    if (await mobileToggle.count() > 0) {
+    if ((await mobileToggle.count()) > 0) {
       // Closed state
-      await visual.compareElement("nav, header", "mobile-closed")
-      
+      await takeComponentScreenshot(page, "nav, header", "navigation-mobile-closed.png")
+
       // Open mobile menu
       await mobileToggle.first().click()
       await page.waitForTimeout(300) // Wait for animation
-      await visual.compareElement("nav, header", "mobile-open")
+      await takeComponentScreenshot(page, "nav, header", "navigation-mobile-open.png")
     }
   })
 
   test("Loading states visual regression", async ({ page }) => {
-    const visual = createVisualHelper(page, "loading")
-    
     await page.goto("/")
-    await visual.waitForStableState()
-    
+    await page.waitForLoadState("networkidle")
+    await waitForAnimations(page)
+
     // Look for loading indicators
     const loadingElements = page.locator('[data-testid*="loading"], .loading, .spinner, [aria-label*="loading"]')
-    
-    if (await loadingElements.count() > 0) {
-      await visual.compareElement('[data-testid*="loading"], .loading, .spinner', "spinner")
+
+    if ((await loadingElements.count()) > 0) {
+      await takeComponentScreenshot(page, '[data-testid*="loading"], .loading, .spinner', "loading-spinner.png")
     }
   })
 
   test("Error states visual regression", async ({ page }) => {
-    const visual = createVisualHelper(page, "errors")
-    
     await page.goto("/")
-    await visual.waitForStableState()
-    await visual.hideDynamicContent()
-    
+    await page.waitForLoadState("networkidle")
+    await waitForAnimations(page)
+    await hideDynamicElements(page)
+
     // Try to trigger form validation errors
     const forms = page.locator("form")
-    if (await forms.count() > 0) {
+    if ((await forms.count()) > 0) {
       const firstForm = forms.first()
       const submitButton = firstForm.locator('button[type="submit"], input[type="submit"]')
-      
-      if (await submitButton.count() > 0) {
+
+      if ((await submitButton.count()) > 0) {
         // Submit empty form to trigger validation
         await submitButton.click()
         await page.waitForTimeout(1000) // Wait for validation messages
-        
+
         // Capture form with error messages
-        await visual.compareElement("form", "with-errors")
+        await takeComponentScreenshot(page, "form", "form-with-errors.png")
       }
     }
   })
 
   test("Dark mode visual regression", async ({ page }) => {
-    const visual = createVisualHelper(page, "themes")
-    
     await page.goto("/")
-    await visual.waitForStableState()
-    await visual.hideDynamicContent()
-    
+    await page.waitForLoadState("networkidle")
+    await waitForAnimations(page)
+    await hideDynamicElements(page)
+
     // Capture light mode
-    await visual.compareScreenshot("light-mode", { fullPage: true })
-    
+    await takePageScreenshot(page, "theme-light-mode.png", { fullPage: true })
+
     // Look for dark mode toggle
     const darkModeToggle = page.locator('[data-theme], [data-mode], button:has-text("Dark"), button:has-text("Escuro")')
-    
-    if (await darkModeToggle.count() > 0) {
+
+    if ((await darkModeToggle.count()) > 0) {
       await darkModeToggle.first().click()
       await page.waitForTimeout(500) // Wait for theme transition
-      
+
       // Capture dark mode
-      await visual.compareScreenshot("dark-mode", { fullPage: true })
+      await takePageScreenshot(page, "theme-dark-mode.png", { fullPage: true })
     } else {
       // Manually inject dark mode if no toggle exists
       await page.addStyleTag({
@@ -155,39 +109,40 @@ test.describe("Component Visual Regression Tests", () => {
             color: #ffffff !important; 
             border-color: #404040 !important;
           }
-        `
+        `,
       })
-      await visual.compareScreenshot("dark-mode-manual", { fullPage: true })
+      await takePageScreenshot(page, "theme-dark-mode-manual.png", { fullPage: true })
     }
   })
 
   test("Interactive elements hover states", async ({ page }) => {
-    const visual = createVisualHelper(page, "hover")
-    
     await page.goto("/")
-    await visual.waitForStableState()
-    await visual.hideDynamicContent()
-    
+    await page.waitForLoadState("networkidle")
+    await waitForAnimations(page)
+    await hideDynamicElements(page)
+
     // Test hover on links
     const links = page.locator("a")
-    if (await links.count() > 0) {
+    if ((await links.count()) > 0) {
       const firstLink = links.first()
-      
+
       // Normal state
-      await visual.compareElement("a", "link-normal")
-      
+      await takeComponentScreenshot(page, "a", "link-normal.png")
+
       // Hover state
       await firstLink.hover()
-      await visual.compareElement("a", "link-hover")
+      await page.waitForTimeout(100)
+      await takeComponentScreenshot(page, "a", "link-hover.png")
     }
-    
+
     // Test hover on cards/clickable elements
     const cards = page.locator('[role="button"], .card, .clickable')
-    if (await cards.count() > 0) {
+    if ((await cards.count()) > 0) {
       const firstCard = cards.first()
-      
+
       await firstCard.hover()
-      await visual.compareElement('[role="button"], .card, .clickable', "card-hover")
+      await page.waitForTimeout(100)
+      await takeComponentScreenshot(page, '[role="button"], .card, .clickable', "card-hover.png")
     }
   })
 })

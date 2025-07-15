@@ -1,8 +1,5 @@
-import { expect } from "@playwright/test"
 import type { Page } from "@playwright/test"
-import { readFile, writeFile, mkdir } from "fs/promises"
-import { existsSync } from "fs"
-import * as path from "path"
+import { expect } from "@playwright/test"
 
 export interface ScreenshotOptions {
   fullPage?: boolean
@@ -19,29 +16,25 @@ export interface ScreenshotOptions {
 /**
  * Take a screenshot with consistent settings
  */
-export async function takePageScreenshot(
-  page: Page, 
-  name: string, 
-  options: ScreenshotOptions = {}
-) {
+export async function takePageScreenshot(page: Page, name: string, options: ScreenshotOptions = {}) {
   // Wait for page to be stable
   await page.waitForLoadState("networkidle")
   await page.waitForTimeout(500)
-  
+
   // Hide dynamic elements that might cause flaky tests
   const dynamicSelectors = [
     '[data-testid="timestamp"]',
-    '.loading-spinner',
-    '.toast',
+    ".loading-spinner",
+    ".toast",
     '[class*="animate"]',
-    ...options.mask || []
+    ...(options.mask || []),
   ]
-  
+
   // Mask dynamic content
   const maskLocators = dynamicSelectors
-    .map(selector => page.locator(selector))
-    .filter(async locator => await locator.count() > 0)
-  
+    .map((selector) => page.locator(selector))
+    .filter(async (locator) => (await locator.count()) > 0)
+
   return await expect(page).toHaveScreenshot(name, {
     fullPage: options.fullPage || false,
     threshold: options.threshold || 0.2,
@@ -61,10 +54,10 @@ export async function takeComponentScreenshot(
 ) {
   const element = page.locator(selector)
   await expect(element).toBeVisible()
-  
+
   return await expect(element).toHaveScreenshot(name, {
     threshold: options.threshold || 0.2,
-    mask: options.mask?.map(mask => page.locator(mask)) || [],
+    mask: options.mask?.map((mask) => page.locator(mask)) || [],
   })
 }
 
@@ -74,9 +67,7 @@ export async function takeComponentScreenshot(
 export async function waitForAnimations(page: Page) {
   await page.waitForFunction(() => {
     const animations = document.getAnimations()
-    return animations.every(animation => 
-      animation.playState === 'finished' || animation.playState === 'idle'
-    )
+    return animations.every((animation) => animation.playState === "finished" || animation.playState === "idle")
   })
 }
 
@@ -99,7 +90,7 @@ export async function hideDynamicElements(page: Page) {
       * {
         cursor: none !important;
       }
-    `
+    `,
   })
 }
 
@@ -116,18 +107,14 @@ export const VIEWPORTS = {
 /**
  * Take screenshots across multiple viewport sizes
  */
-export async function takeResponsiveScreenshots(
-  page: Page,
-  baseName: string,
-  url: string = "/"
-) {
+export async function takeResponsiveScreenshots(page: Page, baseName: string, url: string = "/") {
   for (const [device, viewport] of Object.entries(VIEWPORTS)) {
     await page.setViewportSize(viewport)
     await page.goto(url)
     await page.waitForLoadState("networkidle")
     await waitForAnimations(page)
     await hideDynamicElements(page)
-    
+
     await takePageScreenshot(page, `${baseName}-${device}.png`)
   }
 }
@@ -137,14 +124,14 @@ export async function takeResponsiveScreenshots(
  */
 export async function createBaselines(page: Page, routes: string[]) {
   await page.setViewportSize(VIEWPORTS.desktop)
-  
+
   for (const route of routes) {
     const routeName = route === "/" ? "home" : route.replace(/\//g, "-")
     await page.goto(route)
     await page.waitForLoadState("networkidle")
     await waitForAnimations(page)
     await hideDynamicElements(page)
-    
+
     await takePageScreenshot(page, `baseline-${routeName}.png`)
   }
 }
