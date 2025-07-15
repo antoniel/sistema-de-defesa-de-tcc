@@ -14,7 +14,7 @@ import { useEffect, useState } from "react"
 import { href, useNavigate } from "react-router"
 import { match } from "ts-pattern"
 
-import { useUpcomingBancasDefesa, usePastBancasDefesa, useMyDefesas } from "@/hooks"
+import { useMyDefesas, usePastBancasDefesa, useUpcomingBancasDefesa } from "@/hooks"
 
 type BancasDefesa = ReturnType<typeof useUpcomingBancasDefesa>["data"] & {}
 
@@ -27,7 +27,6 @@ export default function Home() {
   const [rowsPerPage, setRowsPerPage] = useState<number>(10)
   const [upcomingCurrentPage, setUpcomingCurrentPage] = useState<number>(1)
   const [pastCurrentPage, setPastCurrentPage] = useState<number>(1)
-
 
   const userQuery = useUser()
   const upcomingBancasQuery = useUpcomingBancasDefesa(
@@ -103,7 +102,8 @@ export default function Home() {
       <div className="container mx-auto p-4 md:p-8">
         <Header className="mb-6" />
         <div className="text-red-600">
-          Erro ao carregar as defesas: {upcomingBancasQuery.error?.message || pastBancasQuery.error?.message || "Erro desconhecido"}
+          Erro ao carregar as defesas:{" "}
+          {upcomingBancasQuery.error?.message || pastBancasQuery.error?.message || "Erro desconhecido"}
         </div>
       </div>
     )
@@ -117,7 +117,7 @@ export default function Home() {
         meta: myDefesasQuery.data?.meta,
       }
     }
-    
+
     if (activeTab === "upcoming") {
       return {
         upcoming: upcomingBancasQuery.data?.data || [],
@@ -125,7 +125,7 @@ export default function Home() {
         meta: upcomingBancasQuery.data?.meta,
       }
     }
-    
+
     if (activeTab === "past") {
       return {
         upcoming: [],
@@ -133,7 +133,7 @@ export default function Home() {
         meta: pastBancasQuery.data?.meta,
       }
     }
-    
+
     // Default fallback
     return {
       upcoming: upcomingBancasQuery.data?.data || [],
@@ -164,7 +164,7 @@ export default function Home() {
               onValueChange={(value) => {
                 setRowsPerPage(Number(value))
                 setUpcomingCurrentPage(1) // Reset to first page when changing rows per page
-    setPastCurrentPage(1)
+                setPastCurrentPage(1)
               }}
             >
               <SelectTrigger className="w-20">
@@ -184,9 +184,17 @@ export default function Home() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-4">
-          <TabsTrigger value="upcoming" data-testid="upcoming-tab">Próximas defesas</TabsTrigger>
-          <TabsTrigger value="past" data-testid="past-tab">Defesas anteriores</TabsTrigger>
-          {isTeacherOrAdmin && <TabsTrigger value="my-defesas" data-testid="my-defesas-tab">Minhas defesas</TabsTrigger>}
+          <TabsTrigger value="upcoming" data-testid="upcoming-tab">
+            Próximas defesas
+          </TabsTrigger>
+          <TabsTrigger value="past" data-testid="past-tab">
+            Defesas anteriores
+          </TabsTrigger>
+          {isTeacherOrAdmin && (
+            <TabsTrigger value="my-defesas" data-testid="my-defesas-tab">
+              Minhas defesas
+            </TabsTrigger>
+          )}
         </TabsList>
         {tableData.upcoming.length > 0 && (
           <TabsContent value="upcoming">
@@ -348,7 +356,7 @@ const columns = [
 ] as const
 
 function HomeTable(props: {
-  data: BancasDefesa
+  data: BancasDefesa["data"]
   searchQuery: string
   sortField: string
   sortOrder: "asc" | "desc"
@@ -442,7 +450,7 @@ function HomeTable(props: {
 }
 
 function TableWithInfo(props: {
-  data: BancasDefesa
+  data: BancasDefesa["data"]
   searchQuery: string
   sortField: string
   sortOrder: "asc" | "desc"
