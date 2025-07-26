@@ -18,7 +18,7 @@ This is a monorepo containing an academic thesis committee ("banca") management 
 ### Root Level Commands
 
 - `npm run dev` - Start both frontend and backend in development mode
-- `npm run typecheck` - Run TypeScript type checking across all workspaces
+- `npm run tscheck` - Run TypeScript type checking across all workspaces
 - `npm run test` - Run all tests with TUI interface
 - `npm run test:e2e` - Run end-to-end tests for web app
 - `npm run deploy` - Run deployment script
@@ -40,7 +40,7 @@ This is a monorepo containing an academic thesis committee ("banca") management 
 - `npm run test:headed` - Run Playwright tests with headed browser
 - `npm run test:debug` - Run Playwright tests in debug mode
 - `npm run test:report` - Show Playwright test report
-- `npm run typecheck` - Type checking with React Router typegen
+- `npm run tscheck` - Type checking with React Router typegen
 
 ### Backend (apps/server)
 
@@ -48,7 +48,7 @@ This is a monorepo containing an academic thesis committee ("banca") management 
 - `npm run dev:test` - Start test server for E2E tests
 - `npm run test` - Run Vitest unit tests
 - `npm run seed` - Seed database with test data
-- `npm run typecheck` - TypeScript type checking
+- `npm run tscheck` - TypeScript type checking
 - `npm run migration:gen` - Generate Drizzle migrations
 - `npm run migration:run` - Run pending migrations
 - `npm run db:push` - Push schema changes to database
@@ -334,3 +334,13 @@ Example:
 - Include proper styling with responsive design
 - Add security warnings for sensitive emails
 - Test with Ethereal email in development
+
+## Reminders
+
+- Always remember to run `npm run tscheck`
+
+## Code Style Notes
+
+- Avoid unnecessary type declarations when types are already inferred
+- **Specific Note about Database Schemas**:
+  - Stop declaring types for entities when they are already defined as Insert[Entity] or Select[Entity] in `@apps/server/src/database/schema.ts`

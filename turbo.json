@@ -8,7 +8,7 @@
       "cache": false,
       "dependsOn": []
     },
-    "typecheck": {
+    "tscheck": {
       "dependsOn": [],
       "outputs": ["dist/**"]
     },
