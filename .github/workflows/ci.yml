@@ -7,8 +7,8 @@ on:
     branches: [main, master]
 
 jobs:
-  typecheck:
-    name: Typecheck
+  tscheck:
+    name: tscheck
     timeout-minutes: 10
     runs-on: ubuntu-latest
     strategy:
@@ -28,8 +28,8 @@ jobs:
           key: ${{ runner.os }}-turbo-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-turbo-
-      - name: Run typecheck
-        run: npm run typecheck
+      - name: Run tscheck
+        run: npm run tscheck
 
   backend-tests:
     name: Backend Tests

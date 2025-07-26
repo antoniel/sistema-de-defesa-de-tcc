@@ -73,8 +73,8 @@ async function main() {
   console.log("✅ Tests passed!\n")
 
   console.log("🔍 Running type check...")
-  const typecheckResult = await runCommand("npm", ["run", "typecheck"])
-  if (typecheckResult.code !== 0) {
+  const tscheckResult = await runCommand("npm", ["run", "tscheck"])
+  if (tscheckResult.code !== 0) {
     console.error("❌ Type check failed! Deployment aborted.")
     process.exit(1)
   }

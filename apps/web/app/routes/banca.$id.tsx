@@ -29,6 +29,7 @@ import { ArrowLeft, Calendar, Clock, MapPin, School, User } from "lucide-react"
 import { useNavigate, useParams } from "react-router"
 
 import { useDeleteBanca, useToggleBancaVisibility, useBanca } from "@/hooks"
+import { PDFGenerator } from "@/components/pdf/pdf-generator"
 
 export default function BancaDetalhesPage() {
   const navigate = useNavigate()
@@ -270,6 +271,17 @@ export default function BancaDetalhesPage() {
                       <p className="text-muted-foreground">{banca.notaFinal}</p>
                     </div>
                   )}
+                </div>
+              </section>
+
+              {/* Seção de Documentos PDF */}
+              <section>
+                <h2 className="text-xl font-semibold mb-4">Documentos</h2>
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Gere e baixe documentos oficiais da banca examinadora
+                  </p>
+                  <PDFGenerator bancaId={parseInt(id)} />
                 </div>
               </section>
             </div>
