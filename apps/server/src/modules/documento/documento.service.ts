@@ -1,25 +1,18 @@
 import type { Context } from "hono"
 import { match } from "ts-pattern"
-import { AppError } from "../../utils/app-error"
-import { 
-  getBancaInfoForDocument, 
-  checkUserAccessToBanca, 
-  generatePDFFromHTML 
-} from "../../services/document.service"
+import type { SelectUsuarioBanca } from "../../database"
+import { AppError } from "../../error"
+import { checkUserAccessToBanca, generatePDFFromHTML, getBancaInfoForDocument } from "../../services/document.service"
 import { generateAtaDefesaHTML } from "../../templates/document/ata-defesa.template"
-import { generateDeclaracaoParticipacaoHTML } from "../../templates/document/declaracao-participacao.template"
 import { generateDeclaracaoOrientacaoHTML } from "../../templates/document/declaracao-orientacao.template"
-import type { AppVariables } from "../../utils/app-variables"
+import { generateDeclaracaoParticipacaoHTML } from "../../templates/document/declaracao-participacao.template"
+import type { AppVariables } from "../../types"
 
-export const getBancaDocumentInfo = async (
-  c: Context<{ Variables: AppVariables }>,
-  bancaId: number
-) => {
+export const getBancaDocumentInfo = async (c: Context<{ Variables: AppVariables }>, bancaId: number) => {
   const result = await getBancaInfoForDocument(c, bancaId)
-  
+
   if (!result.ok) {
     throw match(result.error)
-      .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
       .with({ type: "database_error" }, () => new AppError(500, "Erro interno do servidor"))
       .exhaustive()
   }
@@ -30,7 +23,7 @@ export const getBancaDocumentInfo = async (
 export const generateAtaDefesa = async (
   c: Context<{ Variables: AppVariables }>,
   bancaId: number,
-  userId: number
+  userId: SelectUsuarioBanca["id"]
 ) => {
   // Verificar acesso do usuário
   const accessResult = await checkUserAccessToBanca(c, bancaId, userId, "ata")
@@ -46,7 +39,7 @@ export const generateAtaDefesa = async (
 
   // Gerar HTML da ata
   const html = generateAtaDefesaHTML(bancaInfo)
-  
+
   // Gerar PDF
   const pdfResult = await generatePDFFromHTML(html)
   if (!pdfResult.ok) {
@@ -57,7 +50,7 @@ export const generateAtaDefesa = async (
 
   return {
     pdf: pdfResult.data,
-    fileName: `ata-defesa-${bancaInfo.banca.id}.pdf`
+    fileName: `ata-defesa-${bancaInfo.banca.id}.pdf`,
   }
 }
 
@@ -80,7 +73,7 @@ export const generateDeclaracaoParticipacao = async (
 
   // Gerar HTML da declaração
   const html = generateDeclaracaoParticipacaoHTML(bancaInfo, userId)
-  
+
   // Gerar PDF
   const pdfResult = await generatePDFFromHTML(html)
   if (!pdfResult.ok) {
@@ -91,7 +84,7 @@ export const generateDeclaracaoParticipacao = async (
 
   return {
     pdf: pdfResult.data,
-    fileName: `declaracao-participacao-${bancaInfo.banca.id}.pdf`
+    fileName: `declaracao-participacao-${bancaInfo.banca.id}.pdf`,
   }
 }
 
@@ -114,7 +107,7 @@ export const generateDeclaracaoOrientacao = async (
 
   // Gerar HTML da declaração
   const html = generateDeclaracaoOrientacaoHTML(bancaInfo, userId)
-  
+
   // Gerar PDF
   const pdfResult = await generatePDFFromHTML(html)
   if (!pdfResult.ok) {
@@ -125,6 +118,6 @@ export const generateDeclaracaoOrientacao = async (
 
   return {
     pdf: pdfResult.data,
-    fileName: `declaracao-orientacao-${bancaInfo.banca.id}.pdf`
+    fileName: `declaracao-orientacao-${bancaInfo.banca.id}.pdf`,
   }
 }
