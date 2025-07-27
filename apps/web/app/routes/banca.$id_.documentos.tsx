@@ -1,4 +1,6 @@
 import { Header } from "@/components/layout/Header"
+import { BancaNavigation } from "@/components/layout/BancaNavigation"
+import { BancaHeader } from "@/components/layout/BancaHeader"
 import { AtaDefesaPDF } from "@/components/pdf/ata-defesa"
 import { DeclaracaoOrientacaoPDF } from "@/components/pdf/declaracao-orientacao"
 import { DeclaracaoParticipacaoPDF } from "@/components/pdf/declaracao-participacao"
@@ -9,7 +11,7 @@ import { useBanca } from "@/hooks"
 import { useBancaDocumentInfo } from "@/hooks/documento.hooks"
 import { useUser } from "@/services/useUser"
 import { pdf } from "@react-pdf/renderer"
-import { ArrowLeft, BarChart3, Download, Eye, FileText, User } from "lucide-react"
+import { ArrowLeft, Download, Eye, FileText } from "lucide-react"
 import React, { useState } from "react"
 import { useNavigate, useParams } from "react-router"
 import type { Route } from "./+types/banca.$id_.documentos"
@@ -128,65 +130,15 @@ export default function BancaDocumentosPage() {
     <div className="container mx-auto p-4 md:p-8">
       <Header className="mb-6" />
 
-      <div className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button onClick={() => navigate(-1)} variant="outline" className="flex items-center">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
-          </Button>
-
-          {/* Navegação tipo tabs */}
-          <nav className="flex items-center gap-1 ml-6">
-            <Button
-              variant="ghost"
-              className="flex items-center gap-2 relative px-4 py-2 hover:bg-muted border-b-2 border-transparent hover:border-muted-foreground/20"
-              onClick={() => navigate(`/banca/${id}`)}
-            >
-              <User className="h-4 w-4" />
-              Detalhes
-            </Button>
-
-            {(user?.role === "ADMIN" || user?.role === "TEACHER") && (
-              <Button
-                variant="ghost"
-                className="flex items-center gap-2 relative px-4 py-2 hover:bg-muted border-b-2 border-primary bg-primary/5"
-                onClick={() => {}}
-              >
-                <FileText className="h-4 w-4" />
-                Documentos
-              </Button>
-            )}
-
-            {/* Botão Avaliações - para membros da banca */}
-            {(user?.role === "ADMIN" || user?.role === "TEACHER") && (
-              <Button
-                variant="ghost"
-                className="flex items-center gap-2 relative px-4 py-2 hover:bg-muted border-b-2 border-transparent hover:border-muted-foreground/20"
-                onClick={() => navigate(`/banca/${id}/avaliacoes`)}
-              >
-                <BarChart3 className="h-4 w-4" />
-                Avaliações
-              </Button>
-            )}
-          </nav>
-        </div>
-
-        <div className="flex items-center gap-4">{/* Área para controles administrativos se necessário */}</div>
-      </div>
+      <BancaNavigation id={id} user={user!} currentPage="documentos" />
 
       <div className="bg-card shadow-md rounded-lg overflow-hidden">
-        {/* Cabeçalho */}
-        <div className="bg-muted p-6 border-b">
-          <div className="flex items-start gap-4">
-            <img src="/brasao_ufba.png" alt="Brasão da UFBA" className="w-16 h-16 object-contain" />
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold">Documentos da Banca</h1>
-              <p className="text-muted-foreground mt-2">{banca.tituloTrabalho}</p>
-              <p className="text-sm text-muted-foreground">
-                Autor: {banca.autor} • Curso: {banca.curso?.nome}
-              </p>
-            </div>
-          </div>
-        </div>
+        <BancaHeader
+          title="Documentos da Banca"
+          trabalho={banca.tituloTrabalho}
+          autor={banca.autor}
+          curso={banca.curso?.nome || ""}
+        />
 
         {/* Conteúdo principal */}
         <div className="p-6">

@@ -1,4 +1,5 @@
 import { Header } from "@/components/layout/Header"
+import { BancaNavigation } from "@/components/layout/BancaNavigation"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,7 +16,7 @@ import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { useUser } from "@/services/useUser"
-import { ArrowLeft, BarChart3, Calendar, Clock, FileText, MapPin, School, User } from "lucide-react"
+import { Calendar, Clock, MapPin, School, User } from "lucide-react"
 import { useNavigate, useParams } from "react-router"
 import type { Route } from "./+types/banca.$id"
 
@@ -85,86 +86,45 @@ export default function BancaDetalhesPage() {
     <div className="container mx-auto p-4 md:p-8">
       <Header className="mb-6" />
 
-      <div className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button onClick={() => navigate(-1)} variant="outline" className="flex items-center">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
-          </Button>
+      <BancaNavigation id={id} user={user!} currentPage="detalhes" />
 
-          {/* Navegação tipo tabs */}
-          <nav className="flex items-center gap-1 ml-6">
-            <Button
-              variant="ghost"
-              className="flex items-center gap-2 relative px-4 py-2 hover:bg-muted border-b-2 border-primary bg-primary/5"
-              onClick={() => {}}
-            >
-              <User className="h-4 w-4" />
-              Detalhes
+      <div className="mb-6 flex items-center justify-end gap-4">
+        {canEdit && (
+          <>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="visibility-switch"
+                checked={banca.visible}
+                onCheckedChange={() => toggleVisibilityMutation.mutate()}
+                disabled={toggleVisibilityMutation.isPending}
+              />
+              <Label htmlFor="visibility-switch" className="flex flex-col">
+                <span>Visibilidade</span>
+                <span className="text-xs text-muted-foreground">{banca.visible ? "Visível" : "Oculta"}</span>
+              </Label>
+            </div>
+            <Button variant="outline" onClick={() => navigate(`/banca/${id}/edit`)}>
+              Editar
             </Button>
-
-            {(user?.role === "ADMIN" || user?.role === "TEACHER") && (
-              <Button
-                variant="ghost"
-                className="flex items-center gap-2 relative px-4 py-2 hover:bg-muted border-b-2 border-transparent hover:border-muted-foreground/20"
-                onClick={() => navigate(`/banca/${id}/documentos`)}
-              >
-                <FileText className="h-4 w-4" />
-                Documentos
-              </Button>
-            )}
-
-            {/* Botão Avaliações - para membros da banca */}
-            {(user?.role === "ADMIN" || user?.role === "TEACHER") && (
-              <Button
-                variant="ghost"
-                className="flex items-center gap-2 relative px-4 py-2 hover:bg-muted border-b-2 border-transparent hover:border-muted-foreground/20"
-                onClick={() => navigate(`/banca/${id}/avaliacoes`)}
-              >
-                <BarChart3 className="h-4 w-4" />
-                Avaliações
-              </Button>
-            )}
-          </nav>
-        </div>
-
-        <div className="flex items-center gap-4">
-          {canEdit && (
-            <>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="visibility-switch"
-                  checked={banca.visible}
-                  onCheckedChange={() => toggleVisibilityMutation.mutate()}
-                  disabled={toggleVisibilityMutation.isPending}
-                />
-                <Label htmlFor="visibility-switch" className="flex flex-col">
-                  <span>Visibilidade</span>
-                  <span className="text-xs text-muted-foreground">{banca.visible ? "Visível" : "Oculta"}</span>
-                </Label>
-              </div>
-              <Button variant="outline" onClick={() => navigate(`/banca/${id}/edit`)}>
-                Editar
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive">Excluir</Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Essa ação não pode ser desfeita. Isso irá excluir permanentemente a banca de defesa.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete}>Confirmar</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </>
-          )}
-        </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive">Excluir</Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Essa ação não pode ser desfeita. Isso irá excluir permanentemente a banca de defesa.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete}>Confirmar</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </>
+        )}
       </div>
 
       <div className="bg-card shadow-md rounded-lg overflow-hidden">
