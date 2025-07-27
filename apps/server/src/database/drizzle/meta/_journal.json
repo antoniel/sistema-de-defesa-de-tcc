@@ -43,6 +43,13 @@
       "when": 1752539645959,
       "tag": "0005_bouncy_fenris",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1753588228035,
+      "tag": "0006_volatile_black_widow",
+      "breakpoints": true
     }
   ]
 }
