@@ -1,70 +1,21 @@
+import type { DocumentInfo } from "@/hooks"
 import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer"
-import React from "react"
 import { SharedDocumentHeader } from "./shared-document"
 
-export interface BancaInfoForDocument {
-  banca: {
-    id: number
-    tituloTrabalho: string
-    autor: string
-    matricula: string | null
-    turma: string
-    periodoAcademico: string
-    dataRealizacao: string
-    local: string
-    modalidade: "remoto" | "local"
-    resumo: string | null
-    abstract: string | null
-    palavrasChave: string | null
-    notaFinal: number | null
-    visible: boolean
-  }
-  orientador: {
-    id: number
-    nome: string
-    email: string
-    matricula: string
-    academicTitle: string
-    school: string
-  }
-  aluno: {
-    id: number
-    nome: string
-    email: string
-    matricula: string
-    academicTitle: string
-    school: string
-  }
-  curso: {
-    id: number
-    nome: string
-    sigla: string
-  }
-  membros: Array<{
-    id: number
-    nome: string
-    email: string
-    matricula: string
-    academicTitle: string
-    school: string
-    role: "orientador" | "coorientador" | "avaliador" | "discente"
-    nota: number | null
-  }>
-}
-
-interface DeclaracaoOrientacaoPDFProps {
-  bancaInfo: BancaInfoForDocument
+export const DeclaracaoOrientacaoPDF = ({
+  bancaInfo,
+  orientadorId,
+}: {
+  bancaInfo: DocumentInfo
   orientadorId: number
-}
-
-export const DeclaracaoOrientacaoPDF: React.FC<DeclaracaoOrientacaoPDFProps> = ({ bancaInfo, orientadorId }) => {
-  const { banca, curso, membros } = bancaInfo
+}) => {
+  const { curso, membros } = bancaInfo
 
   const orientador = membros.find(
     (m) => m.id === orientadorId && (m.role === "orientador" || m.role === "coorientador")
   )
 
-  const defenseDate = new Date(banca.dataRealizacao).toLocaleDateString("pt-BR", {
+  const defenseDate = new Date(bancaInfo.dataRealizacao).toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "long",
     year: "numeric",
@@ -110,11 +61,11 @@ export const DeclaracaoOrientacaoPDF: React.FC<DeclaracaoOrientacaoPDFProps> = (
         <Text style={styles.declarationText}>
           Declaro para os devidos fins, que{" "}
           <Text style={styles.boldText}>
-            {orientador.academicTitle} {orientador.nome}
+            {orientador.usuario.academicTitle} {orientador.usuario.nome}
           </Text>{" "}
           atuou como {getRoleText(orientador.role)} do Projeto Final II de{" "}
-          <Text style={styles.boldText}>{banca.autor}</Text>, aluno do Curso de {curso.nome}
-          da UFBA, intitulado <Text style={styles.boldText}>"{banca.tituloTrabalho}"</Text>, cuja defesa ocorreu em{" "}
+          <Text style={styles.boldText}>{bancaInfo.autor}</Text>, aluno do Curso de {curso.nome}
+          da UFBA, intitulado <Text style={styles.boldText}>"{bancaInfo.tituloTrabalho}"</Text>, cuja defesa ocorreu em{" "}
           <Text style={styles.boldText}>{defenseDate}</Text>.
         </Text>
 
