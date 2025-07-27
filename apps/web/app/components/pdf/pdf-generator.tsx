@@ -43,13 +43,13 @@ export function PDFGenerator({ bancaId, className }: PDFGeneratorProps) {
           const participanteId =
             membroId || bancaInfo.membros.find((m) => m.role !== "discente")?.id || bancaInfo.membros[0]?.id
           if (!participanteId) throw new Error("Membro não encontrado")
-          pdfComponent = <DeclaracaoParticipacaoPDF bancaInfo={bancaInfo as any} membroId={participanteId} />
+          pdfComponent = <DeclaracaoParticipacaoPDF bancaInfo={bancaInfo} membroId={participanteId} />
           fileName = `declaracao-participacao.pdf`
           break
         case "orientacao":
           const orientador = bancaInfo.membros.find((m) => m.role === "orientador")
           if (!orientador) throw new Error("Orientador não encontrado")
-          pdfComponent = <DeclaracaoOrientacaoPDF bancaInfo={bancaInfo as any} orientadorId={orientador.id} />
+          pdfComponent = <DeclaracaoOrientacaoPDF bancaInfo={bancaInfo} orientadorId={orientador.id} />
           fileName = `declaracao-orientacao.pdf`
           break
         default:
