@@ -16,6 +16,3 @@ export const getBancaDocumentInfo = async (c: Context<{ Variables: AppVariables 
 
   return result.data
 }
-
-// PDF generation functions removed - moved to frontend
-// Only getBancaDocumentInfo remains for providing data to frontend

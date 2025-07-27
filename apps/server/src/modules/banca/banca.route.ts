@@ -189,22 +189,22 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
 
     return c.json(result.data)
   })
-  .post("/usuario-banca/:inviteId/accept", async (c) => {
-    const inviteId = Number(c.req.param("inviteId"))
-    const result = await service.addUserToBanca(c, inviteId)
+  // .post("/usuario-banca/:inviteId/accept", async (c) => {
+  //   const inviteId = Number(c.req.param("inviteId"))
+  //   const result = await service.addUserToBanca(c, inviteId)
 
-    if (!result.ok) {
-      throw match(result.error)
-        .with({ type: "database_error" }, () => new AppError(500, "Erro ao adicionar usuário"))
-        .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
-        .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))
-        .with({ type: "invite_not_found" }, () => new AppError(404, "Convite não encontrado"))
-        .with({ type: "already_member" }, () => new AppError(400, "Usuário já é membro desta banca"))
-        .exhaustive()
-    }
+  //   if (!result.ok) {
+  //     throw match(result.error)
+  //       .with({ type: "database_error" }, () => new AppError(500, "Erro ao adicionar usuário"))
+  //       .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
+  //       .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))
+  //       .with({ type: "invite_not_found" }, () => new AppError(404, "Convite não encontrado"))
+  //       .with({ type: "already_member" }, () => new AppError(400, "Usuário já é membro desta banca"))
+  //       .exhaustive()
+  //   }
 
-    return c.json(result.data, 201)
-  })
+  //   return c.json(result.data, 201)
+  // })
   .post(
     "/convites/email",
     zValidator(

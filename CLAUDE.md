@@ -55,6 +55,8 @@ This is a monorepo containing an academic thesis committee ("banca") management 
 
 ## Technology Stack
 
+Import Patterns: This codebase uses @/imports, not ~/ imports
+
 ### Frontend
 
 - **Framework**: React Router v7 with SSR
@@ -344,3 +346,19 @@ Example:
 - Avoid unnecessary type declarations when types are already inferred
 - **Specific Note about Database Schemas**:
   - Stop declaring types for entities when they are already defined as Insert[Entity] or Select[Entity] in `@apps/server/src/database/schema.ts`
+
+## Developer Tips
+
+- **Workflow Optimization**:
+  - ao invés de usar comentários com TODO, use apps/server/src/todo.ts ou apps/web/app/lib/utils.ts#TODO
+
+## PDF Document Templates
+
+- **Institution**: All PDF documents are for UFBA (Universidade Federal da Bahia), not UFRN
+- **Format**: Based on official UFBA document templates with proper institutional headers
+- **Location**: Templates located in `apps/web/app/components/pdf/`
+- **Available Documents**:
+  - `ata-defesa.tsx` - Defense minutes/proceedings
+  - `declaracao-participacao.tsx` - Participation declaration for committee members  
+  - `declaracao-orientacao.tsx` - Supervision declaration for advisors
+- **Styling**: Uses Times-Roman font, official UFBA formatting with proper spacing and layout

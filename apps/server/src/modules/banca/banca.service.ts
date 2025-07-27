@@ -575,7 +575,7 @@ export const updateBanca = async (
       await dbInstance.insert(usuariosBancas).values({
         bancaId: updatedBanca.id,
         usuarioId: Number(data.alunoId),
-        role: "aluno",
+        role: "discente",
       })
     }
 
@@ -715,63 +715,6 @@ export const getUsersByBanca = async (
     return ok(users)
   } catch (error) {
     console.error(`Error fetching users for banca ID ${bancaId}:`, error)
-    return err({ type: "database_error", error })
-  }
-}
-
-export const addUserToBanca = async (
-  c: Context<{ Variables: AppVariables }>,
-  inviteId: number
-): Promise<AppResult<typeof usuariosBancas.$inferSelect, AddUserToBancaError>> => {
-  const dbInstance = c.get("db")
-
-  try {
-    const inviteResult = await dbInstance.select().from(invites).where(eq(invites.id, inviteId)).limit(1)
-
-    if (inviteResult.length === 0) {
-      return err({ type: "invite_not_found" })
-    }
-
-    const invite = inviteResult[0]
-
-    if (!invite.userId) {
-      return err({ type: "user_not_found" })
-    }
-
-    const bancaExists = await dbInstance
-      .select({ id: Bancas.id })
-      .from(Bancas)
-      .where(eq(Bancas.id, invite.bancaId))
-      .limit(1)
-
-    if (bancaExists.length === 0) {
-      return err({ type: "banca_not_found" })
-    }
-
-    const existingRelation = await dbInstance
-      .select({ id: usuariosBancas.id })
-      .from(usuariosBancas)
-      .where(and(eq(usuariosBancas.usuarioId, invite.userId), eq(usuariosBancas.bancaId, invite.bancaId)))
-      .limit(1)
-
-    if (existingRelation.length > 0) {
-      return err({ type: "already_member" })
-    }
-
-    const [newRelation] = await dbInstance
-      .insert(usuariosBancas)
-      .values({
-        usuarioId: invite.userId,
-        bancaId: invite.bancaId,
-        role: invite.roleConvidado,
-      })
-      .returning()
-
-    await dbInstance.update(invites).set({ status: "accepted" }).where(eq(invites.id, inviteId))
-
-    return ok(newRelation)
-  } catch (error) {
-    console.error(`Error adding user to banca with invite ID ${inviteId}:`, error)
     return err({ type: "database_error", error })
   }
 }
