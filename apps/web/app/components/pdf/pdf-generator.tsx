@@ -108,6 +108,7 @@ export function PDFGenerator({ bancaId, className }: PDFGeneratorProps) {
         onClick={() => generateAndDownloadPDF("ata")}
         disabled={isGenerating}
         className="flex items-center gap-2"
+        data-document-type="ata"
       >
         {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
         Ata de Defesa
@@ -119,6 +120,7 @@ export function PDFGenerator({ bancaId, className }: PDFGeneratorProps) {
         onClick={() => generateAndDownloadPDF("participacao")}
         disabled={isGenerating}
         className="flex items-center gap-2"
+        data-document-type="participacao"
       >
         {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
         Decl. Participação
@@ -130,6 +132,7 @@ export function PDFGenerator({ bancaId, className }: PDFGeneratorProps) {
         onClick={() => generateAndDownloadPDF("orientacao")}
         disabled={isGenerating}
         className="flex items-center gap-2"
+        data-document-type="orientacao"
       >
         {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
         Decl. Orientação

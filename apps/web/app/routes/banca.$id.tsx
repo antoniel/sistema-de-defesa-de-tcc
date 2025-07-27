@@ -1,10 +1,4 @@
-import React from "react"
 import { Header } from "@/components/layout/Header"
-import type { Route } from "./+types/banca.$id"
-
-export const meta: Route.MetaFunction = () => [
-  { title: "SISDEF - Detalhes da Defesa" },
-]
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,16 +14,14 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
-import { useToast } from "@/hooks/use-toast"
-import { rpcReturn } from "@/lib/utils"
-import apiClient from "@/services/apiClient"
 import { useUser } from "@/services/useUser"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { ArrowLeft, Calendar, Clock, MapPin, School, User } from "lucide-react"
+import { ArrowLeft, BarChart3, Calendar, Clock, FileText, MapPin, School, User } from "lucide-react"
 import { useNavigate, useParams } from "react-router"
+import type { Route } from "./+types/banca.$id"
 
-import { useDeleteBanca, useToggleBancaVisibility, useBanca } from "@/hooks"
-import { PDFGenerator } from "@/components/pdf/pdf-generator"
+export const meta: Route.MetaFunction = () => [{ title: "SISDEF - Detalhes da Defesa" }]
+
+import { useBanca, useDeleteBanca, useToggleBancaVisibility } from "@/hooks"
 
 export default function BancaDetalhesPage() {
   const navigate = useNavigate()
@@ -94,58 +86,102 @@ export default function BancaDetalhesPage() {
       <Header className="mb-6" />
 
       <div className="mb-6 flex items-center justify-between">
-        <Button onClick={() => navigate(-1)} variant="outline" className="flex items-center">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
-        </Button>
+        <div className="flex items-center gap-4">
+          <Button onClick={() => navigate(-1)} variant="outline" className="flex items-center">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+          </Button>
 
-        {canEdit && (
-          <div className="flex items-center gap-4">
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="visibility-switch"
-                checked={banca.visible}
-                onCheckedChange={() => toggleVisibilityMutation.mutate()}
-                disabled={toggleVisibilityMutation.isPending}
-              />
-              <Label htmlFor="visibility-switch" className="flex flex-col">
-                <span>Visibilidade</span>
-                <span className="text-xs text-muted-foreground">{banca.visible ? "Visível" : "Oculta"}</span>
-              </Label>
-            </div>
-            <Button variant="outline" onClick={() => navigate(`/banca/${id}/edit`)}>
-              Editar
+          {/* Navegação tipo tabs */}
+          <nav className="flex items-center gap-1 ml-6">
+            <Button
+              variant="ghost"
+              className="flex items-center gap-2 relative px-4 py-2 hover:bg-muted border-b-2 border-primary bg-primary/5"
+              onClick={() => {}}
+            >
+              <User className="h-4 w-4" />
+              Detalhes
             </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive">Excluir</Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Essa ação não pode ser desfeita. Isso irá excluir permanentemente a banca de defesa.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete}>Confirmar</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        )}
+
+            {(user?.role === "ADMIN" || user?.role === "TEACHER") && (
+              <Button
+                variant="ghost"
+                className="flex items-center gap-2 relative px-4 py-2 hover:bg-muted border-b-2 border-transparent hover:border-muted-foreground/20"
+                onClick={() => navigate(`/banca/${id}/documentos`)}
+              >
+                <FileText className="h-4 w-4" />
+                Documentos
+              </Button>
+            )}
+
+            {/* Botão Avaliações - para membros da banca */}
+            {(user?.role === "ADMIN" || user?.role === "TEACHER") && (
+              <Button
+                variant="ghost"
+                className="flex items-center gap-2 relative px-4 py-2 hover:bg-muted border-b-2 border-transparent hover:border-muted-foreground/20"
+                onClick={() => navigate(`/banca/${id}/avaliacoes`)}
+              >
+                <BarChart3 className="h-4 w-4" />
+                Avaliações
+              </Button>
+            )}
+          </nav>
+        </div>
+
+        <div className="flex items-center gap-4">
+          {canEdit && (
+            <>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="visibility-switch"
+                  checked={banca.visible}
+                  onCheckedChange={() => toggleVisibilityMutation.mutate()}
+                  disabled={toggleVisibilityMutation.isPending}
+                />
+                <Label htmlFor="visibility-switch" className="flex flex-col">
+                  <span>Visibilidade</span>
+                  <span className="text-xs text-muted-foreground">{banca.visible ? "Visível" : "Oculta"}</span>
+                </Label>
+              </div>
+              <Button variant="outline" onClick={() => navigate(`/banca/${id}/edit`)}>
+                Editar
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive">Excluir</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Essa ação não pode ser desfeita. Isso irá excluir permanentemente a banca de defesa.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete}>Confirmar</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="bg-card shadow-md rounded-lg overflow-hidden">
         {/* Cabeçalho com título do trabalho */}
         <div className="bg-muted p-6 border-b">
-          <h1 className="text-2xl font-bold">{banca.tituloTrabalho}</h1>
-          <div className="flex items-center mt-2 text-muted-foreground">
-            <User className="h-4 w-4 mr-1" />
-            <span className="mr-4">{banca.autor}</span>
+          <div className="flex items-start gap-4">
+            <img src="/brasao_ufba.png" alt="Brasão da UFBA" className="w-16 h-16 object-contain" />
+            <div className="flex-1">
+              <h1 className="text-2xl font-bold">{banca.tituloTrabalho}</h1>
+              <div className="flex items-center mt-2 text-muted-foreground">
+                <User className="h-4 w-4 mr-1" />
+                <span className="mr-4">{banca.autor}</span>
 
-            <School className="h-4 w-4 mr-1" />
-            <span>{banca.curso?.nome}</span>
+                <School className="h-4 w-4 mr-1" />
+                <span>{banca.curso?.nome}</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -273,17 +309,6 @@ export default function BancaDetalhesPage() {
                   )}
                 </div>
               </section>
-
-              {/* Seção de Documentos PDF */}
-              <section>
-                <h2 className="text-xl font-semibold mb-4">Documentos</h2>
-                <div className="p-4 bg-muted rounded-lg">
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Gere e baixe documentos oficiais da banca examinadora
-                  </p>
-                  <PDFGenerator bancaId={parseInt(id)} />
-                </div>
-              </section>
             </div>
           </div>
         </div>
@@ -318,8 +343,6 @@ export const BancaSkeleton = () => {
     </div>
   )
 }
-
-
 
 const formatDate = (dateString?: string | Date) => {
   if (!dateString) return "Data não disponível"
