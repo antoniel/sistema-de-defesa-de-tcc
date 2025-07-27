@@ -52,6 +52,7 @@ type AddUserToBancaError =
   | { type: "database_error"; error: unknown }
 
 type RemoveUserFromBancaError = { type: "relation_not_found" } | { type: "database_error"; error: unknown }
+type SetEvaluatorGradeError = { type: "relation_not_found" } | { type: "unauthorized" } | { type: "database_error"; error: unknown }
 
 type SetBancaGradeError = { type: "banca_not_found" } | { type: "database_error"; error: unknown }
 
@@ -575,7 +576,7 @@ export const updateBanca = async (
       await dbInstance.insert(usuariosBancas).values({
         bancaId: updatedBanca.id,
         usuarioId: Number(data.alunoId),
-        role: "discente",
+        role: "aluno",
       })
     }
 
@@ -779,11 +780,13 @@ export const setEvaluatorGrade = async (
   c: Context<{ Variables: AppVariables }>,
   bancaId: number,
   userId: number,
-  grade: string
-): Promise<AppResult<typeof usuariosBancas.$inferSelect, RemoveUserFromBancaError>> => {
+  grade: string,
+  currentUserId: number
+): Promise<AppResult<typeof usuariosBancas.$inferSelect, SetEvaluatorGradeError>> => {
   const dbInstance = c.get("db")
 
   try {
+    // Check if the relation exists
     const relationExists = await dbInstance
       .select({ id: usuariosBancas.id })
       .from(usuariosBancas)
@@ -792,6 +795,18 @@ export const setEvaluatorGrade = async (
 
     if (relationExists.length === 0) {
       return err({ type: "relation_not_found" })
+    }
+
+    // Check if current user is authorized to set this grade
+    // Only the user themselves can set their own grade (unless they're admin)
+    const currentUserResult = await getUserById(c, currentUserId)
+    if (!currentUserResult.ok) {
+      return err({ type: "database_error", error: "User not found" })
+    }
+
+    const isAdmin = currentUserResult.data.role === "ADMIN"
+    if (!isAdmin && currentUserId !== userId) {
+      return err({ type: "unauthorized" })
     }
 
     const [updatedRelation] = await dbInstance

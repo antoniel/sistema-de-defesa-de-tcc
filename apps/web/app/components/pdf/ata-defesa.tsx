@@ -18,8 +18,8 @@ export const AtaDefesaPDF = ({ bancaInfo }: { bancaInfo: DocumentInfo }) => {
         return "Coorientador"
       case "avaliador":
         return "Avaliador"
-      case "discente":
-        return "Discente"
+      case "aluno":
+        return "Aluno"
       default:
         return role
     }
