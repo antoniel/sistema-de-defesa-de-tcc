@@ -11,7 +11,8 @@
     "db:push": "drizzle-kit push",
     "test": "vitest --run",
     "seed": "tsx scripts/seed.ts",
-    "tscheck": "tsc --noEmit --skipLibCheck"
+    "tscheck": "tsc --noEmit --skipLibCheck",
+    "tscheck:watch": "tsc --noEmit --skipLibCheck --watch"
   },
   "main": "shared/index.ts",
   "module": "shared/index.ts",

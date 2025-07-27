@@ -8,6 +8,7 @@
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
     "tscheck": "react-router typegen && tsc",
+    "tscheck:watch": "react-router typegen && tsc --watch",
     "test": "playwright test",
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
