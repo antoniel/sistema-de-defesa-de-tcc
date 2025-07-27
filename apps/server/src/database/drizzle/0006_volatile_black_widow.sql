@@ -1,0 +1,2 @@
+CREATE TYPE "public"."usuario_banca_role" AS ENUM('orientador', 'coorientador', 'aluno', 'avaliador');--> statement-breakpoint
+ALTER TABLE "usuario_banca" ALTER COLUMN "role" SET DATA TYPE usuario_banca_role;
