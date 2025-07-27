@@ -1,2 +1,2 @@
 CREATE TYPE "public"."usuario_banca_role" AS ENUM('orientador', 'coorientador', 'aluno', 'avaliador');--> statement-breakpoint
-ALTER TABLE "usuario_banca" ALTER COLUMN "role" SET DATA TYPE usuario_banca_role;
+ALTER TABLE "usuario_banca" ALTER COLUMN "role" SET DATA TYPE usuario_banca_role USING role::usuario_banca_role;
