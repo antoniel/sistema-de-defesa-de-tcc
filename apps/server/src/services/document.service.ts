@@ -1,24 +1,22 @@
 import { and, eq } from "drizzle-orm"
 import type { Context } from "hono"
-import type { SelectBanca, SelectCurso, SelectUser, SelectUsuarioBanca } from "../database"
-import { Bancas, Cursos, Users, usuariosBancas } from "../database/schema"
+import type { InferResultType } from "../database"
+import { Bancas, usuariosBancas } from "../database/schema"
 import { err, ok, type AppResult } from "../result"
 import type { AppVariables } from "../types"
 
-export interface BancaInfoForDocument {
-  banca: Omit<SelectBanca, 'dataRealizacao' | 'local' | 'notaFinal'> & {
-    dataRealizacao: string // ISO string for JSON serialization
-    local: string // guaranteed non-null
-    notaFinal: number | null // parsed from string
+export type BancaInfoForDocument = InferResultType<
+  "Bancas",
+  {
+    orientador: true
+    curso: true
+    membros: {
+      with: {
+        usuario: true
+      }
+    }
   }
-  orientador: SelectUser
-  aluno: SelectUser
-  curso: SelectCurso
-  membros: Array<Omit<SelectUser, 'passwordHash' | 'createdAt' | 'updatedAt'> & {
-    role: SelectUsuarioBanca["role"]
-    nota: number | null
-  }>
-}
+>
 
 export type DocumentInfoError = { type: "banca_not_found" } | { type: "database_error"; error: unknown }
 
@@ -35,66 +33,20 @@ export const getBancaInfoForDocument = async (
   const dbInstance = c.get("db")
 
   try {
-    // Buscar a banca
-    const bancaData = await dbInstance.select().from(Bancas).where(eq(Bancas.id, bancaId)).limit(1)
-
-    if (bancaData.length === 0) {
-      return err({ type: "banca_not_found" })
-    }
-
-    const banca = bancaData[0]
-
-    // Buscar orientador
-    const orientadorData = await dbInstance.select().from(Users).where(eq(Users.id, banca.orientadorId)).limit(1)
-
-    // Buscar aluno
-    const alunoData = await dbInstance.select().from(Users).where(eq(Users.id, banca.alunoId)).limit(1)
-
-    // Buscar curso
-    const cursoData = await dbInstance.select().from(Cursos).where(eq(Cursos.id, banca.cursoId)).limit(1)
-
-    if (orientadorData.length === 0 || alunoData.length === 0 || cursoData.length === 0) {
-      return err({ type: "database_error", error: "Missing required relationships" })
-    }
-
-    const orientador = orientadorData[0]
-    const aluno = alunoData[0]
-    const curso = cursoData[0]
-
-    // Buscar todos os membros da banca
-    const membrosData = await dbInstance
-      .select({
-        usuario: Users,
-        usuarioBanca: usuariosBancas,
-      })
-      .from(usuariosBancas)
-      .leftJoin(Users, eq(usuariosBancas.usuarioId, Users.id))
-      .where(eq(usuariosBancas.bancaId, bancaId))
-
-    const membros = membrosData
-      .filter((m: any) => m.usuario) // Garantir que o usuário existe
-      .map((m: any) => ({
-        id: m.usuario!.id,
-        nome: m.usuario!.nome,
-        email: m.usuario!.email,
-        matricula: m.usuario!.matricula,
-        academicTitle: m.usuario!.academicTitle,
-        school: m.usuario!.school,
-        role: m.usuarioBanca.role,
-        nota: m.usuarioBanca.nota ? parseFloat(m.usuarioBanca.nota) : null,
-      }))
-
-    const bancaInfo: BancaInfoForDocument = {
-      banca: {
-        ...banca,
-        dataRealizacao: banca.dataRealizacao.toISOString(),
-        local: banca.local || "",
-        notaFinal: banca.notaFinal ? parseFloat(banca.notaFinal) : null,
+    const bancaInfo = await dbInstance.query.Bancas.findFirst({
+      with: {
+        orientador: true,
+        curso: true,
+        membros: {
+          with: {
+            usuario: true,
+          },
+        },
       },
-      orientador,
-      aluno,
-      curso,
-      membros,
+      where: eq(Bancas.id, bancaId),
+    })
+    if (!bancaInfo) {
+      return err({ type: "banca_not_found" })
     }
 
     return ok(bancaInfo)

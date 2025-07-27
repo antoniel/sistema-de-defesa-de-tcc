@@ -12,7 +12,7 @@ export const checkRole = (roles: UserRole[]) =>
   createMiddleware<{ Variables: AppVariables }>(async (c, next) => {
     const userId = c.get("jwtPayload")?.sub
     if (!userId) {
-      throw new AppError(400, "ID do usuário não fornecido")
+      throw new AppError(401, "Usuário não autenticado")
     }
     const result = await getUserById(c, Number(userId))
     if (!result.ok) {

@@ -1,9 +1,4 @@
 import { KeywordsList } from "@/components/banca/KeywordsList"
-import type { Route } from "./+types/add-banca"
-
-export const meta: Route.MetaFunction = () => [
-  { title: "SISDEF - Cadastrar Defesa" },
-]
 import { Header } from "@/components/layout/Header"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -15,15 +10,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import useIsTeacher from "@/hooks/use-role"
 import { useToast } from "@/hooks/use-toast"
-import { rpcReturn, type RpcType } from "@/lib/utils"
+import { type RpcType } from "@/lib/utils"
 import apiClient from "@/services/apiClient"
 import { useUser } from "@/services/useUser"
-import { useMutation, useQuery } from "@tanstack/react-query"
-import type { InsertBanca, SelectUser } from "@tcc/server"
+import type { InsertBanca } from "@tcc/server"
 import React, { useState } from "react"
 import { Controller, useForm, useFormContext } from "react-hook-form"
 import { href, Navigate, useNavigate } from "react-router"
 import { match } from "ts-pattern"
+import type { Route } from "./+types/add-banca"
+
+export const meta: Route.MetaFunction = () => [{ title: "SISDEF - Cadastrar Defesa" }]
 
 type query = RpcType<typeof apiClient.banca.$post>
 
@@ -45,7 +42,7 @@ const DEV_SEED_DATA: Partial<BancaFormData> = {
   autor: "Dev Silva",
   matricula: "123456789",
   palavrasChave: "teste, desenvolvimento, automação, formulário",
-  turma: "2024/2",
+  turma: "2024.2",
   cursoId: 1,
   periodoAcademico: "2024.2", // Updated to combined format
   dataRealizacao: new Date("2024-01-01"),
@@ -55,7 +52,7 @@ const DEV_SEED_DATA: Partial<BancaFormData> = {
   orientadorId: 1,
 }
 
-import { useTeachers, useStudents, useAddBancaMutation } from "@/hooks"
+import { useAddBancaMutation, useStudents, useTeachers } from "@/hooks"
 
 const FORM_STEPS = [
   { id: 0, name: "Informações Básicas" },
@@ -107,7 +104,7 @@ export default function AddBancaPage() {
     // Combine date and time
     let dataRealizacaoCompleta = data.dataRealizacao
     if (data.hora && data.dataRealizacao) {
-      const dataStr = data.dataRealizacao.toISOString().split('T')[0]
+      const dataStr = data.dataRealizacao.toISOString().split("T")[0]
       dataRealizacaoCompleta = new Date(`${dataStr}T${data.hora}:00`)
     }
 
