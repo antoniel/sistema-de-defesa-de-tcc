@@ -258,10 +258,43 @@ Example:
 #### Component Structure
 
 - Use function declarations for components: `export function LoginForm() {}`
+- Always use explicit return statements instead of arrow function auto-returns: `function Component() { return (...) }` not `const Component = () => (...)`
 - Group hooks at the top of the component
 - Use TypeScript interfaces for props: `interface LoginFormProps {}`
 - Use React Hook Form for form handling
 - Use Zod for client-side validation
+
+#### State Management Best Practices
+
+- **State Colocation**: Move `useState` and `useEffect` as close as possible to the leaf components that need them
+- **Avoid Prop Drilling**: Instead of passing hooks like `navigate` through props, call `useNavigate()` directly in each component that needs it
+- **Local State**: Keep component state local when possible - don't lift state unnecessarily to parent components
+- **Component Autonomy**: Each component should manage its own hooks and state when feasible
+
+```typescript
+// ✅ Good - State managed in the component that uses it
+function ObservacoesGerais() {
+  const [observacoes, setObservacoes] = useState("")
+  return <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} />
+}
+
+// ❌ Bad - State lifted unnecessarily to parent
+function Parent() {
+  const [observacoes, setObservacoes] = useState("")
+  return <ObservacoesGerais observacoes={observacoes} setObservacoes={setObservacoes} />
+}
+
+// ✅ Good - Each component uses its own navigate hook
+function AccessDeniedMessage() {
+  const navigate = useNavigate()
+  return <Button onClick={() => navigate(-1)}>Voltar</Button>
+}
+
+// ❌ Bad - Passing navigate through props
+function AccessDeniedMessage({ navigate }: { navigate: NavigateFunction }) {
+  return <Button onClick={() => navigate(-1)}>Voltar</Button>
+}
+```
 
 #### State Management
 

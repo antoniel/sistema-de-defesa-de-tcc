@@ -128,7 +128,7 @@ export const sessions = pgTable("session", {
   // token_access removido, geralmente gerenciado por JWT em header
 })
 
-export const usuarioBancaRole = pgEnum("usuario_banca_role", ["orientador", "coorientador", "discente", "avaliador"])
+export const usuarioBancaRole = pgEnum("usuario_banca_role", ["orientador", "coorientador", "aluno", "avaliador"])
 export const usuariosBancas = pgTable("usuario_banca", {
   id: serial("id").primaryKey(),
   usuarioId: integer("id_usuario")
@@ -137,7 +137,7 @@ export const usuariosBancas = pgTable("usuario_banca", {
   bancaId: integer("id_banca")
     .notNull()
     .references(() => Bancas.id),
-  role: usuarioBancaRole("role").notNull(), // Ex: 'orientador', 'co-orientador', 'discente', 'avaliador'
+  role: usuarioBancaRole("role").notNull(),
   nota: text("nota"),
   // Adicionar unique constraint para (usuarioId, bancaId) ?
 })
