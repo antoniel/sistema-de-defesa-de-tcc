@@ -58,7 +58,7 @@ export default function BancaDocumentosPage() {
           break
         case "participacao":
           const participanteId =
-            membroId || bancaInfo.membros.find((m) => m.role !== "discente")?.id || bancaInfo.membros[0]?.id
+            membroId || bancaInfo.membros.find((m) => m.role !== "aluno")?.id || bancaInfo.membros[0]?.id
           if (!participanteId) return
           pdfComponent = <DeclaracaoParticipacaoPDF bancaInfo={bancaInfo} membroId={participanteId} />
           docName = "Declaração de Participação"

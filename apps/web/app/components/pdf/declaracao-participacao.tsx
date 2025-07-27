@@ -26,8 +26,8 @@ export const DeclaracaoParticipacaoPDF = ({ bancaInfo, membroId }: { bancaInfo: 
         return "Coorientador"
       case "avaliador":
         return "membro da banca examinadora"
-      case "discente":
-        return "Discente"
+      case "aluno":
+        return "Aluno"
       default:
         return role
     }

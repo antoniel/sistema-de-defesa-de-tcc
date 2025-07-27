@@ -41,7 +41,7 @@ export function PDFGenerator({ bancaId, className }: PDFGeneratorProps) {
           break
         case "participacao":
           const participanteId =
-            membroId || bancaInfo.membros.find((m) => m.role !== "discente")?.id || bancaInfo.membros[0]?.id
+            membroId || bancaInfo.membros.find((m) => m.role !== "aluno")?.id || bancaInfo.membros[0]?.id
           if (!participanteId) throw new Error("Membro não encontrado")
           pdfComponent = <DeclaracaoParticipacaoPDF bancaInfo={bancaInfo} membroId={participanteId} />
           fileName = `declaracao-participacao.pdf`

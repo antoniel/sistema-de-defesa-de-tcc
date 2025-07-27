@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { useUser } from "@/services/useUser"
-import { Calendar, Clock, MapPin, School, User } from "lucide-react"
+import { ArrowLeft, Calendar, Clock, MapPin, School, User } from "lucide-react"
 import { useNavigate, useParams } from "react-router"
 import type { Route } from "./+types/banca.$id"
 

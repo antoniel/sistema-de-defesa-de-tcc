@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useBanca } from "@/hooks"
+import { useBanca, useAssignGradeMutation } from "@/hooks"
 import { useToast } from "@/hooks/use-toast"
 import { useUser, type AppUser } from "@/services/useUser"
 import { ArrowLeft, BarChart3, FileText, Info, Save, User } from "lucide-react"
@@ -32,6 +32,7 @@ export default function BancaAvaliacoesPage() {
 
   const userQuery = useUser()
   const bancaQuery = useBanca(id)
+  const assignGradeMutation = useAssignGradeMutation()
 
   const user = userQuery.data
   const banca = bancaQuery.data
@@ -52,7 +53,7 @@ export default function BancaAvaliacoesPage() {
         .filter((m) => m.role !== "aluno")
         .map((m) => ({
           membroId: m.id,
-          nota: "",
+          nota: m.nota || "",
           comentarios: "",
           presente: true,
         }))
@@ -64,10 +65,16 @@ export default function BancaAvaliacoesPage() {
     setAvaliacoes((prev) => prev.map((av) => (av.membroId === membroId ? { ...av, [field]: value } : av)))
   }
 
-  const handleSave = async () => {
-    toast({
-      title: "Avaliações salvas",
-      description: "As avaliações foram salvas com sucesso.",
+  const handleSaveUserGrade = async (membroId: number, nota: string) => {
+    if (!user || !banca) return
+    
+    const membro = banca.membros?.find((m) => m.id === membroId)
+    if (!membro) return
+
+    assignGradeMutation.mutate({
+      bancaId: id,
+      userId: membro.usuario.id.toString(),
+      nota,
     })
   }
 
@@ -97,13 +104,11 @@ export default function BancaAvaliacoesPage() {
             bancaId={id}
             avaliacoes={avaliacoes}
             handleAvaliacaoChange={handleAvaliacaoChange}
+            handleSaveUserGrade={handleSaveUserGrade}
             user={user}
             isAdmin={isAdmin}
+            isAssigningGrade={assignGradeMutation.isPending}
           />
-
-          {(isAdmin || banca?.membros?.some((m) => m.usuario.id === user?.id)) && (
-            <SaveButton handleSave={handleSave} />
-          )}
         </div>
       </div>
     </div>
@@ -257,8 +262,10 @@ const AvaliacoesMembros = (props: {
   bancaId: string
   avaliacoes: AvaliacaoMembro[]
   handleAvaliacaoChange: (membroId: number, field: keyof AvaliacaoMembro, value: string | boolean) => void
+  handleSaveUserGrade: (membroId: number, nota: string) => void
   user: any
   isAdmin: boolean
+  isAssigningGrade: boolean
 }) => {
   const bancaQuery = useBanca(props.bancaId)
   const membrosAvaliadores = bancaQuery.data?.membros?.filter((m) => m.role !== "aluno") || []
@@ -283,7 +290,7 @@ const AvaliacoesMembros = (props: {
                       {membro.usuario.nome}
                     </CardTitle>
                     <CardDescription
-                      className="flex items-start gap-2 bg-red-400 line-clamp-2 w-3/4"
+                      className="flex items-start gap-2 line-clamp-2 w-3/4"
                       title={membro.usuario.academicTitle}
                     >
                       {membro.role === "orientador"
@@ -298,18 +305,29 @@ const AvaliacoesMembros = (props: {
                   <div className="flex items-center gap-2">
                     <Label htmlFor={`nota-${membro.id}`}>Nota:</Label>
                     {isCurrentUserMembro ? (
-                      <Input
-                        id={`nota-${membro.id}`}
-                        type="number"
-                        min="0"
-                        max="10"
-                        step="0.1"
-                        value={avaliacao.nota}
-                        onChange={(e) => canEdit && props.handleAvaliacaoChange(membro.id, "nota", e.target.value)}
-                        placeholder="Ex: 8.5"
-                        disabled={!canEdit}
-                        className={`w-28 ${!canEdit ? "bg-muted" : ""}`}
-                      />
+                      <div className="flex items-center gap-2">
+                        <Input
+                          id={`nota-${membro.id}`}
+                          type="number"
+                          min="0"
+                          max="10"
+                          step="0.1"
+                          value={avaliacao.nota}
+                          onChange={(e) => canEdit && props.handleAvaliacaoChange(membro.id, "nota", e.target.value)}
+                          placeholder="Ex: 8.5"
+                          disabled={!canEdit || props.isAssigningGrade}
+                          className={`w-28 ${!canEdit ? "bg-muted" : ""}`}
+                        />
+                        <Button
+                          size="sm"
+                          onClick={() => props.handleSaveUserGrade(membro.id, avaliacao.nota)}
+                          disabled={!canEdit || !avaliacao.nota || props.isAssigningGrade}
+                          className="flex items-center gap-1"
+                        >
+                          <Save className="h-3 w-3" />
+                          {props.isAssigningGrade ? "Salvando..." : "Salvar"}
+                        </Button>
+                      </div>
                     ) : (
                       <p className="text-sm">{avaliacao.nota || "N/A"}</p>
                     )}
@@ -324,16 +342,6 @@ const AvaliacoesMembros = (props: {
   )
 }
 
-function SaveButton({ handleSave }: { handleSave: () => void }) {
-  return (
-    <div className="flex justify-end">
-      <Button onClick={handleSave} className="flex items-center gap-2">
-        <Save className="h-4 w-4" />
-        Salvar Avaliações
-      </Button>
-    </div>
-  )
-}
 
 function AccessDeniedMessage() {
   const navigate = useNavigate()
