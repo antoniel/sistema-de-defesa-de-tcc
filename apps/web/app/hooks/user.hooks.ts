@@ -1,8 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useToast } from "./use-toast"
-import apiClient from "@/services/apiClient"
 import { rpcReturn } from "@/lib/utils"
+import apiClient from "@/services/apiClient"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { z } from "zod"
+import { useToast } from "./use-toast"
 
 // Schema for updating user
 const updateUserSchema = z.object({
@@ -63,7 +63,7 @@ export const useTeachers = () => {
     queryKey: ["teachers"],
     queryFn: async () => {
       const response = await apiClient.usuario.teachers.$get()
-      return rpcReturn(response) as unknown as any[]
+      return rpcReturn(response)
     },
   })
 }
@@ -74,7 +74,7 @@ export const useStudents = () => {
     queryKey: ["students"],
     queryFn: async () => {
       const response = await apiClient.usuario.students.$get()
-      return rpcReturn(response) as unknown as any[]
+      return rpcReturn(response)
     },
   })
 }

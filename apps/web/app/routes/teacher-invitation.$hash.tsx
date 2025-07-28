@@ -1,43 +1,39 @@
 import { Header } from "@/components/layout/Header"
-import type { Route } from "./+types/teacher-invitation.$hash"
-
-export const meta: Route.MetaFunction = () => [
-  { title: "SISDEF - Convite de Professor" },
-]
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
-import { 
-  useVerifyTeacherInvitation, 
-  useAcceptTeacherInvitation, 
-  type AcceptTeacherInvitationData 
-} from "@/hooks"
+import { useAcceptTeacherInvitation, useVerifyTeacherInvitation, type AcceptTeacherInvitationData } from "@/hooks"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { CheckCircle, Clock, Mail, XCircle } from "lucide-react"
-import React, { useEffect } from "react"
+import { useEffect } from "react"
 import { useForm } from "react-hook-form"
-import { useParams, useNavigate } from "react-router"
+import { useNavigate, useParams } from "react-router"
 import { z } from "zod"
+import type { Route } from "./+types/teacher-invitation.$hash"
 
-const acceptTeacherInvitationSchema = z.object({
-  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
-  confirmPassword: z.string().min(6, "Confirmação de senha é obrigatória"),
-  school: z.string().min(1, "Escola é obrigatória"),
-  academicTitle: z.string().min(1, "Título acadêmico é obrigatório"),
-  matricula: z.string().min(1, "Matrícula é obrigatória")
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "As senhas não coincidem",
-  path: ["confirmPassword"],
-})
+export const meta: Route.MetaFunction = () => [{ title: "SISDEF - Convite de Professor" }]
+
+const acceptTeacherInvitationSchema = z
+  .object({
+    password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
+    confirmPassword: z.string().min(6, "Confirmação de senha é obrigatória"),
+    school: z.string().min(1, "Escola é obrigatória"),
+    academicTitle: z.string().min(1, "Título acadêmico é obrigatório"),
+    matricula: z.string().min(1, "Matrícula é obrigatória"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "As senhas não coincidem",
+    path: ["confirmPassword"],
+  })
 
 type AcceptFormData = z.infer<typeof acceptTeacherInvitationSchema>
 
 export default function TeacherInvitationAcceptPage() {
   const { hash } = useParams<{ hash: string }>()
   const navigate = useNavigate()
-  
+
   const verifyQuery = useVerifyTeacherInvitation(hash || "")
   const acceptMutation = useAcceptTeacherInvitation()
 
@@ -48,7 +44,7 @@ export default function TeacherInvitationAcceptPage() {
       confirmPassword: "",
       school: "",
       academicTitle: "",
-      matricula: ""
+      matricula: "",
     },
   })
 
@@ -73,9 +69,7 @@ export default function TeacherInvitationAcceptPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground mb-4">
-              O link do convite está incompleto ou é inválido.
-            </p>
+            <p className="text-muted-foreground mb-4">O link do convite está incompleto ou é inválido.</p>
             <Button onClick={() => navigate("/")} className="w-full">
               Voltar ao Início
             </Button>
@@ -109,7 +103,7 @@ export default function TeacherInvitationAcceptPage() {
   }
 
   if (verifyQuery.isError) {
-    const error = verifyQuery.error as any
+    const error = verifyQuery.error
     const isExpired = error?.message?.includes("expirado")
     const isUsed = error?.message?.includes("utilizado")
     const isNotFound = error?.message?.includes("não encontrado")
@@ -126,12 +120,11 @@ export default function TeacherInvitationAcceptPage() {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-4">
-              {isExpired 
+              {isExpired
                 ? "Este convite expirou. Entre em contato com o administrador para receber um novo convite."
-                : isUsed 
-                ? "Este convite já foi utilizado. Se você já possui uma conta, faça login."
-                : "Este convite não foi encontrado ou é inválido."
-              }
+                : isUsed
+                  ? "Este convite já foi utilizado. Se você já possui uma conta, faça login."
+                  : "Este convite não foi encontrado ou é inválido."}
             </p>
             <Button onClick={() => navigate("/")} className="w-full">
               Voltar ao Início
@@ -177,7 +170,7 @@ export default function TeacherInvitationAcceptPage() {
       password: data.password,
       school: data.school,
       academicTitle: data.academicTitle,
-      matricula: data.matricula
+      matricula: data.matricula,
     }
 
     try {
@@ -190,29 +183,28 @@ export default function TeacherInvitationAcceptPage() {
   return (
     <div className="container mx-auto p-4 md:p-8">
       <Header className="mb-6" />
-      
+
       <Card className="max-w-lg mx-auto">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5 text-blue-600" />
             Convite para Professor
           </CardTitle>
-          <CardDescription>
-            Olá, {invitation?.nome}! Complete seu cadastro para acessar o sistema.
-          </CardDescription>
+          <CardDescription>Olá, {invitation?.nome}! Complete seu cadastro para acessar o sistema.</CardDescription>
         </CardHeader>
-        
+
         <CardContent>
           {expiresAt && (
             <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-md">
               <p className="text-sm text-blue-800 flex items-center gap-2">
                 <Clock className="h-4 w-4" />
-                Este convite expira em {expiresAt.toLocaleDateString('pt-BR', { 
-                  day: '2-digit', 
-                  month: '2-digit', 
-                  year: 'numeric', 
-                  hour: '2-digit', 
-                  minute: '2-digit' 
+                Este convite expira em{" "}
+                {expiresAt.toLocaleDateString("pt-BR", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
                 })}
               </p>
             </div>
@@ -291,11 +283,7 @@ export default function TeacherInvitationAcceptPage() {
               />
 
               <div className="pt-4">
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={acceptMutation.isPending}
-                >
+                <Button type="submit" className="w-full" disabled={acceptMutation.isPending}>
                   {acceptMutation.isPending ? "Criando conta..." : "Criar Conta"}
                 </Button>
               </div>

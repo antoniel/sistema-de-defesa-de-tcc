@@ -28,3 +28,7 @@ export const rpcReturn = async <T extends unknown>(clientResponse: ClientRespons
   }
   return data
 }
+
+export const capitalize = (str: string) => {
+  return str.charAt(0).toUpperCase() + str.slice(1)
+}
