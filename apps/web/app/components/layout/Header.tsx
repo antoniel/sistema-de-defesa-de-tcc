@@ -139,92 +139,85 @@ function RightSideButtons(props: RightSideButtonsProps) {
     useUser.removeQueries(queryClient)
   }
 
-  if (isLoading) {
-    return (
-      <span className="text-sm text-muted-foreground" aria-live="polite">
-        Carregando...
-      </span>
-    )
-  }
-
-  if (isError) {
-    return (
-      <span className="text-sm text-muted-foreground" role="alert">
-        Erro ao carregar usuário
-      </span>
-    )
-  }
-
-  if (!user) {
-    return <LoggedOutButtons {...props} />
-  }
-
+  // Always render the same container structure to prevent hydration mismatch
   return (
     <div className="ml-auto flex items-center gap-2">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="flex items-center gap-2 px-2 focus:ring-2 focus:ring-primary focus:ring-offset-2"
-            aria-label={`Menu do usuário: ${user.nome || "Usuário"}`}
-          >
-            <span className="font-medium hidden sm:inline">Olá, {user.nome || "Usuário"}</span>
-            <span className="font-medium sm:hidden">{user.nome?.split(" ")[0] || "Usuário"}</span>
-            {user.role && (
-              <Badge variant="outline" className="hidden sm:inline-flex">
-                {match(user.role)
-                  .with("TEACHER", () => "Professor")
-                  .with("STUDENT", () => "Aluno")
-                  .with("ADMIN", () => "Administrador")
-                  .exhaustive()}
-              </Badge>
-            )}
-            <ChevronDown className="h-4 w-4 opacity-50" aria-hidden="true" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuItem asChild>
-            <Link
-              to="/profile"
-              className="flex w-full items-center focus:bg-accent focus:text-accent-foreground"
-              onClick={() => (document.activeElement as HTMLElement)?.blur?.()}
+      {isLoading ? (
+        <span className="text-sm text-muted-foreground" aria-live="polite">
+          Carregando...
+        </span>
+      ) : isError ? (
+        <span className="text-sm text-muted-foreground" role="alert">
+          Erro ao carregar usuário
+        </span>
+      ) : !user ? (
+        <LoggedOutButtonsContent {...props} />
+      ) : (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              className="flex items-center gap-2 px-2 focus:ring-2 focus:ring-primary focus:ring-offset-2"
+              aria-label={`Menu do usuário: ${user.nome || "Usuário"}`}
             >
-              <User className="mr-2 h-4 w-4" aria-hidden="true" />
-              Meu Perfil
-            </Link>
-          </DropdownMenuItem>
+              <span className="font-medium hidden sm:inline">Olá, {user.nome || "Usuário"}</span>
+              <span className="font-medium sm:hidden">{user.nome?.split(" ")[0] || "Usuário"}</span>
+              {user.role && (
+                <Badge variant="outline" className="hidden sm:inline-flex">
+                  {match(user.role)
+                    .with("TEACHER", () => "Professor")
+                    .with("STUDENT", () => "Aluno")
+                    .with("ADMIN", () => "Administrador")
+                    .exhaustive()}
+                </Badge>
+              )}
+              <ChevronDown className="h-4 w-4 opacity-50" aria-hidden="true" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem asChild>
+              <Link
+                to="/profile"
+                className="flex w-full items-center focus:bg-accent focus:text-accent-foreground"
+                onClick={() => (document.activeElement as HTMLElement)?.blur?.()}
+              >
+                <User className="mr-2 h-4 w-4" aria-hidden="true" />
+                Meu Perfil
+              </Link>
+            </DropdownMenuItem>
 
-          {user.role === "ADMIN" && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link
-                  to="/admin/users"
-                  className="flex w-full items-center focus:bg-accent focus:text-accent-foreground"
-                  onClick={() => (document.activeElement as HTMLElement)?.blur?.()}
-                >
-                  <Users className="mr-2 h-4 w-4" aria-hidden="true" />
-                  Gerenciar Usuários
-                </Link>
-              </DropdownMenuItem>
-            </>
-          )}
+            {user.role === "ADMIN" && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link
+                    to="/admin/users"
+                    className="flex w-full items-center focus:bg-accent focus:text-accent-foreground"
+                    onClick={() => (document.activeElement as HTMLElement)?.blur?.()}
+                  >
+                    <Users className="mr-2 h-4 w-4" aria-hidden="true" />
+                    Gerenciar Usuários
+                  </Link>
+                </DropdownMenuItem>
+              </>
+            )}
 
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={handleLogout}
-            className="text-destructive focus:text-destructive focus:bg-destructive/10"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                handleLogout()
-              }
-            }}
-          >
-            <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
-            Sair
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={handleLogout}
+              className="text-destructive focus:text-destructive focus:bg-destructive/10"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  handleLogout()
+                }
+              }}
+            >
+              <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
+              Sair
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
     </div>
   )
 }
@@ -311,9 +304,9 @@ function MobileRightSideButtons(props: MobileRightSideButtonsProps) {
   )
 }
 
-function LoggedOutButtons(props: RightSideButtonsProps) {
+function LoggedOutButtonsContent(props: RightSideButtonsProps) {
   return (
-    <div className="ml-auto flex items-center gap-2">
+    <>
       <Button
         variant="ghost"
         className="focus:ring-2 focus:ring-primary focus:ring-offset-2"
@@ -329,7 +322,7 @@ function LoggedOutButtons(props: RightSideButtonsProps) {
       >
         Registre-se
       </Button>
-    </div>
+    </>
   )
 }
 

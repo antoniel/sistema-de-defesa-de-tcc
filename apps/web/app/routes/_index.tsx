@@ -17,9 +17,7 @@ import { match } from "ts-pattern"
 import { useMyDefesas, usePastBancasDefesa, useUpcomingBancasDefesa } from "@/hooks"
 import type { Route } from "./+types/_index"
 
-export const meta: Route.MetaFunction = () => [
-  { title: "SISDEF" },
-]
+export const meta: Route.MetaFunction = () => [{ title: "SISDEF" }]
 
 type BancasDefesa = ReturnType<typeof useUpcomingBancasDefesa>["data"] & {}
 
@@ -34,13 +32,6 @@ export default function Home() {
   const [pastCurrentPage, setPastCurrentPage] = useState<number>(1)
 
   const userQuery = useUser()
-  const upcomingBancasQuery = useUpcomingBancasDefesa(
-    sortField || undefined,
-    sortField ? sortOrder : undefined,
-    upcomingCurrentPage,
-    rowsPerPage,
-    searchQuery
-  )
   const pastBancasQuery = usePastBancasDefesa(
     sortField || undefined,
     sortField ? sortOrder : undefined,
@@ -83,7 +74,7 @@ export default function Home() {
     setPastCurrentPage(1)
   }
 
-  if (upcomingBancasQuery.isLoading && pastBancasQuery.isLoading) {
+  if (myDefesasQuery.isLoading) {
     return (
       <div className="container mx-auto p-4 md:p-8 space-y-4">
         <Header className="mb-6" />
@@ -102,13 +93,12 @@ export default function Home() {
     )
   }
 
-  if (upcomingBancasQuery.isError || pastBancasQuery.isError) {
+  if (myDefesasQuery.isError) {
     return (
       <div className="container mx-auto p-4 md:p-8">
         <Header className="mb-6" />
         <div className="text-red-600">
-          Erro ao carregar as defesas:{" "}
-          {upcomingBancasQuery.error?.message || pastBancasQuery.error?.message || "Erro desconhecido"}
+          Erro ao carregar as defesas: {myDefesasQuery.error?.message || "Erro desconhecido"}
         </div>
       </div>
     )
@@ -123,14 +113,6 @@ export default function Home() {
       }
     }
 
-    if (activeTab === "upcoming") {
-      return {
-        upcoming: upcomingBancasQuery.data?.data || [],
-        past: [],
-        meta: upcomingBancasQuery.data?.meta,
-      }
-    }
-
     if (activeTab === "past") {
       return {
         upcoming: [],
@@ -141,9 +123,9 @@ export default function Home() {
 
     // Default fallback
     return {
-      upcoming: upcomingBancasQuery.data?.data || [],
-      past: pastBancasQuery.data?.data || [],
-      meta: activeTab === "upcoming" ? upcomingBancasQuery.data?.meta : pastBancasQuery.data?.meta,
+      upcoming: myDefesasQuery.data?.upcoming || [],
+      past: myDefesasQuery.data?.past || [],
+      meta: myDefesasQuery.data?.meta,
     }
   }
 
@@ -203,153 +185,313 @@ export default function Home() {
             <span className="text-sm text-muted-foreground">linhas</span>
           </div>
         </div>
-        {tableData.upcoming.length > 0 && (
-          <TabsContent value="upcoming">
-            <div data-testid="defense-table">
-              <TableWithInfo
-                data={tableData.upcoming}
-                searchQuery={searchQuery}
-                sortField={sortField}
-                sortOrder={sortOrder}
-                onSort={handleSort}
-                rowsPerPage={rowsPerPage}
-                currentPage={upcomingCurrentPage}
-                onPageChange={setUpcomingCurrentPage}
-                meta={tableData.meta}
-              />
-            </div>
-          </TabsContent>
-        )}
-        <TabsContent value="past">
-          <div data-testid="defense-table">
-            <TableWithInfo
-              data={tableData.past}
-              searchQuery={searchQuery}
-              sortField={sortField}
-              sortOrder={sortOrder}
-              onSort={handleSort}
-              rowsPerPage={rowsPerPage}
-              currentPage={pastCurrentPage}
-              onPageChange={setPastCurrentPage}
-              meta={tableData.meta}
-            />
-          </div>
-        </TabsContent>
+        <UpcomingDefensesTab
+          searchQuery={searchQuery}
+          sortField={sortField}
+          sortOrder={sortOrder}
+          onSort={handleSort}
+          rowsPerPage={rowsPerPage}
+          currentPage={upcomingCurrentPage}
+          onPageChange={setUpcomingCurrentPage}
+          meta={tableData.meta}
+        />
+        <PastDefensesTab
+          data={tableData.past}
+          searchQuery={searchQuery}
+          sortField={sortField}
+          sortOrder={sortOrder}
+          onSort={handleSort}
+          rowsPerPage={rowsPerPage}
+          currentPage={pastCurrentPage}
+          onPageChange={setPastCurrentPage}
+          meta={tableData.meta}
+        />
         {isTeacherOrAdmin && (
-          <TabsContent value="my-defesas">
-            {myDefesasQuery.isLoading ? (
-              <div className="border rounded-md p-4">
-                <Skeleton className="h-8 w-full mb-2" />
-                <Skeleton className="h-12 w-full mb-2" />
-                <Skeleton className="h-12 w-full mb-2" />
-                <Skeleton className="h-12 w-full" />
-              </div>
-            ) : myDefesasQuery.isError ? (
-              <div className="text-red-600 p-4">
-                Erro ao carregar suas defesas: {myDefesasQuery.error?.message || "Erro desconhecido"}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div>
-                  <div className="border rounded-md">
-                    <div className="p-4 border-b">
-                      <h3 className="text-lg font-semibold">Próximas defesas</h3>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <HomeTable
-                        data={tableData.upcoming}
-                        searchQuery={searchQuery}
-                        sortField={sortField}
-                        sortOrder={sortOrder}
-                        onSort={handleSort}
-                        rowsPerPage={rowsPerPage}
-                      />
-                    </div>
-                  </div>
-                  {tableData.meta && (
-                    <div className="flex items-center justify-between px-4 pt-2">
-                      <div className="text-sm text-muted-foreground">
-                        Exibindo {tableData.upcoming.length} de {tableData.meta.total} resultado
-                        {tableData.meta.total !== 1 ? "s" : ""}
-                        {searchQuery && ` para "${searchQuery}"`}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setUpcomingCurrentPage(upcomingCurrentPage - 1)}
-                          disabled={!tableData.meta.hasPrev}
-                        >
-                          Anterior
-                        </Button>
-                        <span className="text-sm text-muted-foreground">
-                          Página {tableData.meta.currentPage} de {tableData.meta.totalPages}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setUpcomingCurrentPage(upcomingCurrentPage + 1)}
-                          disabled={!tableData.meta.hasNext}
-                        >
-                          Próximo
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <div className="border rounded-md">
-                    <div className="p-4 border-b">
-                      <h3 className="text-lg font-semibold">Defesas anteriores</h3>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <HomeTable
-                        data={tableData.past}
-                        searchQuery={searchQuery}
-                        sortField={sortField}
-                        sortOrder={sortOrder}
-                        onSort={handleSort}
-                        rowsPerPage={rowsPerPage}
-                      />
-                    </div>
-                  </div>
-                  {tableData.meta && (
-                    <div className="flex items-center justify-between px-4 pt-2">
-                      <div className="text-sm text-muted-foreground">
-                        Exibindo {tableData.past.length} de {tableData.meta.total} resultado
-                        {tableData.meta.total !== 1 ? "s" : ""}
-                        {searchQuery && ` para "${searchQuery}"`}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setPastCurrentPage(pastCurrentPage - 1)}
-                          disabled={!tableData.meta.hasPrev}
-                        >
-                          Anterior
-                        </Button>
-                        <span className="text-sm text-muted-foreground">
-                          Página {tableData.meta.currentPage} de {tableData.meta.totalPages}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setPastCurrentPage(pastCurrentPage + 1)}
-                          disabled={!tableData.meta.hasNext}
-                        >
-                          Próximo
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </TabsContent>
+          <MyDefensesTab
+            isLoading={myDefesasQuery.isLoading}
+            isError={myDefesasQuery.isError}
+            error={myDefesasQuery.error}
+            upcomingData={tableData.upcoming}
+            pastData={tableData.past}
+            searchQuery={searchQuery}
+            sortField={sortField}
+            sortOrder={sortOrder}
+            onSort={handleSort}
+            rowsPerPage={rowsPerPage}
+            upcomingCurrentPage={upcomingCurrentPage}
+            setUpcomingCurrentPage={setUpcomingCurrentPage}
+            pastCurrentPage={pastCurrentPage}
+            setPastCurrentPage={setPastCurrentPage}
+            meta={tableData.meta}
+          />
         )}
       </Tabs>
     </div>
+  )
+}
+
+interface UpcomingDefensesTabProps {
+  searchQuery: string
+  sortField: string
+  sortOrder: "asc" | "desc"
+  onSort: (field: string) => void
+  rowsPerPage: number
+  currentPage: number
+  onPageChange: (page: number) => void
+  meta?: {
+    total: number
+    totalPages: number
+    currentPage: number
+    limit: number
+    hasNext: boolean
+    hasPrev: boolean
+  }
+}
+
+function UpcomingDefensesTab(props: UpcomingDefensesTabProps) {
+  const userQuery = useUser()
+  const upcomingBancasQuery = useUpcomingBancasDefesa(
+    props.sortField || undefined,
+    props.sortField ? props.sortOrder : undefined,
+    props.currentPage,
+    props.rowsPerPage,
+    props.searchQuery
+  )
+
+  const isTeacherOrAdmin = userQuery.data?.role === "TEACHER" || userQuery.data?.role === "ADMIN"
+
+  if (upcomingBancasQuery.isLoading) {
+    return (
+      <div className="container mx-auto p-4 md:p-8 space-y-4">
+        <Header className="mb-6" />
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
+          <Skeleton className="h-10 w-full sm:w-1/2" />
+          {isTeacherOrAdmin && <Skeleton className="h-10 w-full sm:w-auto px-8" />}
+        </div>
+        <Skeleton className="h-10 w-48 mb-4" />
+        <div className="border rounded-md p-4">
+          <Skeleton className="h-8 w-full mb-2" />
+          <Skeleton className="h-12 w-full mb-2" />
+          <Skeleton className="h-12 w-full mb-2" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+      </div>
+    )
+  }
+
+  if (upcomingBancasQuery.isError) {
+    return (
+      <div className="container mx-auto p-4 md:p-8">
+        <Header className="mb-6" />
+        <div className="text-red-600">
+          Erro ao carregar as defesas: {upcomingBancasQuery.error?.message || "Erro desconhecido"}
+        </div>
+      </div>
+    )
+  }
+
+  const tableData = {
+    upcoming: upcomingBancasQuery.data?.data || [],
+    past: [],
+    meta: upcomingBancasQuery.data?.meta,
+  }
+
+  return (
+    <TabsContent value="upcoming">
+      <div data-testid="defense-table">
+        <TableWithInfo
+          data={tableData.upcoming}
+          searchQuery={props.searchQuery}
+          sortField={props.sortField}
+          sortOrder={props.sortOrder}
+          onSort={props.onSort}
+          rowsPerPage={props.rowsPerPage}
+          currentPage={props.currentPage}
+          onPageChange={props.onPageChange}
+          meta={props.meta}
+        />
+      </div>
+    </TabsContent>
+  )
+}
+
+interface PastDefensesTabProps {
+  data: BancasDefesa["data"]
+  searchQuery: string
+  sortField: string
+  sortOrder: "asc" | "desc"
+  onSort: (field: string) => void
+  rowsPerPage: number
+  currentPage: number
+  onPageChange: (page: number) => void
+  meta?: {
+    total: number
+    totalPages: number
+    currentPage: number
+    limit: number
+    hasNext: boolean
+    hasPrev: boolean
+  }
+}
+
+function PastDefensesTab(props: PastDefensesTabProps) {
+  return (
+    <TabsContent value="past">
+      <div data-testid="defense-table">
+        <TableWithInfo
+          data={props.data}
+          searchQuery={props.searchQuery}
+          sortField={props.sortField}
+          sortOrder={props.sortOrder}
+          onSort={props.onSort}
+          rowsPerPage={props.rowsPerPage}
+          currentPage={props.currentPage}
+          onPageChange={props.onPageChange}
+          meta={props.meta}
+        />
+      </div>
+    </TabsContent>
+  )
+}
+
+interface MyDefensesTabProps {
+  isLoading: boolean
+  isError: boolean
+  error: Error | null
+  upcomingData: BancasDefesa["data"]
+  pastData: BancasDefesa["data"]
+  searchQuery: string
+  sortField: string
+  sortOrder: "asc" | "desc"
+  onSort: (field: string) => void
+  rowsPerPage: number
+  upcomingCurrentPage: number
+  setUpcomingCurrentPage: (page: number) => void
+  pastCurrentPage: number
+  setPastCurrentPage: (page: number) => void
+  meta?: {
+    total: number
+    totalPages: number
+    currentPage: number
+    limit: number
+    hasNext: boolean
+    hasPrev: boolean
+  }
+}
+
+function MyDefensesTab(props: MyDefensesTabProps) {
+  return (
+    <TabsContent value="my-defesas">
+      {props.isLoading ? (
+        <div className="border rounded-md p-4">
+          <Skeleton className="h-8 w-full mb-2" />
+          <Skeleton className="h-12 w-full mb-2" />
+          <Skeleton className="h-12 w-full mb-2" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+      ) : props.isError ? (
+        <div className="text-red-600 p-4">
+          Erro ao carregar suas defesas: {props.error?.message || "Erro desconhecido"}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div>
+            <div className="border rounded-md">
+              <div className="p-4 border-b">
+                <h3 className="text-lg font-semibold">Próximas defesas</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <HomeTable
+                  data={props.upcomingData}
+                  searchQuery={props.searchQuery}
+                  sortField={props.sortField}
+                  sortOrder={props.sortOrder}
+                  onSort={props.onSort}
+                  rowsPerPage={props.rowsPerPage}
+                />
+              </div>
+            </div>
+            {props.meta && (
+              <div className="flex items-center justify-between px-4 pt-2">
+                <div className="text-sm text-muted-foreground">
+                  Exibindo {props.upcomingData.length} de {props.meta.total} resultado
+                  {props.meta.total !== 1 ? "s" : ""}
+                  {props.searchQuery && ` para "${props.searchQuery}"`}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => props.setUpcomingCurrentPage(props.upcomingCurrentPage - 1)}
+                    disabled={!props.meta.hasPrev}
+                  >
+                    Anterior
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Página {props.meta.currentPage} de {props.meta.totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => props.setUpcomingCurrentPage(props.upcomingCurrentPage + 1)}
+                    disabled={!props.meta.hasNext}
+                  >
+                    Próximo
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+          <div>
+            <div className="border rounded-md">
+              <div className="p-4 border-b">
+                <h3 className="text-lg font-semibold">Defesas anteriores</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <HomeTable
+                  data={props.pastData}
+                  searchQuery={props.searchQuery}
+                  sortField={props.sortField}
+                  sortOrder={props.sortOrder}
+                  onSort={props.onSort}
+                  rowsPerPage={props.rowsPerPage}
+                />
+              </div>
+            </div>
+            {props.meta && (
+              <div className="flex items-center justify-between px-4 pt-2">
+                <div className="text-sm text-muted-foreground">
+                  Exibindo {props.pastData.length} de {props.meta.total} resultado
+                  {props.meta.total !== 1 ? "s" : ""}
+                  {props.searchQuery && ` para "${props.searchQuery}"`}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => props.setPastCurrentPage(props.pastCurrentPage - 1)}
+                    disabled={!props.meta.hasPrev}
+                  >
+                    Anterior
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Página {props.meta.currentPage} de {props.meta.totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => props.setPastCurrentPage(props.pastCurrentPage + 1)}
+                    disabled={!props.meta.hasNext}
+                  >
+                    Próximo
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </TabsContent>
   )
 }
 
