@@ -1,5 +1,5 @@
-import { Header } from "@/components/layout/Header"
 import { BancaNavigation } from "@/components/layout/BancaNavigation"
+import { Header } from "@/components/layout/Header"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -86,46 +86,46 @@ export default function BancaDetalhesPage() {
     <div className="container mx-auto p-4 md:p-8">
       <Header className="mb-6" />
 
-      <BancaNavigation id={id} user={user!} currentPage="detalhes" />
-
-      <div className="mb-6 flex items-center justify-end gap-4">
-        {canEdit && (
-          <>
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="visibility-switch"
-                checked={banca.visible}
-                onCheckedChange={() => toggleVisibilityMutation.mutate()}
-                disabled={toggleVisibilityMutation.isPending}
-              />
-              <Label htmlFor="visibility-switch" className="flex flex-col">
-                <span>Visibilidade</span>
-                <span className="text-xs text-muted-foreground">{banca.visible ? "Visível" : "Oculta"}</span>
-              </Label>
-            </div>
-            <Button variant="outline" onClick={() => navigate(`/banca/${id}/edit`)}>
-              Editar
-            </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive">Excluir</Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Essa ação não pode ser desfeita. Isso irá excluir permanentemente a banca de defesa.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete}>Confirmar</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </>
-        )}
-      </div>
+      <BancaNavigation id={id} user={user!} currentPage="detalhes">
+        <div className="mb-6 flex items-center justify-end gap-4">
+          {canEdit && (
+            <>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="visibility-switch"
+                  checked={banca.visible}
+                  onCheckedChange={() => toggleVisibilityMutation.mutate()}
+                  disabled={toggleVisibilityMutation.isPending}
+                />
+                <Label htmlFor="visibility-switch" className="flex flex-col">
+                  <span>Visibilidade</span>
+                  <span className="text-xs text-muted-foreground">{banca.visible ? "Visível" : "Oculta"}</span>
+                </Label>
+              </div>
+              <Button variant="outline" onClick={() => navigate(`/banca/${id}/edit`)}>
+                Editar
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive">Excluir</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Essa ação não pode ser desfeita. Isso irá excluir permanentemente a banca de defesa.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete}>Confirmar</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
+          )}
+        </div>
+      </BancaNavigation>
 
       <div className="bg-card shadow-md rounded-lg overflow-hidden">
         {/* Cabeçalho com título do trabalho */}
