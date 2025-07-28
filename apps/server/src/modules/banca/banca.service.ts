@@ -52,7 +52,10 @@ type AddUserToBancaError =
   | { type: "database_error"; error: unknown }
 
 type RemoveUserFromBancaError = { type: "relation_not_found" } | { type: "database_error"; error: unknown }
-type SetEvaluatorGradeError = { type: "relation_not_found" } | { type: "unauthorized" } | { type: "database_error"; error: unknown }
+type SetEvaluatorGradeError =
+  | { type: "relation_not_found" }
+  | { type: "unauthorized" }
+  | { type: "database_error"; error: unknown }
 
 type SetBancaGradeError = { type: "banca_not_found" } | { type: "database_error"; error: unknown }
 
@@ -524,6 +527,13 @@ export const createBanca = async (
       return err({ type: "database_error", error: "Failed to create banca" })
     }
 
+    // Automatically add the advisor as a member of the committee
+    await dbInstance.insert(usuariosBancas).values({
+      bancaId: newBanca.id,
+      usuarioId: bancaData.orientadorId,
+      role: "orientador",
+    })
+
     return ok(newBanca)
   } catch (error: any) {
     if (error?.code === "23505" && error?.constraint === "aluno_curso_unique") {
@@ -610,6 +620,7 @@ export const deleteBanca = async (
       return err({ type: "banca_not_found" })
     }
 
+    await dbInstance.delete(usuariosBancas).where(eq(usuariosBancas.bancaId, id))
     await dbInstance.delete(Bancas).where(eq(Bancas.id, id))
 
     return ok(undefined)
