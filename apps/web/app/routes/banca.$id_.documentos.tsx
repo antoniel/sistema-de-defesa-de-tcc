@@ -6,6 +6,7 @@ import { DeclaracaoOrientacaoPDF } from "@/components/pdf/declaracao-orientacao"
 import { DeclaracaoParticipacaoPDF } from "@/components/pdf/declaracao-participacao"
 import { PDFGenerator } from "@/components/pdf/pdf-generator"
 import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useBanca } from "@/hooks"
 import { useBancaDocumentInfo } from "@/hooks/documento.hooks"
@@ -23,6 +24,7 @@ export default function BancaDocumentosPage() {
   const { id } = useParams<{ id: string }>()
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewType, setPreviewType] = useState<string | null>(null)
+  const [selectedParticipant, setSelectedParticipant] = useState<number | null>(null)
 
   if (!id) {
     navigate("/")
@@ -41,6 +43,9 @@ export default function BancaDocumentosPage() {
   const isTeacher = user?.role === "TEACHER"
   const hasAccess = isAdmin || isTeacher
 
+  // Get eligible participants for participation declaration (exclude students)
+  const eligibleParticipants = bancaInfo?.membros.filter(m => m.role !== "aluno") || []
+
   const isLoading = bancaQuery.isLoading || userQuery.isLoading
   const error = bancaQuery.error || userQuery.error
 
@@ -57,8 +62,8 @@ export default function BancaDocumentosPage() {
           docName = "Ata de Defesa"
           break
         case "participacao":
-          const participanteId =
-            membroId || bancaInfo.membros.find((m) => m.role !== "aluno")?.id || bancaInfo.membros[0]?.id
+          const participanteId = membroId || selectedParticipant || 
+            bancaInfo.membros.find((m) => m.role !== "aluno")?.id || bancaInfo.membros[0]?.id
           if (!participanteId) return
           pdfComponent = <DeclaracaoParticipacaoPDF bancaInfo={bancaInfo} membroId={participanteId} />
           docName = "Declaração de Participação"
@@ -153,18 +158,40 @@ export default function BancaDocumentosPage() {
               </div>
 
               <div className="space-y-4">
-                {/* Declaração de Participação */}
                 <div className="border rounded-lg p-4">
                   <h3 className="font-semibold mb-2 flex items-center gap-2">
                     <FileText className="h-4 w-4" />
                     Declaração de Participação
                   </h3>
                   <p className="text-sm text-muted-foreground mb-3">Declaração para membros da banca examinadora.</p>
+                  
+                  {eligibleParticipants.length > 0 && (
+                    <div className="mb-3">
+                      <label className="text-sm font-medium mb-2 block">Selecione o participante:</label>
+                      <Select 
+                        value={selectedParticipant?.toString() || ""} 
+                        onValueChange={(value) => setSelectedParticipant(value ? Number(value) : null)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Escolha um participante" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {eligibleParticipants.map((membro) => (
+                            <SelectItem key={membro.id} value={membro.id.toString()}>
+                              {membro.usuario.nome} ({membro.role === "orientador" ? "Orientador" : "Avaliador"})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => generatePreview("participacao")}
+                      disabled={!selectedParticipant}
                       className="flex items-center gap-2"
                     >
                       <Eye className="h-4 w-4" />
@@ -173,12 +200,25 @@ export default function BancaDocumentosPage() {
                     <Button
                       variant="default"
                       size="sm"
-                      onClick={() => {
-                        const downloadButtons = document.querySelectorAll('[data-document-type="participacao"]')
-                        if (downloadButtons.length > 0) {
-                          ;(downloadButtons[0] as HTMLButtonElement).click()
+                      onClick={async () => {
+                        if (!bancaInfo || !selectedParticipant) return
+                        
+                        try {
+                          const pdfComponent = <DeclaracaoParticipacaoPDF bancaInfo={bancaInfo} membroId={selectedParticipant} />
+                          const blob = await pdf(pdfComponent).toBlob()
+                          const url = URL.createObjectURL(blob)
+                          const link = document.createElement("a")
+                          link.href = url
+                          link.download = "declaracao-participacao.pdf"
+                          document.body.appendChild(link)
+                          link.click()
+                          document.body.removeChild(link)
+                          URL.revokeObjectURL(url)
+                        } catch (error) {
+                          console.error("Erro ao gerar PDF:", error)
                         }
                       }}
+                      disabled={!selectedParticipant}
                       className="flex items-center gap-2"
                     >
                       <Download className="h-4 w-4" />
@@ -222,7 +262,11 @@ export default function BancaDocumentosPage() {
                 </div>
 
                 <div className="hidden">
-                  <PDFGenerator bancaId={parseInt(id)} />
+                  <PDFGenerator 
+                    bancaId={parseInt(id)} 
+                    showParticipantSelection={true}
+                    onParticipantSelect={setSelectedParticipant}
+                  />
                 </div>
               </div>
             </div>
