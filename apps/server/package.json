@@ -11,7 +11,8 @@
     "db:push": "drizzle-kit push",
     "test": "vitest --run",
     "seed": "tsx scripts/seed.ts",
-    "typecheck": "tsc --noEmit --skipLibCheck"
+    "tscheck": "tsc --noEmit --skipLibCheck",
+    "tscheck:watch": "tsc --noEmit --skipLibCheck --watch"
   },
   "main": "shared/index.ts",
   "module": "shared/index.ts",
@@ -20,18 +21,23 @@
   "dependencies": {
     "@electric-sql/pglite": "^0.2.17",
     "@hono/node-server": "^1.14.0",
+    "@hono/zod-validator": "^0.4.3",
+    "@react-pdf/renderer": "^4.3.0",
     "@tcc/tests": "*",
     "@types/nodemailer": "^6.4.17",
+    "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.2",
     "drizzle-orm": "^0.41.0",
     "drizzle-zod": "^0.7.1",
     "hono": "^4.2.4",
     "nodemailer": "^7.0.5",
     "pg": "^8.14.1",
+    "react": "^19.1.0",
     "ts-pattern": "^5.7.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240405.0",
+    "@types/bcrypt": "^5.0.2",
     "@types/bcryptjs": "^3.0.0",
     "@types/pg": "^8.11.11",
     "drizzle-kit": "^0.30.6",

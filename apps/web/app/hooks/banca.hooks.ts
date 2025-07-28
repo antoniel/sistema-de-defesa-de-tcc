@@ -218,3 +218,34 @@ export const useMyDefesas = (
     enabled: !!userQuery.data && (userQuery.data.role === "TEACHER" || userQuery.data.role === "ADMIN"),
   })
 }
+
+// Hook to assign grade to a committee member
+export const useAssignGradeMutation = () => {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+
+  return useMutation({
+    mutationFn: async ({ bancaId, userId, nota }: { bancaId: string; userId: string; nota: string }) => {
+      const response = await apiClient.banca[":bancaId"].usuarios[":userId"].nota.$post({
+        param: { bancaId, userId },
+        json: { nota },
+      })
+      return rpcReturn(response)
+    },
+    onSuccess: (_, { bancaId }) => {
+      // Invalidate banca query to refresh the data
+      void queryClient.invalidateQueries({ queryKey: ["banca", bancaId] })
+      toast({
+        title: "Nota atribuída",
+        description: "A nota foi atribuída com sucesso.",
+      })
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao atribuir nota",
+        description: error?.message || "Erro desconhecido ao atribuir nota. Tente novamente.",
+        variant: "destructive",
+      })
+    },
+  })
+}

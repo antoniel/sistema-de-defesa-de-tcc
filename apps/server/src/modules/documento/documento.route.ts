@@ -1,31 +1,26 @@
+import { zValidator } from "@hono/zod-validator"
 import { Hono } from "hono"
-import { TODO } from "../../todo"
+import { z } from "zod"
+import { AppError } from "../../error"
+import type { AppVariables } from "../../types"
+import { checkRole } from "../auth/auth.middleware"
+import { getBancaDocumentInfo } from "./documento.service"
 
-export const documentoRoutes = new Hono()
+export const documentoRoutes = new Hono<{ Variables: AppVariables }>().get(
+  "/info/:bancaId",
+  checkRole(["TEACHER", "ADMIN"]),
+  zValidator("param", z.object({ bancaId: z.string() })),
+  async (c) => {
+    const { bancaId } = c.req.valid("param")
+    const bancaIdNumber = parseInt(bancaId)
 
-// --- Geração de Documentos Específicos (controller Documento) ---
-// Montado sob /documentos
+    if (isNaN(bancaIdNumber)) {
+      throw new AppError(400, "ID da banca inválido")
+    }
 
-// GET /documentos/info/:bancaId (Info para gerar docs) - Original: actionDocumentoInfo
-documentoRoutes.get("/info/:bancaId", (c) => {
-  const bancaId = c.req.param("bancaId")
-  return TODO({ c, path: "/documentos/info/:bancaId", method: "GET", params: { bancaId } })
-})
-
-// POST /documentos/gerar/:bancaId (Gerar doc principal/ata) - Original: actionGetDoc
-documentoRoutes.post("/gerar/:bancaId", (c) => {
-  const bancaId = c.req.param("bancaId")
-  return TODO({ c, path: "/documentos/gerar/:bancaId", method: "POST", params: { bancaId } })
-})
-
-// GET /documentos/participacao/:bancaId (Gerar declaração participação) - Original: actionGetDocParticipacao
-documentoRoutes.get("/participacao/:bancaId", (c) => {
-  const bancaId = c.req.param("bancaId")
-  return TODO({ c, path: "/documentos/participacao/:bancaId", method: "GET", params: { bancaId } })
-})
-
-// GET /documentos/orientacao/:bancaId (Gerar declaração orientação) - Original: actionGetDocOrientacao
-documentoRoutes.get("/orientacao/:bancaId", (c) => {
-  const bancaId = c.req.param("bancaId")
-  return TODO({ c, path: "/documentos/orientacao/:bancaId", method: "GET", params: { bancaId } })
-})
+    const result = await getBancaDocumentInfo(c, bancaIdNumber)
+    return c.json(result)
+  }
+)
+// PDF generation endpoints removed - moved to frontend
+// Frontend will use /info/:bancaId to get data and generate PDFs client-side

@@ -189,22 +189,22 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
 
     return c.json(result.data)
   })
-  .post("/usuario-banca/:inviteId/accept", async (c) => {
-    const inviteId = Number(c.req.param("inviteId"))
-    const result = await service.addUserToBanca(c, inviteId)
+  // .post("/usuario-banca/:inviteId/accept", async (c) => {
+  //   const inviteId = Number(c.req.param("inviteId"))
+  //   const result = await service.addUserToBanca(c, inviteId)
 
-    if (!result.ok) {
-      throw match(result.error)
-        .with({ type: "database_error" }, () => new AppError(500, "Erro ao adicionar usuário"))
-        .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
-        .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))
-        .with({ type: "invite_not_found" }, () => new AppError(404, "Convite não encontrado"))
-        .with({ type: "already_member" }, () => new AppError(400, "Usuário já é membro desta banca"))
-        .exhaustive()
-    }
+  //   if (!result.ok) {
+  //     throw match(result.error)
+  //       .with({ type: "database_error" }, () => new AppError(500, "Erro ao adicionar usuário"))
+  //       .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
+  //       .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))
+  //       .with({ type: "invite_not_found" }, () => new AppError(404, "Convite não encontrado"))
+  //       .with({ type: "already_member" }, () => new AppError(400, "Usuário já é membro desta banca"))
+  //       .exhaustive()
+  //   }
 
-    return c.json(result.data, 201)
-  })
+  //   return c.json(result.data, 201)
+  // })
   .post(
     "/convites/email",
     zValidator(
@@ -267,23 +267,25 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
   })
   .post(
     "/:bancaId/usuarios/:userId/nota",
-    zValidator(
-      "json",
-      z.object({
-        nota: z.string(),
-      })
-    ),
+    checkRole(["ADMIN", "TEACHER"]),
+    zValidator("json", schema.gradeAssignmentSchema),
     async (c) => {
       const bancaId = Number(c.req.param("bancaId"))
       const userId = Number(c.req.param("userId"))
       const { nota } = c.req.valid("json")
+      const currentUserId = c.get("jwtPayload")?.sub
 
-      const result = await service.setEvaluatorGrade(c, bancaId, userId, nota)
+      if (!currentUserId) {
+        throw new AppError(401, "Usuário não autenticado")
+      }
+
+      const result = await service.setEvaluatorGrade(c, bancaId, userId, nota, Number(currentUserId))
 
       if (!result.ok) {
         throw match(result.error)
           .with({ type: "database_error" }, () => new AppError(500, "Erro ao atribuir nota"))
           .with({ type: "relation_not_found" }, () => new AppError(404, "Relação usuário-banca não encontrada"))
+          .with({ type: "unauthorized" }, () => new AppError(403, "Você só pode atribuir sua própria nota"))
           .exhaustive()
       }
 

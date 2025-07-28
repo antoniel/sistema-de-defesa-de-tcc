@@ -35,6 +35,21 @@ export const updateBancaSchema = z.object({
   membros: z.array(z.object({ id: z.string().min(1, "Avaliador é obrigatório") })),
 })
 
+export const gradeAssignmentSchema = z.object({
+  nota: z
+    .string()
+    .min(1, "Nota é obrigatória")
+    .refine(
+      (val) => {
+        const num = parseFloat(val)
+        return !isNaN(num) && num >= 0 && num <= 10
+      },
+      {
+        message: "Nota deve ser um número entre 0 e 10",
+      }
+    ),
+})
+
 export type CreateBancaInput = z.infer<typeof createBancaSchema>
 export type UpdateBancaInput = z.infer<typeof updateBancaSchema>
 export type ParamIdInput = z.infer<typeof paramIdSchema>

@@ -1,4 +1,4 @@
-import { db } from "./database"
+import { db, type SelectUser } from "./database"
 
 type DatabaseInstance = typeof db
 
@@ -7,7 +7,7 @@ export interface AppVariables {
   jwtPayload: {
     iss: string
     aud: string
-    sub: string
+    sub: SelectUser["id"]
     iat: number
     exp: number
   }
