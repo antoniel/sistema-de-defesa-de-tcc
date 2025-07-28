@@ -4,6 +4,7 @@ import { rpcReturn } from "../lib/utils"
 import apiClient from "./apiClient"
 import { getAuthToken, removeAuthToken } from "./authService"
 
+export type AppUser = Awaited<ReturnType<typeof useUser>>["data"]
 export const useUser = () => {
   const queryClient = useQueryClient()
 

@@ -52,6 +52,7 @@ type AddUserToBancaError =
   | { type: "database_error"; error: unknown }
 
 type RemoveUserFromBancaError = { type: "relation_not_found" } | { type: "database_error"; error: unknown }
+type SetEvaluatorGradeError = { type: "relation_not_found" } | { type: "unauthorized" } | { type: "database_error"; error: unknown }
 
 type SetBancaGradeError = { type: "banca_not_found" } | { type: "database_error"; error: unknown }
 
@@ -719,63 +720,6 @@ export const getUsersByBanca = async (
   }
 }
 
-export const addUserToBanca = async (
-  c: Context<{ Variables: AppVariables }>,
-  inviteId: number
-): Promise<AppResult<typeof usuariosBancas.$inferSelect, AddUserToBancaError>> => {
-  const dbInstance = c.get("db")
-
-  try {
-    const inviteResult = await dbInstance.select().from(invites).where(eq(invites.id, inviteId)).limit(1)
-
-    if (inviteResult.length === 0) {
-      return err({ type: "invite_not_found" })
-    }
-
-    const invite = inviteResult[0]
-
-    if (!invite.userId) {
-      return err({ type: "user_not_found" })
-    }
-
-    const bancaExists = await dbInstance
-      .select({ id: Bancas.id })
-      .from(Bancas)
-      .where(eq(Bancas.id, invite.bancaId))
-      .limit(1)
-
-    if (bancaExists.length === 0) {
-      return err({ type: "banca_not_found" })
-    }
-
-    const existingRelation = await dbInstance
-      .select({ id: usuariosBancas.id })
-      .from(usuariosBancas)
-      .where(and(eq(usuariosBancas.usuarioId, invite.userId), eq(usuariosBancas.bancaId, invite.bancaId)))
-      .limit(1)
-
-    if (existingRelation.length > 0) {
-      return err({ type: "already_member" })
-    }
-
-    const [newRelation] = await dbInstance
-      .insert(usuariosBancas)
-      .values({
-        usuarioId: invite.userId,
-        bancaId: invite.bancaId,
-        role: invite.roleConvidado,
-      })
-      .returning()
-
-    await dbInstance.update(invites).set({ status: "accepted" }).where(eq(invites.id, inviteId))
-
-    return ok(newRelation)
-  } catch (error) {
-    console.error(`Error adding user to banca with invite ID ${inviteId}:`, error)
-    return err({ type: "database_error", error })
-  }
-}
-
 export const removeUserFromBanca = async (
   c: Context<{ Variables: AppVariables }>,
   bancaId: number,
@@ -836,11 +780,13 @@ export const setEvaluatorGrade = async (
   c: Context<{ Variables: AppVariables }>,
   bancaId: number,
   userId: number,
-  grade: string
-): Promise<AppResult<typeof usuariosBancas.$inferSelect, RemoveUserFromBancaError>> => {
+  grade: string,
+  currentUserId: number
+): Promise<AppResult<typeof usuariosBancas.$inferSelect, SetEvaluatorGradeError>> => {
   const dbInstance = c.get("db")
 
   try {
+    // Check if the relation exists
     const relationExists = await dbInstance
       .select({ id: usuariosBancas.id })
       .from(usuariosBancas)
@@ -849,6 +795,18 @@ export const setEvaluatorGrade = async (
 
     if (relationExists.length === 0) {
       return err({ type: "relation_not_found" })
+    }
+
+    // Check if current user is authorized to set this grade
+    // Only the user themselves can set their own grade (unless they're admin)
+    const currentUserResult = await getUserById(c, currentUserId)
+    if (!currentUserResult.ok) {
+      return err({ type: "database_error", error: "User not found" })
+    }
+
+    const isAdmin = currentUserResult.data.role === "ADMIN"
+    if (!isAdmin && currentUserId !== userId) {
+      return err({ type: "unauthorized" })
     }
 
     const [updatedRelation] = await dbInstance

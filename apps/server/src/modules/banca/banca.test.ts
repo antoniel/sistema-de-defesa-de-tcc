@@ -1,5 +1,5 @@
 import bcrypt from "bcrypt"
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { testClient } from "hono/testing"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { app } from "../.."
@@ -1577,6 +1577,395 @@ describe("GET /bancas/my-defenses - Professor's Defenses Sorting", () => {
           const date2 = new Date(data.upcoming[i].dataRealizacao)
           expect(date1.getTime()).toBeLessThanOrEqual(date2.getTime())
         }
+      }
+    })
+  })
+})
+
+describe("POST /bancas/:bancaId/usuarios/:userId/nota - Grade Assignment", async () => {
+  const db = await getFakeDb()
+  const client = testClient(app(fakeDeps(db)))
+
+  let teacherToken = ""
+  let studentToken = ""
+  let adminToken = ""
+  let evaluatorToken = ""
+  let anotherEvaluatorToken = ""
+
+  let teacherId: number
+  let studentId: number
+  let evaluatorId: number
+  let anotherEvaluatorId: number
+  let cursoId: number
+  let bancaId: number
+
+  beforeEach(async () => {
+    await db.delete(usuariosBancas)
+    await db.delete(Bancas)
+    await db.delete(Users)
+    await db.delete(Cursos)
+
+    // Create base users
+    const teacherWithHash = await createTestUserWithPasswordHash(TEST_TEACHER)
+    const studentWithHash = await createTestUserWithPasswordHash(TEST_STUDENT)
+    const adminWithHash = await createTestUserWithPasswordHash(TEST_ADMIN)
+
+    const [teacher] = await db.insert(Users).values(teacherWithHash).returning()
+    const [student] = await db.insert(Users).values(studentWithHash).returning()
+    await db.insert(Users).values(adminWithHash).returning()
+    teacherId = teacher.id
+    studentId = student.id
+
+    // Create evaluators for testing
+    const evaluator1Data = {
+      email: "evaluator1@test.com",
+      password: "Password123!",
+      nome: "Evaluator One",
+      role: "TEACHER" as const,
+      matricula: "EVAL1",
+      status: "ACTIVE" as const,
+      school: "ICC",
+      academicTitle: "PhD",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+    
+    const evaluator2Data = {
+      email: "evaluator2@test.com",
+      password: "Password123!",
+      nome: "Evaluator Two",
+      role: "TEACHER" as const,
+      matricula: "EVAL2",
+      status: "ACTIVE" as const,
+      school: "ICC",
+      academicTitle: "PhD",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+
+    const evaluator1WithHash = await createTestUserWithPasswordHash(evaluator1Data)
+    const evaluator2WithHash = await createTestUserWithPasswordHash(evaluator2Data)
+
+    const [evaluator1] = await db.insert(Users).values(evaluator1WithHash).returning()
+    const [evaluator2] = await db.insert(Users).values(evaluator2WithHash).returning()
+
+    evaluatorId = evaluator1.id
+    anotherEvaluatorId = evaluator2.id
+
+    const [curso] = await db.insert(Cursos).values(TEST_CURSO).returning()
+    cursoId = curso.id
+
+    const [banca] = await db
+      .insert(Bancas)
+      .values(getTestBancaData(cursoId, teacherId, studentId))
+      .returning()
+    bancaId = banca.id
+
+    // Add evaluators to the banca
+    await db.insert(usuariosBancas).values([
+      {
+        bancaId,
+        usuarioId: evaluatorId,
+        role: "avaliador",
+      },
+      {
+        bancaId,
+        usuarioId: anotherEvaluatorId,
+        role: "avaliador",
+      },
+    ])
+
+    const loginUser = createLoginHelper(client)
+    teacherToken = await loginUser(TEST_TEACHER)
+    studentToken = await loginUser(TEST_STUDENT)
+    adminToken = await loginUser(TEST_ADMIN)
+    evaluatorToken = await loginUser(evaluator1Data)
+    anotherEvaluatorToken = await loginUser(evaluator2Data)
+  })
+
+  afterEach(async () => {
+    await db.delete(usuariosBancas)
+    await db.delete(Bancas)
+    await db.delete(Users)
+    await db.delete(Cursos)
+  })
+
+  describe("Authentication and Authorization", () => {
+    it("should require authentication", async () => {
+      const res = await client.banca[":bancaId"].usuarios[":userId"].nota.$post({
+        param: { bancaId: bancaId.toString(), userId: evaluatorId.toString() },
+        json: { nota: "8.5" },
+      })
+
+      expect(res.status).toBe(401)
+    })
+
+    it("should require TEACHER or ADMIN role", async () => {
+      const res = await client.banca[":bancaId"].usuarios[":userId"].nota.$post(
+        {
+          param: { bancaId: bancaId.toString(), userId: evaluatorId.toString() },
+          json: { nota: "8.5" },
+        },
+        { headers: { Authorization: `Bearer ${studentToken}` } }
+      )
+
+      expect(res.status).toBe(403)
+    })
+
+    it("should allow user to assign their own grade", async () => {
+      const res = await client.banca[":bancaId"].usuarios[":userId"].nota.$post(
+        {
+          param: { bancaId: bancaId.toString(), userId: evaluatorId.toString() },
+          json: { nota: "8.5" },
+        },
+        { headers: { Authorization: `Bearer ${evaluatorToken}` } }
+      )
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.nota).toBe("8.5")
+      expect(data.usuarioId).toBe(evaluatorId)
+    })
+
+    it("should NOT allow user to assign another user's grade", async () => {
+      const res = await client.banca[":bancaId"].usuarios[":userId"].nota.$post(
+        {
+          param: { bancaId: bancaId.toString(), userId: anotherEvaluatorId.toString() },
+          json: { nota: "8.5" },
+        },
+        { headers: { Authorization: `Bearer ${evaluatorToken}` } }
+      )
+
+      expect(res.status).toBe(403)
+    })
+
+    it("should allow admin to assign any user's grade", async () => {
+      const res = await client.banca[":bancaId"].usuarios[":userId"].nota.$post(
+        {
+          param: { bancaId: bancaId.toString(), userId: evaluatorId.toString() },
+          json: { nota: "9.0" },
+        },
+        { headers: { Authorization: `Bearer ${adminToken}` } }
+      )
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.nota).toBe("9.0")
+      expect(data.usuarioId).toBe(evaluatorId)
+    })
+  })
+
+  describe("Grade Validation", () => {
+    it("should accept valid grades within range", async () => {
+      const validGrades = ["0", "5.5", "7.8", "10", "10.0"]
+      
+      for (const grade of validGrades) {
+        const res = await client.banca[":bancaId"].usuarios[":userId"].nota.$post(
+          {
+            param: { bancaId: bancaId.toString(), userId: evaluatorId.toString() },
+            json: { nota: grade },
+          },
+          { headers: { Authorization: `Bearer ${evaluatorToken}` } }
+        )
+
+        expect(res.status).toBe(200)
+        const data = await res.json()
+        expect(data.nota).toBe(grade)
+      }
+    })
+
+    it("should reject invalid grades", async () => {
+      const invalidGrades = ["-1", "11", "15.5", "abc", ""]
+      
+      for (const grade of invalidGrades) {
+        const res = await client.banca[":bancaId"].usuarios[":userId"].nota.$post(
+          {
+            param: { bancaId: bancaId.toString(), userId: evaluatorId.toString() },
+            json: { nota: grade },
+          },
+          { headers: { Authorization: `Bearer ${evaluatorToken}` } }
+        )
+
+        expect(res.status).toBe(400)
+      }
+    })
+
+    it("should require nota field", async () => {
+      const res = await client.banca[":bancaId"].usuarios[":userId"].nota.$post(
+        {
+          param: { bancaId: bancaId.toString(), userId: evaluatorId.toString() },
+          json: {} as any,
+        },
+        { headers: { Authorization: `Bearer ${evaluatorToken}` } }
+      )
+
+      expect(res.status).toBe(400)
+    })
+  })
+
+  describe("Database Relations", () => {
+    it("should return 404 for non-existent banca", async () => {
+      const res = await client.banca[":bancaId"].usuarios[":userId"].nota.$post(
+        {
+          param: { bancaId: "9999", userId: evaluatorId.toString() },
+          json: { nota: "8.5" },
+        },
+        { headers: { Authorization: `Bearer ${evaluatorToken}` } }
+      )
+
+      expect(res.status).toBe(404)
+    })
+
+    it("should return 404 for user not in banca", async () => {
+      // Create a user not associated with the banca
+      const unrelatedUserData = {
+        email: "unrelated@test.com",
+        password: "Password123!",
+        nome: "Unrelated User",
+        role: "TEACHER" as const,
+        matricula: "UNREL",
+        status: "ACTIVE" as const,
+        school: "ICC",
+        academicTitle: "PhD",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+      
+      const unrelatedUserWithHash = await createTestUserWithPasswordHash(unrelatedUserData)
+      const [unrelatedUser] = await db.insert(Users).values(unrelatedUserWithHash).returning()
+
+      const res = await client.banca[":bancaId"].usuarios[":userId"].nota.$post(
+        {
+          param: { bancaId: bancaId.toString(), userId: unrelatedUser.id.toString() },
+          json: { nota: "8.5" },
+        },
+        { headers: { Authorization: `Bearer ${adminToken}` } }
+      )
+
+      expect(res.status).toBe(404)
+    })
+
+    it("should update existing grade if user already has one", async () => {
+      // First, set an initial grade
+      await client.banca[":bancaId"].usuarios[":userId"].nota.$post(
+        {
+          param: { bancaId: bancaId.toString(), userId: evaluatorId.toString() },
+          json: { nota: "7.0" },
+        },
+        { headers: { Authorization: `Bearer ${evaluatorToken}` } }
+      )
+
+      // Then update it
+      const res = await client.banca[":bancaId"].usuarios[":userId"].nota.$post(
+        {
+          param: { bancaId: bancaId.toString(), userId: evaluatorId.toString() },
+          json: { nota: "9.5" },
+        },
+        { headers: { Authorization: `Bearer ${evaluatorToken}` } }
+      )
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.nota).toBe("9.5")
+
+      // Verify in database
+      const dbRelation = await db
+        .select()
+        .from(usuariosBancas)
+        .where(and(eq(usuariosBancas.bancaId, bancaId), eq(usuariosBancas.usuarioId, evaluatorId)))
+        .limit(1)
+
+      expect(dbRelation[0].nota).toBe("9.5")
+    })
+  })
+
+  describe("Security Edge Cases", () => {
+    it("should prevent grade assignment for different banca even if user exists", async () => {
+      // Create another banca
+      const anotherStudent = await createTestStudent()
+      const [anotherStudentUser] = await db.insert(Users).values(anotherStudent).returning()
+      
+      const anotherBancaData = getTestBancaData(cursoId, teacherId, anotherStudentUser.id)
+      const [anotherBanca] = await db.insert(Bancas).values(anotherBancaData).returning()
+
+      // Try to assign grade for evaluator in wrong banca
+      const res = await client.banca[":bancaId"].usuarios[":userId"].nota.$post(
+        {
+          param: { bancaId: anotherBanca.id.toString(), userId: evaluatorId.toString() },
+          json: { nota: "8.5" },
+        },
+        { headers: { Authorization: `Bearer ${evaluatorToken}` } }
+      )
+
+      expect(res.status).toBe(404)
+    })
+
+    it("should prevent students from assigning grades even if they're in the banca", async () => {
+      // Add the student to the banca as "aluno"
+      await db.insert(usuariosBancas).values({
+        bancaId,
+        usuarioId: studentId,
+        role: "aluno",
+      })
+
+      const res = await client.banca[":bancaId"].usuarios[":userId"].nota.$post(
+        {
+          param: { bancaId: bancaId.toString(), userId: studentId.toString() },
+          json: { nota: "10.0" },
+        },
+        { headers: { Authorization: `Bearer ${studentToken}` } }
+      )
+
+      expect(res.status).toBe(403)
+    })
+
+    it("should not expose other users' grade assignment capabilities", async () => {
+      // Evaluator 1 tries to assign grade for evaluator 2 using evaluator 1's token
+      const res = await client.banca[":bancaId"].usuarios[":userId"].nota.$post(
+        {
+          param: { bancaId: bancaId.toString(), userId: anotherEvaluatorId.toString() },
+          json: { nota: "8.5" },
+        },
+        { headers: { Authorization: `Bearer ${evaluatorToken}` } }
+      )
+
+      expect(res.status).toBe(403)
+      
+      // Verify that no grade was assigned
+      const dbRelation = await db
+        .select()
+        .from(usuariosBancas)
+        .where(and(eq(usuariosBancas.bancaId, bancaId), eq(usuariosBancas.usuarioId, anotherEvaluatorId)))
+        .limit(1)
+
+      expect(dbRelation[0].nota).toBeNull()
+    })
+  })
+
+  describe("Grade Persistence", () => {
+    it("should persist grades correctly in database", async () => {
+      const testGrades = [
+        { userId: evaluatorId, grade: "8.7", token: evaluatorToken },
+        { userId: anotherEvaluatorId, grade: "9.2", token: anotherEvaluatorToken },
+      ]
+
+      for (const testCase of testGrades) {
+        await client.banca[":bancaId"].usuarios[":userId"].nota.$post(
+          {
+            param: { bancaId: bancaId.toString(), userId: testCase.userId.toString() },
+            json: { nota: testCase.grade },
+          },
+          { headers: { Authorization: `Bearer ${testCase.token}` } }
+        )
+
+        // Verify in database
+        const dbRelation = await db
+          .select()
+          .from(usuariosBancas)
+          .where(and(eq(usuariosBancas.bancaId, bancaId), eq(usuariosBancas.usuarioId, testCase.userId)))
+          .limit(1)
+
+        expect(dbRelation[0].nota).toBe(testCase.grade)
       }
     })
   })

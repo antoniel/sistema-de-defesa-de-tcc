@@ -16,23 +16,22 @@ This is a monorepo containing an academic thesis committee ("banca") management 
 ## Development Commands
 
 ### Root Level Commands
+
 - `npm run dev` - Start both frontend and backend in development mode
-- `npm run typecheck` - Run TypeScript type checking across all workspaces
+- `npm run tscheck` - Run TypeScript type checking across all workspaces
 - `npm run test` - Run all tests with TUI interface
 - `npm run test:e2e` - Run end-to-end tests for web app
 - `npm run deploy` - Run deployment script
 
 ### Database Management
-- `npm run migration:gen` - Generate Drizzle migrations
-- `npm run migration:run` - Run pending migrations
-- `npm run migration:drop` - Drop database migrations
-- `npm run db:push` - Push schema changes to database
+
 - `npm run docker:up` - Start PostgreSQL database container
 - `npm run docker:down` - Stop database container
 - `npm run docker:clean` - Stop database container and remove volumes
 - `npm run docker:connect` - Connect to PostgreSQL database via psql
 
 ### Frontend (apps/web)
+
 - `npm run dev` - Start development server
 - `npm run build` - Build for production
 - `npm run start` - Start production server
@@ -41,21 +40,25 @@ This is a monorepo containing an academic thesis committee ("banca") management 
 - `npm run test:headed` - Run Playwright tests with headed browser
 - `npm run test:debug` - Run Playwright tests in debug mode
 - `npm run test:report` - Show Playwright test report
-- `npm run typecheck` - Type checking with React Router typegen
+- `npm run tscheck` - Type checking with React Router typegen
 
 ### Backend (apps/server)
+
 - `npm run dev` - Start development server with hot reload
 - `npm run dev:test` - Start test server for E2E tests
 - `npm run test` - Run Vitest unit tests
 - `npm run seed` - Seed database with test data
-- `npm run typecheck` - TypeScript type checking
+- `npm run tscheck` - TypeScript type checking
 - `npm run migration:gen` - Generate Drizzle migrations
 - `npm run migration:run` - Run pending migrations
 - `npm run db:push` - Push schema changes to database
 
 ## Technology Stack
 
+Import Patterns: This codebase uses @/imports, not ~/ imports
+
 ### Frontend
+
 - **Framework**: React Router v7 with SSR
 - **Styling**: TailwindCSS v4 with Radix UI primitives
 - **State Management**: TanStack Query for server state
@@ -66,6 +69,7 @@ This is a monorepo containing an academic thesis committee ("banca") management 
 - **Notifications**: Sonner for toast notifications
 
 ### Backend
+
 - **Framework**: Hono (lightweight web framework)
 - **Database**: PostgreSQL with Drizzle ORM
 - **Authentication**: JWT-based with bcryptjs
@@ -75,22 +79,15 @@ This is a monorepo containing an academic thesis committee ("banca") management 
 - **Validation**: Zod schemas with Hono zValidator
 
 ### Database Schema
-Key entities include:
-- **Users** (`usuario` table) - Students, teachers, admins with role-based access
-- **Cursos** (`cursos` table) - Academic programs with names and abbreviations
-- **Bancas** (`banca` table) - Thesis committees with scheduling, participants, and metadata
-- **Teacher Invitations** (`teacher_invitation` table) - Secure hash-based teacher invitations
-- **Password Reset** (`reset_password` table) - Secure token-based password reset system
-- **Documents** (`documento` table) - File management with status tracking
-- **Sessions** (`session` table) - User session management
-- **Invites** (`invite` table) - Committee participation invitations
-- **Usuario Bancas** (`usuario_banca` table) - Many-to-many relationship between users and committees
-- **Banca Documentos** (`banca_documento` table) - Many-to-many relationship between committees and documents
+
+See `apps/server/src/database/schema.ts` for complete schema definitions. Key entities: Users, Cursos, Bancas, Teacher Invitations, Password Reset, Documents, Sessions, and relationship tables.
 
 ## Architecture Notes
 
 ### Module Structure
+
 The server follows a modular architecture in `apps/server/src/modules/`:
+
 - `auth/` - Authentication and authorization (JWT middleware)
 - `banca/` - Thesis committee management with full CRUD operations
 - `usuario/` - User management and profile operations
@@ -100,6 +97,7 @@ The server follows a modular architecture in `apps/server/src/modules/`:
 - `documento/` - Document handling and file management
 
 ### Database Configuration
+
 - Uses Drizzle ORM with PostgreSQL for production
 - Migrations are auto-generated and version-controlled in `apps/server/src/database/drizzle/`
 - Connection configured via `DATABASE_URL` environment variable
@@ -108,6 +106,7 @@ The server follows a modular architecture in `apps/server/src/modules/`:
 - Database seeding available through `npm run seed`
 
 ### Testing Strategy
+
 - Unit tests for business logic using Vitest
 - E2E tests using Playwright that start both frontend and backend
 - Test server runs on separate port with `npm run dev:test`
@@ -118,6 +117,7 @@ The server follows a modular architecture in `apps/server/src/modules/`:
 ## Environment Setup
 
 Required environment variables:
+
 - `DATABASE_URL` - PostgreSQL connection string
 - `FRONTEND_URL` - Frontend URL for email links (default: http://localhost:5173)
 - Email configuration:
@@ -128,6 +128,7 @@ Required environment variables:
 ## Deployment
 
 The project includes deployment scripts and Docker configurations:
+
 - `npm run deploy` - Runs deployment script (`scripts/deploy.ts`)
 - Separate production branches for web and server
 - `npm run sync` - Syncs production branches with main
@@ -138,6 +139,7 @@ The project includes deployment scripts and Docker configurations:
 ## API Client Pattern
 
 ### Frontend-Backend Communication
+
 The project uses Hono's RPC client for type-safe API communication:
 
 - **Client Setup**: `apps/web/app/services/apiClient.ts` - Hono RPC client with automatic JWT token headers
@@ -145,6 +147,7 @@ The project uses Hono's RPC client for type-safe API communication:
 - **Pattern**: Always use mutations (not fetch) for API calls to maintain consistency and type safety
 
 ### Example API Usage
+
 ```typescript
 // ✅ Correct - Use mutations
 const loginMutation = useLoginMutation()
@@ -157,12 +160,14 @@ fetch('/api/auth/login', { method: 'POST', ... })
 ## Email System
 
 ### Email Service Architecture
+
 - **Service**: `apps/server/src/services/email.service.ts`
 - **Templates**: HTML email templates with responsive design
 - **Development**: Uses Ethereal email for testing (check console for preview URLs)
 - **Production**: Uses Gmail SMTP with app passwords
 
 ### Email Features
+
 - **Teacher Invitations**: Secure hash-based invitations with 7-day expiration
 - **Password Reset**: Secure token-based reset with 1-hour expiration
 - **Templates**: Professional HTML templates with proper styling
@@ -170,6 +175,7 @@ fetch('/api/auth/login', { method: 'POST', ... })
 ## Security Features
 
 ### Password Reset Flow
+
 1. User requests reset via email
 2. System generates secure token (expires in 1 hour)
 3. Email sent with reset link
@@ -178,6 +184,7 @@ fetch('/api/auth/login', { method: 'POST', ... })
 6. Password updated and token cleaned up
 
 ### Teacher Invitation Flow
+
 1. Admin creates invitation with email and name
 2. System generates secure hash (expires in 7 days)
 3. Email sent with invitation link
@@ -188,6 +195,7 @@ fetch('/api/auth/login', { method: 'POST', ... })
 ## Code Conventions
 
 ### File Structure & Naming
+
 - Use **kebab-case** for file names: `user-service.ts`, `password-reset.tsx`
 - Use **PascalCase** for React components: `LoginForm.tsx`, `PasswordResetPage.tsx`
 - Use **camelCase** for functions and variables: `requestPasswordReset`, `isLoading`
@@ -196,7 +204,9 @@ fetch('/api/auth/login', { method: 'POST', ... })
 ### Backend Conventions
 
 #### Module Structure
+
 Each module in `apps/server/src/modules/` follows this pattern:
+
 ```
 module-name/
 ├── module.route.ts     # Route definitions with validation
@@ -206,38 +216,21 @@ module-name/
 ```
 
 #### Service Functions
+
 - Always return `AppResult<T, E>` type for consistent error handling
 - Use descriptive error types: `{ type: "user_not_found" | "database_error" }`
 - Include `c: Context<{ Variables: AppVariables }>` as first parameter
 - Use `try/catch` blocks with proper error logging
 
-Example:
-```typescript
-export const getUserById = async (
-  c: Context<{ Variables: AppVariables }>,
-  id: number
-): Promise<AppResult<SelectUser, GetUserByIdError>> => {
-  const dbInstance = c.get("db")
-  try {
-    const user = await dbInstance.select().from(Users).where(eq(Users.id, id)).limit(1)
-    if (user.length === 0) {
-      return err({ type: "user_not_found" })
-    }
-    return ok(user[0])
-  } catch (error) {
-    console.error("Error fetching user:", error)
-    return err({ type: "database_error", error })
-  }
-}
-```
-
 #### Route Handlers
+
 - Use `zValidator` for input validation
 - Use `match` from `ts-pattern` for error handling
 - Throw `AppError` for HTTP errors
 - Follow RESTful conventions
 
 Example:
+
 ```typescript
 .post("/", zValidator("json", createUserSchema), async (c) => {
   const validatedData = c.req.valid("json")
@@ -253,6 +246,7 @@ Example:
 ```
 
 #### Database Operations
+
 - Use Drizzle ORM with typed queries
 - Always use `.limit(1)` for single record queries
 - Use descriptive variable names: `existingUser`, `newInvitation`
@@ -262,45 +256,62 @@ Example:
 ### Frontend Conventions
 
 #### Component Structure
+
 - Use function declarations for components: `export function LoginForm() {}`
+- Always use explicit return statements instead of arrow function auto-returns: `function Component() { return (...) }` not `const Component = () => (...)`
 - Group hooks at the top of the component
 - Use TypeScript interfaces for props: `interface LoginFormProps {}`
 - Use React Hook Form for form handling
 - Use Zod for client-side validation
 
+#### State Management Best Practices
+
+- **State Colocation**: Move `useState` and `useEffect` as close as possible to the leaf components that need them
+- **Avoid Prop Drilling**: Instead of passing hooks like `navigate` through props, call `useNavigate()` directly in each component that needs it
+- **Local State**: Keep component state local when possible - don't lift state unnecessarily to parent components
+- **Component Autonomy**: Each component should manage its own hooks and state when feasible
+
+```typescript
+// ✅ Good - State managed in the component that uses it
+function ObservacoesGerais() {
+  const [observacoes, setObservacoes] = useState("")
+  return <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} />
+}
+
+// ❌ Bad - State lifted unnecessarily to parent
+function Parent() {
+  const [observacoes, setObservacoes] = useState("")
+  return <ObservacoesGerais observacoes={observacoes} setObservacoes={setObservacoes} />
+}
+
+// ✅ Good - Each component uses its own navigate hook
+function AccessDeniedMessage() {
+  const navigate = useNavigate()
+  return <Button onClick={() => navigate(-1)}>Voltar</Button>
+}
+
+// ❌ Bad - Passing navigate through props
+function AccessDeniedMessage({ navigate }: { navigate: NavigateFunction }) {
+  return <Button onClick={() => navigate(-1)}>Voltar</Button>
+}
+```
+
 #### State Management
+
 - Use TanStack Query for server state
 - Use `useState` for local component state
 - Use custom hooks for complex logic
 - Prefix boolean states with `is`, `has`, `should`: `isLoading`, `hasError`
 
 #### API Integration
+
 - Always use mutations from `authService.ts`
 - Never use `fetch` directly - use Hono RPC client
 - Handle loading states with `isPending`
 - Use `onSuccess` and `onError` callbacks
 
-Example:
-```typescript
-const loginMutation = useLoginMutation()
-
-const onSubmit = (data: LoginFormValues) => {
-  loginMutation.mutate(
-    { json: { email: data.email, password: data.password } },
-    {
-      onSuccess: (res) => {
-        toast({ title: "Login realizado com sucesso ✅" })
-        useUser.setData(queryClient, res.user)
-      },
-      onError: (error) => {
-        toast({ title: "Erro ao fazer login ❌" })
-      },
-    }
-  )
-}
-```
-
 #### UI Components
+
 - Use Radix UI primitives with custom styling
 - Use `cn()` utility for conditional classes
 - Use semantic HTML elements
@@ -308,6 +319,7 @@ const onSubmit = (data: LoginFormValues) => {
 - Use loading states and disabled states consistently
 
 ### Database Schema Conventions
+
 - Use **snake_case** for column names: `created_at`, `password_hash`
 - Use **camelCase** for TypeScript field names: `createdAt`, `passwordHash`
 - Include audit fields: `createdAt`, `updatedAt`
@@ -315,6 +327,7 @@ const onSubmit = (data: LoginFormValues) => {
 - Include unique constraints where needed
 
 ### Error Handling Patterns
+
 - Use `AppResult<T, E>` pattern for service functions
 - Use `AppError` for HTTP errors
 - Use `match` from `ts-pattern` for exhaustive error handling
@@ -322,6 +335,7 @@ const onSubmit = (data: LoginFormValues) => {
 - Use toast notifications for user feedback
 
 ### Security Conventions
+
 - Hash passwords with bcryptjs
 - Use crypto.randomBytes for secure tokens
 - Include token expiration for all secure operations
@@ -332,6 +346,7 @@ const onSubmit = (data: LoginFormValues) => {
 - Secure hash validation for invitations
 
 ### Testing Conventions
+
 - Use Vitest for unit tests
 - Use Playwright for E2E tests
 - Test both success and error scenarios
@@ -341,6 +356,7 @@ const onSubmit = (data: LoginFormValues) => {
 ## Development Guidelines
 
 ### Adding New API Endpoints
+
 1. Add route in appropriate module (e.g., `apps/server/src/modules/usuario/usuario.route.ts`)
 2. Add service function with proper error handling
 3. Add Zod schema for validation
@@ -348,7 +364,34 @@ const onSubmit = (data: LoginFormValues) => {
 5. Use mutation in frontend components
 
 ### Email Templates
+
 - Use `createXxxEmail()` functions in email service
 - Include proper styling with responsive design
 - Add security warnings for sensitive emails
 - Test with Ethereal email in development
+
+## Reminders
+
+- Always remember to run `npm run tscheck`
+
+## Code Style Notes
+
+- Avoid unnecessary type declarations when types are already inferred
+- **Specific Note about Database Schemas**:
+  - Stop declaring types for entities when they are already defined as Insert[Entity] or Select[Entity] in `@apps/server/src/database/schema.ts`
+
+## Developer Tips
+
+- **Workflow Optimization**:
+  - ao invés de usar comentários com TODO, use apps/server/src/todo.ts ou apps/web/app/lib/utils.ts#TODO
+
+## PDF Document Templates
+
+- **Institution**: All PDF documents are for UFBA (Universidade Federal da Bahia), not UFRN
+- **Format**: Based on official UFBA document templates with proper institutional headers
+- **Location**: Templates located in `apps/web/app/components/pdf/`
+- **Available Documents**:
+  - `ata-defesa.tsx` - Defense minutes/proceedings
+  - `declaracao-participacao.tsx` - Participation declaration for committee members  
+  - `declaracao-orientacao.tsx` - Supervision declaration for advisors
+- **Styling**: Uses Times-Roman font, official UFBA formatting with proper spacing and layout

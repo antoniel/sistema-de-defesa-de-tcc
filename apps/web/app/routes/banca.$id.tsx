@@ -1,10 +1,5 @@
-import React from "react"
 import { Header } from "@/components/layout/Header"
-import type { Route } from "./+types/banca.$id"
-
-export const meta: Route.MetaFunction = () => [
-  { title: "SISDEF - Detalhes da Defesa" },
-]
+import { BancaNavigation } from "@/components/layout/BancaNavigation"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,15 +15,14 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
-import { useToast } from "@/hooks/use-toast"
-import { rpcReturn } from "@/lib/utils"
-import apiClient from "@/services/apiClient"
 import { useUser } from "@/services/useUser"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { ArrowLeft, Calendar, Clock, MapPin, School, User } from "lucide-react"
 import { useNavigate, useParams } from "react-router"
+import type { Route } from "./+types/banca.$id"
 
-import { useDeleteBanca, useToggleBancaVisibility, useBanca } from "@/hooks"
+export const meta: Route.MetaFunction = () => [{ title: "SISDEF - Detalhes da Defesa" }]
+
+import { useBanca, useDeleteBanca, useToggleBancaVisibility } from "@/hooks"
 
 export default function BancaDetalhesPage() {
   const navigate = useNavigate()
@@ -92,13 +86,11 @@ export default function BancaDetalhesPage() {
     <div className="container mx-auto p-4 md:p-8">
       <Header className="mb-6" />
 
-      <div className="mb-6 flex items-center justify-between">
-        <Button onClick={() => navigate(-1)} variant="outline" className="flex items-center">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
-        </Button>
+      <BancaNavigation id={id} user={user!} currentPage="detalhes" />
 
+      <div className="mb-6 flex items-center justify-end gap-4">
         {canEdit && (
-          <div className="flex items-center gap-4">
+          <>
             <div className="flex items-center space-x-2">
               <Switch
                 id="visibility-switch"
@@ -131,20 +123,25 @@ export default function BancaDetalhesPage() {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-          </div>
+          </>
         )}
       </div>
 
       <div className="bg-card shadow-md rounded-lg overflow-hidden">
         {/* Cabeçalho com título do trabalho */}
         <div className="bg-muted p-6 border-b">
-          <h1 className="text-2xl font-bold">{banca.tituloTrabalho}</h1>
-          <div className="flex items-center mt-2 text-muted-foreground">
-            <User className="h-4 w-4 mr-1" />
-            <span className="mr-4">{banca.autor}</span>
+          <div className="flex items-start gap-4">
+            <img src="/brasao_ufba.png" alt="Brasão da UFBA" className="w-16 h-16 object-contain" />
+            <div className="flex-1">
+              <h1 className="text-2xl font-bold">{banca.tituloTrabalho}</h1>
+              <div className="flex items-center mt-2 text-muted-foreground">
+                <User className="h-4 w-4 mr-1" />
+                <span className="mr-4">{banca.autor}</span>
 
-            <School className="h-4 w-4 mr-1" />
-            <span>{banca.curso?.nome}</span>
+                <School className="h-4 w-4 mr-1" />
+                <span>{banca.curso?.nome}</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -306,8 +303,6 @@ export const BancaSkeleton = () => {
     </div>
   )
 }
-
-
 
 const formatDate = (dateString?: string | Date) => {
   if (!dateString) return "Data não disponível"
