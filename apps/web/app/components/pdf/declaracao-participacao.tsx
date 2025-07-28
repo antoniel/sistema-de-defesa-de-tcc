@@ -54,12 +54,9 @@ export const DeclaracaoParticipacaoPDF = ({ bancaInfo, membroId }: { bancaInfo: 
 
         {/* Texto da Declaração */}
         <Text style={styles.declarationText}>
-          Declaro para os devidos fins, que{" "}
-          <Text style={styles.boldText}>
-            {membro.usuario.academicTitle} {membro.usuario.nome}
-          </Text>
-          , participou da banca de defesa do Projeto Final II de <Text style={styles.boldText}>{bancaInfo.autor}</Text>{" "}
-          aluno do Curso de {curso.nome}
+          Declaro para os devidos fins, que <Text style={styles.boldText}>{membro.usuario.nome}</Text>, participou da
+          banca de defesa do Projeto Final II de <Text style={styles.boldText}>{bancaInfo.autor}</Text> aluno do Curso
+          de {curso.nome}
           da UFBA, intitulado <Text style={styles.boldText}>"{bancaInfo.tituloTrabalho}"</Text>, que ocorreu em{" "}
           <Text style={styles.boldText}>{defenseDate}</Text>, atuando como {getRoleText(membro.role)}.
         </Text>

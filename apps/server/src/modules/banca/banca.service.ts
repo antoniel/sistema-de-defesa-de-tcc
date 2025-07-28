@@ -527,6 +527,13 @@ export const createBanca = async (
       return err({ type: "database_error", error: "Failed to create banca" })
     }
 
+    // Automatically add the advisor as a member of the committee
+    await dbInstance.insert(usuariosBancas).values({
+      bancaId: newBanca.id,
+      usuarioId: bancaData.orientadorId,
+      role: "orientador",
+    })
+
     return ok(newBanca)
   } catch (error: any) {
     if (error?.code === "23505" && error?.constraint === "aluno_curso_unique") {
