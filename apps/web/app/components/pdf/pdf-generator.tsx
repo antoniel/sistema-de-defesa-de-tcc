@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useBancaDocumentInfo } from "@/hooks/documento.hooks"
 import { useToast } from "@/hooks/use-toast"
 import { pdf } from "@react-pdf/renderer"
@@ -11,13 +12,24 @@ import { DeclaracaoParticipacaoPDF } from "./declaracao-participacao"
 interface PDFGeneratorProps {
   bancaId: number
   className?: string
+  showParticipantSelection?: boolean
+  onParticipantSelect?: (participantId: number | null) => void
 }
 
-export function PDFGenerator({ bancaId, className }: PDFGeneratorProps) {
+export function PDFGenerator({ bancaId, className, showParticipantSelection = false, onParticipantSelect }: PDFGeneratorProps) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [selectedMembro, setSelectedMembro] = useState<number | null>(null)
   const { data: bancaInfo, isLoading, error } = useBancaDocumentInfo(bancaId)
   const { toast } = useToast()
+
+  // Get eligible participants (exclude students)
+  const eligibleParticipants = bancaInfo?.membros.filter(m => m.role !== "aluno") || []
+
+  const handleParticipantSelect = (participantId: string) => {
+    const id = participantId ? Number(participantId) : null
+    setSelectedMembro(id)
+    onParticipantSelect?.(id)
+  }
 
   const generateAndDownloadPDF = async (type: "ata" | "participacao" | "orientacao", membroId?: number) => {
     if (!bancaInfo) {
@@ -101,42 +113,62 @@ export function PDFGenerator({ bancaId, className }: PDFGeneratorProps) {
   }
 
   return (
-    <div className={`flex flex-wrap gap-2 ${className}`}>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => generateAndDownloadPDF("ata")}
-        disabled={isGenerating}
-        className="flex items-center gap-2"
-        data-document-type="ata"
-      >
-        {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-        Ata de Defesa
-      </Button>
+    <div className={className}>
+      {showParticipantSelection && eligibleParticipants.length > 0 && (
+        <div className="mb-4">
+          <label className="text-sm font-medium mb-2 block">Selecione o participante:</label>
+          <Select value={selectedMembro?.toString() || ""} onValueChange={handleParticipantSelect}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Escolha um participante" />
+            </SelectTrigger>
+            <SelectContent>
+              {eligibleParticipants.map((membro) => (
+                <SelectItem key={membro.id} value={membro.id.toString()}>
+                  {membro.usuario.nome} ({membro.role === "orientador" ? "Orientador" : "Avaliador"})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+      
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => generateAndDownloadPDF("ata")}
+          disabled={isGenerating}
+          className="flex items-center gap-2"
+          data-document-type="ata"
+        >
+          {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+          Ata de Defesa
+        </Button>
 
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => generateAndDownloadPDF("participacao")}
-        disabled={isGenerating}
-        className="flex items-center gap-2"
-        data-document-type="participacao"
-      >
-        {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-        Decl. Participação
-      </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => generateAndDownloadPDF("participacao", selectedMembro || undefined)}
+          disabled={isGenerating}
+          className="flex items-center gap-2"
+          data-document-type="participacao"
+        >
+          {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+          Decl. Participação
+        </Button>
 
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => generateAndDownloadPDF("orientacao")}
-        disabled={isGenerating}
-        className="flex items-center gap-2"
-        data-document-type="orientacao"
-      >
-        {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-        Decl. Orientação
-      </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => generateAndDownloadPDF("orientacao")}
+          disabled={isGenerating}
+          className="flex items-center gap-2"
+          data-document-type="orientacao"
+        >
+          {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+          Decl. Orientação
+        </Button>
+      </div>
     </div>
   )
 }
