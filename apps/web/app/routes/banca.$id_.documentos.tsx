@@ -1,6 +1,6 @@
-import { Header } from "@/components/layout/Header"
-import { BancaNavigation } from "@/components/layout/BancaNavigation"
 import { BancaHeader } from "@/components/layout/BancaHeader"
+import { BancaNavigation } from "@/components/layout/BancaNavigation"
+import { Header } from "@/components/layout/Header"
 import { AtaDefesaPDF } from "@/components/pdf/ata-defesa"
 import { DeclaracaoOrientacaoPDF } from "@/components/pdf/declaracao-orientacao"
 import { DeclaracaoParticipacaoPDF } from "@/components/pdf/declaracao-participacao"
@@ -153,42 +153,6 @@ export default function BancaDocumentosPage() {
               </div>
 
               <div className="space-y-4">
-                {/* Ata de Defesa */}
-                <div className="border rounded-lg p-4">
-                  <h3 className="font-semibold mb-2 flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Ata de Defesa
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Documento oficial com o registro da defesa da tese/dissertação.
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => generatePreview("ata")}
-                      className="flex items-center gap-2"
-                    >
-                      <Eye className="h-4 w-4" />
-                      Visualizar
-                    </Button>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => {
-                        const downloadButtons = document.querySelectorAll('[data-document-type="ata"]')
-                        if (downloadButtons.length > 0) {
-                          ;(downloadButtons[0] as HTMLButtonElement).click()
-                        }
-                      }}
-                      className="flex items-center gap-2"
-                    >
-                      <Download className="h-4 w-4" />
-                      Download
-                    </Button>
-                  </div>
-                </div>
-
                 {/* Declaração de Participação */}
                 <div className="border rounded-lg p-4">
                   <h3 className="font-semibold mb-2 flex items-center gap-2">
