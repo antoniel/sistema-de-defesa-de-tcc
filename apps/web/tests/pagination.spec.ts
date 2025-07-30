@@ -9,65 +9,77 @@ test.describe("Pagination Display", () => {
     await page.waitForLoadState("networkidle")
   })
 
-  test("should display correct pagination info for upcoming defenses", async ({ page }) => {
+  test("should display correct pagination info for all defenses tab", async ({ page }) => {
     // Wait for the defense table to load
     await page.waitForSelector('[data-testid="defense-table"]', { timeout: 10000 })
     
-    // Check if there are upcoming defenses
-    const upcomingTab = page.locator('[data-testid="upcoming-tab"]')
-    await upcomingTab.click()
+    // Check if we're on the all defenses tab (default)
+    const allDefensesTab = page.locator('[data-testid="all-defenses-tab"]')
+    await allDefensesTab.click()
     
     // Wait for pagination info to appear
     await page.waitForSelector('text=/Exibindo \\d+ de \\d+/', { timeout: 5000 })
     
-    // Get pagination text
-    const paginationText = await page.locator('text=/Exibindo \\d+ de \\d+/').textContent()
+    // Get pagination text (there might be multiple pagination sections)
+    const paginationElements = await page.locator('text=/Exibindo \\d+ de \\d+/').all()
     
-    if (paginationText) {
-      // Extract numbers from pagination text
-      const match = paginationText.match(/Exibindo (\\d+) de (\\d+)/)
-      if (match) {
-        const displayed = parseInt(match[1])
-        const total = parseInt(match[2])
-        
-        // The displayed count should not exceed the total
-        expect(displayed).toBeLessThanOrEqual(total)
-        
-        // The displayed count should be positive
-        expect(displayed).toBeGreaterThan(0)
-        
-        // The total should be positive
-        expect(total).toBeGreaterThan(0)
+    // Test at least one pagination section
+    if (paginationElements.length > 0) {
+      const paginationText = await paginationElements[0].textContent()
+      
+      if (paginationText) {
+        // Extract numbers from pagination text
+        const match = paginationText.match(/Exibindo (\\d+) de (\\d+)/)
+        if (match) {
+          const displayed = parseInt(match[1])
+          const total = parseInt(match[2])
+          
+          // The displayed count should not exceed the total
+          expect(displayed).toBeLessThanOrEqual(total)
+          
+          // The displayed count should be positive
+          expect(displayed).toBeGreaterThan(0)
+          
+          // The total should be positive
+          expect(total).toBeGreaterThan(0)
+        }
       }
     }
   })
 
-  test("should display correct pagination info for past defenses", async ({ page }) => {
-    // Check if there are past defenses
-    const pastTab = page.locator('[data-testid="past-tab"]')
-    await pastTab.click()
+  test("should display both upcoming and past defenses sections when available", async ({ page }) => {
+    // Wait for the defense table to load
+    await page.waitForSelector('[data-testid="defense-table"]', { timeout: 10000 })
     
-    // Wait for pagination info to appear
-    await page.waitForSelector('text=/Exibindo \\d+ de \\d+/', { timeout: 5000 })
+    // Check if there are sections for both upcoming and past defenses
+    const upcomingSection = page.locator('h3:has-text("Próximas defesas")')
+    const pastSection = page.locator('h3:has-text("Defesas anteriores")').or(page.locator('h3:has-text("Defesas")'))
     
-    // Get pagination text
-    const paginationText = await page.locator('text=/Exibindo \\d+ de \\d+/').textContent()
+    // At least one section should be visible
+    const sections = await Promise.all([
+      upcomingSection.isVisible().catch(() => false),
+      pastSection.isVisible().catch(() => false)
+    ])
     
-    if (paginationText) {
-      // Extract numbers from pagination text
-      const match = paginationText.match(/Exibindo (\\d+) de (\\d+)/)
-      if (match) {
-        const displayed = parseInt(match[1])
-        const total = parseInt(match[2])
-        
-        // The displayed count should not exceed the total
-        expect(displayed).toBeLessThanOrEqual(total)
-        
-        // The displayed count should be positive
-        expect(displayed).toBeGreaterThan(0)
-        
-        // The total should be positive
-        expect(total).toBeGreaterThan(0)
+    expect(sections.some(visible => visible)).toBe(true)
+    
+    // Check pagination for visible sections
+    const paginationElements = await page.locator('text=/Exibindo \\d+ de \\d+/').all()
+    
+    if (paginationElements.length > 0) {
+      for (const element of paginationElements) {
+        const paginationText = await element.textContent()
+        if (paginationText) {
+          const match = paginationText.match(/Exibindo (\\d+) de (\\d+)/)
+          if (match) {
+            const displayed = parseInt(match[1])
+            const total = parseInt(match[2])
+            
+            expect(displayed).toBeLessThanOrEqual(total)
+            expect(displayed).toBeGreaterThan(0)
+            expect(total).toBeGreaterThan(0)
+          }
+        }
       }
     }
   })
