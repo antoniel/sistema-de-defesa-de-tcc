@@ -372,7 +372,7 @@ function AccessDeniedMessage({ navigate }: { navigate: NavigateFunction }) {
 
 ## Reminders
 
-- Always remember to run `npm run tscheck`
+- IMPORTANT - ALWAYS remember to run `npm run tscheck` at the end of some implementation
 
 ## Code Style Notes
 
@@ -392,6 +392,6 @@ function AccessDeniedMessage({ navigate }: { navigate: NavigateFunction }) {
 - **Location**: Templates located in `apps/web/app/components/pdf/`
 - **Available Documents**:
   - `ata-defesa.tsx` - Defense minutes/proceedings
-  - `declaracao-participacao.tsx` - Participation declaration for committee members  
+  - `declaracao-participacao.tsx` - Participation declaration for committee members
   - `declaracao-orientacao.tsx` - Supervision declaration for advisors
 - **Styling**: Uses Times-Roman font, official UFBA formatting with proper spacing and layout

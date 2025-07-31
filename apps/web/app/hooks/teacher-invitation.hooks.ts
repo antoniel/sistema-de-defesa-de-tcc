@@ -10,6 +10,9 @@ const createTeacherInvitationSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
 })
 
+// Schema for creating student invitation (same as teacher for now)
+const createStudentInvitationSchema = createTeacherInvitationSchema
+
 // Schema for accepting teacher invitation
 const acceptTeacherInvitationSchema = z.object({
   invitationHash: z.string().min(1, "Hash de convite é obrigatório"),
@@ -19,8 +22,13 @@ const acceptTeacherInvitationSchema = z.object({
   matricula: z.string().min(1, "Matrícula é obrigatória"),
 })
 
+// Schema for accepting student invitation (same as teacher for now)
+const acceptStudentInvitationSchema = acceptTeacherInvitationSchema
+
 export type CreateTeacherInvitationData = z.infer<typeof createTeacherInvitationSchema>
+export type CreateStudentInvitationData = z.infer<typeof createStudentInvitationSchema>
 export type AcceptTeacherInvitationData = z.infer<typeof acceptTeacherInvitationSchema>
+export type AcceptStudentInvitationData = z.infer<typeof acceptStudentInvitationSchema>
 
 // Hook to fetch all teacher invitations (admin only)
 export const useTeacherInvitations = () => {
@@ -97,6 +105,72 @@ export const useAcceptTeacherInvitation = () => {
       toast({
         title: "Erro ao aceitar convite ❌",
         description: error.message || "Ocorreu um erro ao aceitar o convite",
+        variant: "destructive",
+      })
+    },
+  })
+}
+
+export const useAcceptStudentInvitation = () => {
+  const { toast } = useToast()
+
+  return useMutation({
+    mutationFn: async (data: AcceptStudentInvitationData) => {
+      const res = await apiClient["teacher-invitation"]["student"]["accept"].$post({
+        json: data,
+      })
+      return rpcReturn(res)
+    },
+    onSuccess: () => {
+      toast({
+        title: "Conta criada com sucesso ✅",
+        description: "Sua conta de aluno foi criada. Você pode fazer login agora.",
+      })
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao aceitar convite ❌",
+        description: error.message || "Ocorreu um erro ao aceitar o convite",
+        variant: "destructive",
+      })
+    },
+  })
+}
+
+// Student invitation hooks
+export const useStudentInvitations = () => {
+  return useQuery({
+    queryKey: ["student-invitations"],
+    queryFn: async () => {
+      const res = await apiClient["teacher-invitation"]["student"].$get()
+      return rpcReturn(res)
+    },
+  })
+}
+
+export const useCreateStudentInvitation = () => {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+
+  return useMutation({
+    mutationFn: async (data: CreateStudentInvitationData) => {
+      const res = await apiClient["teacher-invitation"]["student"].$post({
+        json: data,
+      })
+      return rpcReturn(res)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["student-invitations"] })
+      queryClient.invalidateQueries({ queryKey: ["students"] })
+      toast({
+        title: "Convite enviado ✅",
+        description: "O convite para aluno foi enviado com sucesso",
+      })
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao enviar convite ❌",
+        description: error.message || "Ocorreu um erro ao enviar o convite",
         variant: "destructive",
       })
     },

@@ -6,13 +6,19 @@ import { type AppVariables } from "../../types"
 import { checkRole } from "../auth/auth.middleware"
 import {
   acceptTeacherInvitationSchema,
+  acceptStudentInvitationSchema,
   createTeacherInvitationSchema,
+  createStudentInvitationSchema,
+  verifyInvitationSchema,
   verifyTeacherInvitationSchema,
 } from "./teacher-invitation.schema"
 import {
   acceptTeacherInvitationService,
+  acceptStudentInvitationService,
   createTeacherInvitationService,
+  createStudentInvitationService,
   listTeacherInvitationsService,
+  listStudentInvitationsService,
   verifyTeacherInvitationService,
 } from "./teacher-invitation.service"
 
@@ -101,6 +107,74 @@ const app = new Hono<{ Variables: AppVariables }>()
         email: invitation.email,
         nome: invitation.nome,
         status: invitation.status,
+        createdAt: invitation.createdAt,
+        expiresAt: invitation.expiresAt,
+      })),
+    })
+  })
+  // Student invitation routes
+  .post("/student", checkRole(["ADMIN", "TEACHER"]), zValidator("json", createStudentInvitationSchema), async (c) => {
+    const body = c.req.valid("json")
+
+    const result = await createStudentInvitationService(c, body)
+
+    if (!result.ok) {
+      throw match(result.error)
+        .with({ type: "duplicate_email" }, () => new AppError(400, "Email já cadastrado no sistema"))
+        .with({ type: "existing_invitation" }, () => new AppError(400, "Já existe um convite pendente para este email"))
+        .with({ type: "database_error" }, () => new AppError(500, "Erro interno do servidor"))
+        .with({ type: "email_error" }, () => new AppError(500, "Erro ao enviar email"))
+        .exhaustive()
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        invitationId: result.data.invitationId,
+        message: "Convite para aluno enviado com sucesso",
+      },
+    })
+  })
+  .post("/student/accept", zValidator("json", acceptStudentInvitationSchema), async (c) => {
+    const body = c.req.valid("json")
+
+    const result = await acceptStudentInvitationService(c, body)
+
+    if (!result.ok) {
+      throw match(result.error)
+        .with({ type: "invitation_not_found" }, () => new AppError(404, "Convite não encontrado"))
+        .with({ type: "invitation_expired" }, () => new AppError(410, "Convite expirado"))
+        .with({ type: "invitation_already_used" }, () => new AppError(410, "Convite já utilizado"))
+        .with({ type: "hashing_error" }, () => new AppError(500, "Erro ao processar senha"))
+        .with({ type: "database_error" }, () => new AppError(500, "Erro interno do servidor"))
+        .exhaustive()
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        userId: result.data.userId,
+        message: "Conta de aluno criada com sucesso",
+      },
+    })
+  })
+  .get("/student", checkRole(["ADMIN"]), async (c) => {
+    const result = await listStudentInvitationsService(c)
+
+    if (!result.ok) {
+      throw match(result.error)
+        .with({ type: "database_error" }, () => new AppError(500, "Erro interno do servidor"))
+        .exhaustive()
+    }
+
+    return c.json({
+      success: true,
+      data: result.data.map((invitation) => ({
+        id: invitation.id,
+        email: invitation.email,
+        nome: invitation.nome,
+        status: invitation.status,
+        role: invitation.role,
         createdAt: invitation.createdAt,
         expiresAt: invitation.expiresAt,
       })),

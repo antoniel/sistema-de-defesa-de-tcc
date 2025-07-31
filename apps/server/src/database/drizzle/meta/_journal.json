@@ -50,6 +50,13 @@
       "when": 1753588228035,
       "tag": "0006_volatile_black_widow",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1753995440326,
+      "tag": "0007_eager_cassandra_nova",
+      "breakpoints": true
     }
   ]
 }

@@ -3,10 +3,16 @@ import crypto from "crypto"
 import { and, eq } from "drizzle-orm"
 import { type Context } from "hono"
 import { env } from "../../config/env"
-import { teacherInvitations, Users, type SelectTeacherInvitation } from "../../database/schema"
+import { invitations, teacherInvitations, Users, type SelectInvitation, type SelectTeacherInvitation, type UserRole } from "../../database/schema"
 import { err, ok, type AppResult } from "../../result"
-import { createTeacherInvitationEmail, sendEmail } from "../../services/email.service"
+import { createTeacherInvitationEmail, createStudentInvitationEmail, sendEmail } from "../../services/email.service"
 import { type AppVariables } from "../../types"
+
+interface CreateInvitationInput {
+  email: string
+  nome: string
+  role: UserRole
+}
 
 interface CreateTeacherInvitationInput {
   email: string
@@ -24,9 +30,9 @@ type CreateTeacherInvitationServiceError =
   | { type: "database_error" }
   | { type: "email_error" }
 
-export const createTeacherInvitationService = async (
+const createInvitationService = async (
   c: Context<{ Variables: AppVariables }>,
-  input: CreateTeacherInvitationInput
+  input: CreateInvitationInput
 ): Promise<AppResult<CreateTeacherInvitationResponse, CreateTeacherInvitationServiceError>> => {
   const dbInstance = c.get("db")
   const adminUser = c.get("jwtPayload")
@@ -49,9 +55,9 @@ export const createTeacherInvitationService = async (
 
     // Check if there's already a pending invitation
     const existingInvitation = await dbInstance
-      .select({ id: teacherInvitations.id })
-      .from(teacherInvitations)
-      .where(and(eq(teacherInvitations.email, input.email), eq(teacherInvitations.status, "pending")))
+      .select({ id: invitations.id })
+      .from(invitations)
+      .where(and(eq(invitations.email, input.email), eq(invitations.status, "pending")))
       .limit(1)
 
     if (existingInvitation.length > 0) {
@@ -64,16 +70,17 @@ export const createTeacherInvitationService = async (
 
     // Create invitation
     const newInvitation = await dbInstance
-      .insert(teacherInvitations)
+      .insert(invitations)
       .values({
         email: input.email,
         nome: input.nome,
+        role: input.role,
         invitationHash,
         expiresAt,
         invitedBy: Number(adminUser.sub),
         status: "pending",
       })
-      .returning({ insertedId: teacherInvitations.id })
+      .returning({ insertedId: invitations.id })
 
     const insertedInvitation = newInvitation[0]
     if (!insertedInvitation || !insertedInvitation.insertedId) {
@@ -83,12 +90,14 @@ export const createTeacherInvitationService = async (
     console.log(`Teacher invitation created: ${input.email}, ID: ${insertedInvitation.insertedId}`)
 
     // Send invitation email
-    const invitationUrl = `${env.FRONTEND_URL || "http://localhost:5173"}/teacher-invitation/${invitationHash}`
-    const emailHtml = createTeacherInvitationEmail(input.nome, invitationUrl)
+    const invitationUrl = `${env.FRONTEND_URL || "http://localhost:5173"}/${input.role === "TEACHER" ? "teacher" : "student"}-invitation/${invitationHash}`
+    const emailHtml = input.role === "TEACHER" 
+      ? createTeacherInvitationEmail(input.nome, invitationUrl)
+      : createStudentInvitationEmail(input.nome, invitationUrl)
 
     const emailResult = await sendEmail({
       to: input.email,
-      subject: "Convite para Professor - Sistema Banca",
+      subject: input.role === "TEACHER" ? "Convite para Professor - Sistema Banca" : "Convite para Aluno - Sistema Banca",
       html: emailHtml,
     })
 
@@ -103,9 +112,23 @@ export const createTeacherInvitationService = async (
       invitationHash,
     })
   } catch (dbError) {
-    console.error("Database error during teacher invitation creation:", dbError)
+    console.error("Database error during invitation creation:", dbError)
     return err({ type: "database_error" })
   }
+}
+
+export const createTeacherInvitationService = async (
+  c: Context<{ Variables: AppVariables }>,
+  input: CreateTeacherInvitationInput
+): Promise<AppResult<CreateTeacherInvitationResponse, CreateTeacherInvitationServiceError>> => {
+  return createInvitationService(c, { ...input, role: "TEACHER" })
+}
+
+export const createStudentInvitationService = async (
+  c: Context<{ Variables: AppVariables }>,
+  input: CreateTeacherInvitationInput // Same interface for now
+): Promise<AppResult<CreateTeacherInvitationResponse, CreateTeacherInvitationServiceError>> => {
+  return createInvitationService(c, { ...input, role: "STUDENT" })
 }
 
 interface TeacherInvitationDetails {
@@ -130,13 +153,13 @@ export const verifyTeacherInvitationService = async (
   try {
     const invitation = await dbInstance
       .select({
-        email: teacherInvitations.email,
-        nome: teacherInvitations.nome,
-        status: teacherInvitations.status,
-        expiresAt: teacherInvitations.expiresAt,
+        email: invitations.email,
+        nome: invitations.nome,
+        status: invitations.status,
+        expiresAt: invitations.expiresAt,
       })
-      .from(teacherInvitations)
-      .where(eq(teacherInvitations.invitationHash, hash))
+      .from(invitations)
+      .where(eq(invitations.invitationHash, hash))
       .limit(1)
 
     if (invitation.length === 0) {
@@ -152,9 +175,9 @@ export const verifyTeacherInvitationService = async (
     if (invitationData.expiresAt < new Date()) {
       // Mark as expired
       await dbInstance
-        .update(teacherInvitations)
+        .update(invitations)
         .set({ status: "expired" })
-        .where(eq(teacherInvitations.invitationHash, hash))
+        .where(eq(invitations.invitationHash, hash))
 
       return err({ type: "invitation_expired" })
     }
@@ -190,9 +213,10 @@ type AcceptTeacherInvitationServiceError =
   | { type: "hashing_error" }
   | { type: "database_error" }
 
-export const acceptTeacherInvitationService = async (
+const acceptInvitationService = async (
   c: Context<{ Variables: AppVariables }>,
-  input: AcceptTeacherInvitationInput
+  input: AcceptTeacherInvitationInput,
+  role: UserRole
 ): Promise<AppResult<AcceptTeacherInvitationResponse, AcceptTeacherInvitationServiceError>> => {
   const dbInstance = c.get("db")
 
@@ -227,7 +251,7 @@ export const acceptTeacherInvitationService = async (
         matricula: input.matricula,
         createdAt: now,
         updatedAt: now,
-        role: "TEACHER",
+        role: role,
       })
       .returning({ insertedId: Users.id })
 
@@ -238,20 +262,34 @@ export const acceptTeacherInvitationService = async (
 
     // Mark invitation as used and link to user
     await dbInstance
-      .update(teacherInvitations)
+      .update(invitations)
       .set({
         status: "used",
         userId: insertedUser.insertedId,
       })
-      .where(eq(teacherInvitations.invitationHash, input.invitationHash))
+      .where(eq(invitations.invitationHash, input.invitationHash))
 
-    console.log(`Teacher account created: ${invitationDetails.email}, ID: ${insertedUser.insertedId}`)
+    console.log(`${role} account created: ${invitationDetails.email}, ID: ${insertedUser.insertedId}`)
 
     return ok({ userId: insertedUser.insertedId })
   } catch (dbError) {
-    console.error("Database error during teacher invitation acceptance:", dbError)
+    console.error(`Database error during ${role.toLowerCase()} invitation acceptance:`, dbError)
     return err({ type: "database_error" })
   }
+}
+
+export const acceptTeacherInvitationService = async (
+  c: Context<{ Variables: AppVariables }>,
+  input: AcceptTeacherInvitationInput
+): Promise<AppResult<AcceptTeacherInvitationResponse, AcceptTeacherInvitationServiceError>> => {
+  return acceptInvitationService(c, input, "TEACHER")
+}
+
+export const acceptStudentInvitationService = async (
+  c: Context<{ Variables: AppVariables }>,
+  input: AcceptTeacherInvitationInput // Same interface for now
+): Promise<AppResult<AcceptTeacherInvitationResponse, AcceptTeacherInvitationServiceError>> => {
+  return acceptInvitationService(c, input, "STUDENT")
 }
 
 export const listTeacherInvitationsService = async (
@@ -260,11 +298,52 @@ export const listTeacherInvitationsService = async (
   const dbInstance = c.get("db")
 
   try {
-    const invitations = await dbInstance.select().from(teacherInvitations).orderBy(teacherInvitations.createdAt)
+    const teacherInvitationsList = await dbInstance
+      .select()
+      .from(invitations)
+      .where(eq(invitations.role, "TEACHER"))
+      .orderBy(invitations.createdAt)
 
-    return ok(invitations)
+    return ok(teacherInvitationsList)
   } catch (dbError) {
     console.error("Database error during teacher invitations listing:", dbError)
+    return err({ type: "database_error" })
+  }
+}
+
+export const listStudentInvitationsService = async (
+  c: Context<{ Variables: AppVariables }>
+): Promise<AppResult<SelectInvitation[], { type: "database_error" }>> => {
+  const dbInstance = c.get("db")
+
+  try {
+    const studentInvitationsList = await dbInstance
+      .select()
+      .from(invitations)
+      .where(eq(invitations.role, "STUDENT"))
+      .orderBy(invitations.createdAt)
+
+    return ok(studentInvitationsList)
+  } catch (dbError) {
+    console.error("Database error during student invitations listing:", dbError)
+    return err({ type: "database_error" })
+  }
+}
+
+export const listAllInvitationsService = async (
+  c: Context<{ Variables: AppVariables }>
+): Promise<AppResult<SelectInvitation[], { type: "database_error" }>> => {
+  const dbInstance = c.get("db")
+
+  try {
+    const allInvitations = await dbInstance
+      .select()
+      .from(invitations)
+      .orderBy(invitations.createdAt)
+
+    return ok(allInvitations)
+  } catch (dbError) {
+    console.error("Database error during invitations listing:", dbError)
     return err({ type: "database_error" })
   }
 }

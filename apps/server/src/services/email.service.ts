@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer"
 import { env } from "../config/env"
 import { err, ok, type AppResult } from "../result"
-import { createTeacherInvitationEmail as createTeacherInvitationEmailTemplate, createPasswordResetEmail as createPasswordResetEmailTemplate } from "../templates/email"
+import { createTeacherInvitationEmail as createTeacherInvitationEmailTemplate, createStudentInvitationEmail as createStudentInvitationEmailTemplate, createPasswordResetEmail as createPasswordResetEmailTemplate } from "../templates/email"
 
 interface SendEmailInput {
   to: string
@@ -66,6 +66,10 @@ export const sendEmail = async (input: SendEmailInput): Promise<AppResult<void, 
 
 export const createTeacherInvitationEmail = (nome: string, invitationUrl: string): string => {
   return createTeacherInvitationEmailTemplate({ nome, invitationUrl })
+}
+
+export const createStudentInvitationEmail = (nome: string, invitationUrl: string): string => {
+  return createStudentInvitationEmailTemplate({ nome, invitationUrl })
 }
 
 export const createPasswordResetEmail = (nome: string, resetUrl: string): string => {

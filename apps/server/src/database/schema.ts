@@ -102,11 +102,12 @@ export const resetPasswords = pgTable("reset_password", {
   expiresAt: timestamp("expires_at").notNull(), // Adicionado para controle
 })
 
-export const teacherInvitations = pgTable("teacher_invitation", {
+export const invitations = pgTable("invitation", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
   nome: text("nome").notNull(),
   invitationHash: text("invitation_hash").unique().notNull(),
+  role: userRole("role").notNull(), // TEACHER or STUDENT
   status: text("status").default("pending").notNull(), // pending, used, expired
   createdAt: timestamp("created_at")
     .notNull()
@@ -117,8 +118,13 @@ export const teacherInvitations = pgTable("teacher_invitation", {
     .references(() => Users.id), // Admin who sent the invitation
   userId: integer("user_id").references(() => Users.id), // Set when account is created
 })
-export type InsertTeacherInvitation = typeof teacherInvitations.$inferInsert
-export type SelectTeacherInvitation = typeof teacherInvitations.$inferSelect
+export type InsertInvitation = typeof invitations.$inferInsert
+export type SelectInvitation = typeof invitations.$inferSelect
+
+// Keep legacy exports for backward compatibility during transition
+export const teacherInvitations = invitations
+export type InsertTeacherInvitation = InsertInvitation
+export type SelectTeacherInvitation = SelectInvitation
 
 export const sessions = pgTable("session", {
   id: text("id").primaryKey(), // Aumentado tamanho
@@ -162,6 +168,9 @@ export const usuariosRelations = relations(Users, ({ one, many }) => ({
   convitesEnviados: many(invites), // Se um admin pode convidar
   resetsSenha: many(resetPasswords),
   bancasAssociadas: many(usuariosBancas), // Relação através da tabela de junção
+  invitationsSent: many(invitations),
+  invitationReceived: one(invitations),
+  // Legacy compatibility
   teacherInvitationsSent: many(teacherInvitations),
   teacherInvitationReceived: one(teacherInvitations),
   // bancasCriadas: many(bancas), // Descomentar se banca.userId for mantido
@@ -211,16 +220,19 @@ export const resetPasswordsRelations = relations(resetPasswords, ({ one }) => ({
   }),
 }))
 
-export const teacherInvitationsRelations = relations(teacherInvitations, ({ one }) => ({
+export const invitationsRelations = relations(invitations, ({ one }) => ({
   invitedBy: one(Users, {
-    fields: [teacherInvitations.invitedBy],
+    fields: [invitations.invitedBy],
     references: [Users.id],
   }),
   user: one(Users, {
-    fields: [teacherInvitations.userId],
+    fields: [invitations.userId],
     references: [Users.id],
   }),
 }))
+
+// Keep legacy export for backward compatibility
+export const teacherInvitationsRelations = invitationsRelations
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
   usuario: one(Users, {

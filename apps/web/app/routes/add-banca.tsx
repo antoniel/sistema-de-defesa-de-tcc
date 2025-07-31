@@ -2,6 +2,14 @@ import { KeywordsList } from "@/components/banca/KeywordsList"
 import { Header } from "@/components/layout/Header"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { Form } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -52,7 +60,13 @@ const DEV_SEED_DATA: Partial<BancaFormData> = {
   orientadorId: 1,
 }
 
-import { useAddBancaMutation, useStudents, useTeachers } from "@/hooks"
+import {
+  useAddBancaMutation,
+  useCreateStudentInvitation,
+  useStudents,
+  useTeachers,
+  type CreateStudentInvitationData,
+} from "@/hooks"
 
 const FORM_STEPS = [
   { id: 0, name: "Informações Básicas" },
@@ -414,6 +428,7 @@ const AuthorInfoSection = () => {
             )}
           />
           {errors.autor && <p className="text-sm text-red-600 mt-1">{errors.autor.message}</p>}
+          {isUserTeacher && <InviteStudentButton />}
         </div>
         <div>
           <Label htmlFor="matricula">Matrícula</Label>
@@ -839,5 +854,70 @@ const DevFillButton = () => {
     <Button type="button" variant="secondary" onClick={handleFill}>
       Fill Form (Dev)
     </Button>
+  )
+}
+
+const InviteStudentButton = () => {
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const createStudentInvitation = useCreateStudentInvitation()
+
+  const form = useForm<CreateStudentInvitationData>({
+    defaultValues: {
+      email: "",
+      nome: "",
+    },
+  })
+
+  const handleSubmit = (data: CreateStudentInvitationData) => {
+    createStudentInvitation.mutate(
+      { email: data.email, nome: data.nome },
+      {
+        onSuccess: () => {
+          setDialogOpen(false)
+        },
+      }
+    )
+  }
+
+  return (
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <DialogTrigger asChild>
+        <Button type="button" variant="outline" size="sm" className="mt-2">
+          Convidar Aluno
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Convidar Aluno</DialogTitle>
+          <DialogDescription>Envie um convite para um aluno criar sua conta no sistema.</DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <div>
+              <Label htmlFor="student-email">Email</Label>
+              <Input
+                id="student-email"
+                type="email"
+                {...form.register("email")}
+                placeholder="email@exemplo.com"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="student-name">Nome completo</Label>
+              <Input id="student-name" {...form.register("nome")} placeholder="Nome do aluno" required />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={createStudentInvitation.isPending}>
+                {createStudentInvitation.isPending ? "Enviando..." : "Enviar Convite"}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
   )
 }
