@@ -232,12 +232,12 @@ export default function BancaDetalhesPage() {
             <div className="space-y-6">
               <section>
                 <h2 className="text-xl font-semibold mb-4">Resumo</h2>
-                <p className="whitespace-pre-line text-muted-foreground">{banca.resumo}</p>
+                <p className="whitespace-pre-line text-muted-foreground text-justify">{banca.resumo}</p>
               </section>
 
               <section>
                 <h2 className="text-xl font-semibold mb-4">Abstract</h2>
-                <p className="whitespace-pre-line text-muted-foreground">{banca.abstract}</p>
+                <p className="whitespace-pre-line text-muted-foreground text-justify">{banca.abstract}</p>
               </section>
 
               <section>
