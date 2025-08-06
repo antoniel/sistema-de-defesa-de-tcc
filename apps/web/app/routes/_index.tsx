@@ -124,7 +124,7 @@ interface AllDefensesTabProps {
 function AllDefensesTab(props: AllDefensesTabProps) {
   const [upcomingCurrentPage, setUpcomingCurrentPage] = useState<number>(1)
   const [pastCurrentPage, setPastCurrentPage] = useState<number>(1)
-  
+
   const upcomingBancasQuery = useUpcomingBancasDefesa(
     props.sortField || undefined,
     props.sortField ? props.sortOrder : undefined,
@@ -166,7 +166,8 @@ function AllDefensesTab(props: AllDefensesTabProps) {
     return (
       <TabsContent value="all-defenses">
         <div className="text-red-600 p-4">
-          Erro ao carregar as defesas: {upcomingBancasQuery.error?.message || pastBancasQuery.error?.message || "Erro desconhecido"}
+          Erro ao carregar as defesas:{" "}
+          {upcomingBancasQuery.error?.message || pastBancasQuery.error?.message || "Erro desconhecido"}
         </div>
       </TabsContent>
     )
@@ -229,14 +230,12 @@ function AllDefensesTab(props: AllDefensesTabProps) {
             )}
           </div>
         )}
-        
+
         {/* Defesas anteriores */}
         <div>
           <div className="border rounded-md">
             <div className="p-4 border-b">
-              <h3 className="text-lg font-semibold">
-                {hasUpcomingDefenses ? "Defesas anteriores" : "Defesas"}
-              </h3>
+              <h3 className="text-lg font-semibold">Defesas anteriores</h3>
             </div>
             <div className="overflow-x-auto">
               <HomeTable
@@ -296,7 +295,7 @@ interface MyDefensesTabProps {
 function MyDefensesTab(props: MyDefensesTabProps) {
   const [upcomingCurrentPage, setUpcomingCurrentPage] = useState<number>(1)
   const [pastCurrentPage, setPastCurrentPage] = useState<number>(1)
-  
+
   const myDefesasQuery = useMyDefesas(
     props.sortField || undefined,
     props.sortField ? props.sortOrder : undefined,
