@@ -268,7 +268,9 @@ const AvaliacoesMembros = (props: {
   isAssigningGrade: boolean
 }) => {
   const bancaQuery = useBanca(props.bancaId)
-  const membrosAvaliadores = bancaQuery.data?.membros?.filter((m) => m.role !== "aluno") || []
+  const membrosAvaliadores = bancaQuery.data?.membros
+    ?.filter((m) => m.role !== "aluno")
+    .sort((a, b) => a.usuario.nome.localeCompare(b.usuario.nome)) || []
   return (
     <div>
       <h2 className="text-xl font-semibold mb-4">Avaliações dos Membros da Banca</h2>
@@ -293,18 +295,14 @@ const AvaliacoesMembros = (props: {
                       className="flex items-start gap-2 line-clamp-2 w-3/4"
                       title={membro.usuario.academicTitle}
                     >
-                      {membro.role === "orientador"
-                        ? "Orientador"
-                        : membro.role === "coorientador"
-                          ? "Coorientador"
-                          : "Avaliador"}
+                      Avaliador
                       {membro.usuario.academicTitle && ` • ${membro.usuario.academicTitle}`}
                     </CardDescription>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <Label htmlFor={`nota-${membro.id}`}>Nota:</Label>
-                    {isCurrentUserMembro ? (
+                    {canEdit ? (
                       <div className="flex items-center gap-2">
                         <Input
                           id={`nota-${membro.id}`}
@@ -313,15 +311,15 @@ const AvaliacoesMembros = (props: {
                           max="10"
                           step="0.1"
                           value={avaliacao.nota}
-                          onChange={(e) => canEdit && props.handleAvaliacaoChange(membro.id, "nota", e.target.value)}
+                          onChange={(e) => props.handleAvaliacaoChange(membro.id, "nota", e.target.value)}
                           placeholder="Ex: 8.5"
-                          disabled={!canEdit || props.isAssigningGrade}
-                          className={`w-28 ${!canEdit ? "bg-muted" : ""}`}
+                          disabled={props.isAssigningGrade}
+                          className="w-28"
                         />
                         <Button
                           size="sm"
                           onClick={() => props.handleSaveUserGrade(membro.id, avaliacao.nota)}
-                          disabled={!canEdit || !avaliacao.nota || props.isAssigningGrade}
+                          disabled={!avaliacao.nota || props.isAssigningGrade}
                           className="flex items-center gap-1"
                         >
                           <Save className="h-3 w-3" />

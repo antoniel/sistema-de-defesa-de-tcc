@@ -1,7 +1,7 @@
 import { BancaHeader } from "@/components/layout/BancaHeader"
 import { BancaNavigation } from "@/components/layout/BancaNavigation"
 import { Header } from "@/components/layout/Header"
-import { AtaDefesaPDF } from "@/components/pdf/ata-defesa"
+import { FormularioAvaliacaoPDF } from "@/components/pdf/formulario-avaliacao"
 import { DeclaracaoOrientacaoPDF } from "@/components/pdf/declaracao-orientacao"
 import { DeclaracaoParticipacaoPDF } from "@/components/pdf/declaracao-participacao"
 import { PDFGenerator } from "@/components/pdf/pdf-generator"
@@ -58,8 +58,8 @@ export default function BancaDocumentosPage() {
 
       switch (type) {
         case "ata":
-          pdfComponent = <AtaDefesaPDF bancaInfo={bancaInfo} />
-          docName = "Ata de Defesa"
+          pdfComponent = <FormularioAvaliacaoPDF bancaInfo={bancaInfo} />
+          docName = "Formulário de Avaliação"
           break
         case "participacao":
           const participanteId = membroId || selectedParticipant || 
@@ -158,6 +158,52 @@ export default function BancaDocumentosPage() {
               </div>
 
               <div className="space-y-4">
+                {/* Ata de Defesa */}
+                <div className="border rounded-lg p-4">
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Formulário de Avaliação
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-3">Formulário oficial para avaliação do trabalho de conclusão de curso.</p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => generatePreview("ata")}
+                      className="flex items-center gap-2"
+                    >
+                      <Eye className="h-4 w-4" />
+                      Visualizar
+                    </Button>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={async () => {
+                        if (!bancaInfo) return
+                        
+                        try {
+                          const pdfComponent = <FormularioAvaliacaoPDF bancaInfo={bancaInfo} />
+                          const blob = await pdf(pdfComponent).toBlob()
+                          const url = URL.createObjectURL(blob)
+                          const link = document.createElement("a")
+                          link.href = url
+                          link.download = "formulario-avaliacao.pdf"
+                          document.body.appendChild(link)
+                          link.click()
+                          document.body.removeChild(link)
+                          URL.revokeObjectURL(url)
+                        } catch (error) {
+                          console.error("Erro ao gerar PDF:", error)
+                        }
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download
+                    </Button>
+                  </div>
+                </div>
+
                 <div className="border rounded-lg p-4">
                   <h3 className="font-semibold mb-2 flex items-center gap-2">
                     <FileText className="h-4 w-4" />
