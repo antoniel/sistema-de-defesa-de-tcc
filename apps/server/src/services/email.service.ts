@@ -9,7 +9,11 @@ interface SendEmailInput {
   html: string
 }
 
-type SendEmailError = { type: "email_error" } | { type: "config_error" }
+export type SendEmailError = { type: "email_error" } | { type: "config_error" }
+
+export interface EmailService {
+  sendEmail: (input: SendEmailInput) => Promise<AppResult<void, SendEmailError>>
+}
 
 export const sendEmail = async (input: SendEmailInput): Promise<AppResult<void, SendEmailError>> => {
   try {
@@ -63,6 +67,10 @@ export const sendEmail = async (input: SendEmailInput): Promise<AppResult<void, 
     return err({ type: "email_error" })
   }
 }
+
+export const createEmailService = (): EmailService => ({
+  sendEmail,
+})
 
 export const createTeacherInvitationEmail = (nome: string, invitationUrl: string): string => {
   return createTeacherInvitationEmailTemplate({ nome, invitationUrl })

@@ -5,6 +5,8 @@ import path from "path"
 import type { Database } from "../database"
 import * as schema from "../database/schema"
 import { type AppVariables } from "../types"
+import type { EmailService, SendEmailError } from "../services/email.service"
+import { ok, type AppResult } from "../result"
 
 export const getFakeDb = async () => {
   const db = drizzle({
@@ -18,9 +20,18 @@ export const getFakeDb = async () => {
   return db as unknown as Database
 }
 
+const createFakeEmailService = (): EmailService => {
+  return {
+    sendEmail: async (): Promise<AppResult<void, SendEmailError>> => {
+      return ok(undefined)
+    },
+  }
+}
+
 export const fakeDeps = (db: Awaited<ReturnType<typeof getFakeDb>>) => {
   return createMiddleware<{ Variables: AppVariables }>(async (c, next) => {
     c.set("db", db as any)
+    c.set("emailService", createFakeEmailService())
     await next()
   })
 }

@@ -5,7 +5,7 @@ import { type Context } from "hono"
 import { env } from "../../config/env"
 import { teacherInvitations, Users, type SelectTeacherInvitation } from "../../database/schema"
 import { err, ok, type AppResult } from "../../result"
-import { createTeacherInvitationEmail, sendEmail } from "../../services/email.service"
+import { createTeacherInvitationEmail } from "../../services/email.service"
 import { type AppVariables } from "../../types"
 
 interface CreateTeacherInvitationInput {
@@ -29,6 +29,7 @@ export const createTeacherInvitationService = async (
   input: CreateTeacherInvitationInput
 ): Promise<AppResult<CreateTeacherInvitationResponse, CreateTeacherInvitationServiceError>> => {
   const dbInstance = c.get("db")
+  const emailService = c.get("emailService")
   const adminUser = c.get("jwtPayload")
 
   if (!adminUser) {
@@ -86,7 +87,7 @@ export const createTeacherInvitationService = async (
     const invitationUrl = `${env.FRONTEND_URL || "http://localhost:5173"}/teacher-invitation/${invitationHash}`
     const emailHtml = createTeacherInvitationEmail(input.nome, invitationUrl)
 
-    const emailResult = await sendEmail({
+    const emailResult = await emailService.sendEmail({
       to: input.email,
       subject: "Convite para Professor - Sistema Banca",
       html: emailHtml,

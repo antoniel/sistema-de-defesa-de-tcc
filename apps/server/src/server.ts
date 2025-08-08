@@ -4,9 +4,11 @@ import path from "path"
 import { db, runDatabaseMigrations } from "./database"
 import { app } from "./index"
 import { type AppVariables } from "./types"
+import { createEmailService } from "./services/email.service"
 
 const TrueDeps = createMiddleware<{ Variables: AppVariables }>(async (c, next) => {
   c.set("db", db)
+  c.set("emailService", createEmailService())
   await next()
 })
 

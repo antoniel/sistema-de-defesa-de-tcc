@@ -5,7 +5,7 @@ import { type Context } from "hono"
 import { z } from "zod"
 import { Bancas, resetPasswords, type SelectUser, Users } from "../../database/schema"
 import { type AppResult, err, ok } from "../../result"
-import { createPasswordResetEmail, sendEmail } from "../../services/email.service"
+import { createPasswordResetEmail } from "../../services/email.service"
 import { type AppVariables } from "../../types"
 import { createUserSchema, updateUserSchema } from "./usuario.schema"
 
@@ -381,7 +381,7 @@ export const requestPasswordReset = async (
     const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password/${resetToken}`
     const emailHtml = createPasswordResetEmail(userData.nome, resetUrl)
     
-    const emailResult = await sendEmail({
+    const emailResult = await c.get("emailService").sendEmail({
       to: email,
       subject: "Recuperação de Senha - Sistema Banca",
       html: emailHtml,

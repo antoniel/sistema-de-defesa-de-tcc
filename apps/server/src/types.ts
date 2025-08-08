@@ -1,4 +1,5 @@
 import { db, type SelectUser } from "./database"
+import type { EmailService } from "./services/email.service"
 
 type DatabaseInstance = typeof db
 
@@ -12,4 +13,5 @@ export interface AppVariables {
     exp: number
   }
   db: DatabaseInstance
+  emailService: EmailService
 }
