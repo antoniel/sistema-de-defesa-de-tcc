@@ -318,6 +318,61 @@ function AccessDeniedMessage({ navigate }: { navigate: NavigateFunction }) {
 - Include proper ARIA labels and accessibility
 - Use loading states and disabled states consistently
 
+## Code Quality and Component Architecture
+
+### Component Size and Reusability
+
+- **Break down large components**: When components exceed 100-150 lines or contain repetitive JSX patterns, split them into smaller, focused components
+- **Extract reusable UI patterns**: Create dedicated components for repeated patterns like:
+  - `ReviewSection` for form review sections with consistent styling
+  - `ReviewField` for individual field display (label + value)
+  - `ReviewGrid` for grid layouts in review sections
+  - `SectionHeader` for consistent section headers with borders
+- **Avoid repetitive JSX**: When you see similar blocks of JSX repeated (like multiple div structures with className patterns), extract them into reusable components
+- **Component composition over large monoliths**: Prefer composing smaller, single-purpose components rather than having large components with multiple responsibilities
+
+### Example Patterns to Extract
+
+```tsx
+// ❌ Avoid - Repetitive JSX in large components
+<div>
+  <p className="text-sm text-muted-foreground">Field Label</p>
+  <p className="font-medium">{value}</p>
+</div>
+
+// ✅ Good - Extract into reusable component
+<ReviewField label="Field Label" value={value} />
+
+// ❌ Avoid - Large review sections with repetitive structure
+const LargeReviewSection = () => {
+  return (
+    <div className="space-y-6 border rounded-lg p-4">
+      {/* 200+ lines of similar JSX patterns */}
+    </div>
+  )
+}
+
+// ✅ Good - Break into focused components
+const ReviewSection = () => {
+  return (
+    <>
+      <BasicInfoReviewSection values={values} />
+      <AuthorInfoReviewSection values={values} orientador={orientador} />
+      <EvaluatorsReviewSection values={values} teachers={teachers} />
+      <MetadataReviewSection values={values} />
+      <DefenseScheduleReviewSection values={values} />
+    </>
+  )
+}
+```
+
+### When to Refactor
+
+- **File length**: Components over 200 lines should be considered for splitting
+- **Repetitive patterns**: 3+ similar JSX blocks should be extracted
+- **Multiple responsibilities**: Components handling multiple concerns should be split
+- **Hard to read/maintain**: If scrolling is needed to understand component structure
+
 ### Database Schema Conventions
 
 - Use **snake_case** for column names: `created_at`, `password_hash`

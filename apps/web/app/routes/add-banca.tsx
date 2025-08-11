@@ -825,143 +825,122 @@ const EvaluatorsSection = () => {
   )
 }
 
-const ReviewSection = () => {
-  const { getValues } = useFormContext<BancaFormData>()
-  const values = getValues()
+// Helper components for review section
+const ReviewField = ({ label, value, className = "" }: { label: string; value: string | null | undefined; className?: string }) => (
+  <div className={className}>
+    <p className="text-sm text-muted-foreground">{label}</p>
+    <p className="font-medium">{value || "Não informado"}</p>
+  </div>
+)
+
+const SectionHeader = ({ title }: { title: string }) => (
+  <h3 className="text-lg font-medium border-b pb-2 mb-2">{title}</h3>
+)
+
+const EvaluatorCard = ({ teacher }: { teacher: any }) => (
+  <div className="flex items-center justify-between p-3 border rounded">
+    <div>
+      <p className="font-medium">{teacher?.nome || "Não selecionado"}</p>
+      <p className="text-sm text-muted-foreground">{teacher?.academicTitle}</p>
+    </div>
+  </div>
+)
+
+const BasicInfoReviewSection = ({ values }: { values: BancaFormData }) => (
+  <div>
+    <SectionHeader title="Informações Básicas" />
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <ReviewField label="Título do Trabalho" value={values.tituloTrabalho} />
+      <ReviewField label="Visibilidade" value={values.visible ? "Pública" : "Privada"} />
+    </div>
+    <ReviewField label="Resumo" value={values.resumo} className="mt-2" />
+    <ReviewField label="Abstract" value={values.abstract} className="mt-2" />
+  </div>
+)
+
+const AuthorInfoReviewSection = ({ values, orientador }: { values: BancaFormData; orientador: any }) => (
+  <div className="space-y-4">
+    <SectionHeader title="Informações do Autor" />
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <ReviewField label="Autor" value={values.autor} />
+      <ReviewField label="Matrícula" value={values.matricula} />
+    </div>
+    <div>
+      <ReviewField label="Orientador" value={orientador ? `${orientador.nome}` : "Não selecionado"} />
+      <p className="text-sm text-muted-foreground">{`(${orientador?.academicTitle || ""})`}</p>
+    </div>
+  </div>
+)
+
+const EvaluatorsReviewSection = ({ values, teachers }: { values: BancaFormData; teachers: any[] }) => {
+  const orientador = teachers?.find((teacher) => Number(teacher.id) === Number(values.orientadorId))
+  const avaliador2 = teachers?.find((teacher) => Number(teacher.id) === Number(values.avaliador2Id))
+  const avaliador3 = teachers?.find((teacher) => Number(teacher.id) === Number(values.avaliador3Id))
+
+  return (
+    <div>
+      <SectionHeader title="Avaliadores da Banca" />
+      <div className="space-y-3">
+        <EvaluatorCard teacher={orientador} />
+        <EvaluatorCard teacher={avaliador2} />
+        <EvaluatorCard teacher={avaliador3} />
+      </div>
+    </div>
+  )
+}
+
+const MetadataReviewSection = ({ values }: { values: BancaFormData }) => {
   const cursoNomes = {
     "1": "Ciência da Computação",
     "2": "Sistemas de Informação",
   }
 
-  // Buscar a lista de professores para mostrar o nome do orientador na revisão
+  return (
+    <div>
+      <SectionHeader title="Metadados do Trabalho" />
+      <KeywordsList keywords={values.palavrasChave} className="mb-4" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+        <ReviewField label="Turma" value={values.turma} />
+        <ReviewField label="Curso" value={cursoNomes[String(values.cursoId) as keyof typeof cursoNomes]} />
+        <ReviewField label="Período Acadêmico" value={values.periodoAcademico} />
+      </div>
+    </div>
+  )
+}
+
+const DefenseScheduleReviewSection = ({ values }: { values: BancaFormData }) => (
+  <div>
+    <SectionHeader title="Agendamento da Defesa" />
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <ReviewField 
+        label="Data" 
+        value={values.dataRealizacao ? new Date(values.dataRealizacao).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "Não definida"} 
+      />
+      <ReviewField label="Hora" value={values.hora} />
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+      <ReviewField label="Modalidade" value={values.modalidade === "local" ? "Presencial" : "Remoto"} />
+      <ReviewField label={values.modalidade === "local" ? "Local" : "Link"} value={values.local} />
+    </div>
+  </div>
+)
+
+const ReviewSection = () => {
+  const { getValues } = useFormContext<BancaFormData>()
+  const values = getValues()
   const { data: teachers } = useTeachers()
 
-  // Encontrar o nome do orientador a partir do ID
   const orientador = teachers?.find((teacher) => Number(teacher.id) === Number(values.orientadorId))
-  const orientadorNome = orientador ? `${orientador.nome}` : "Não selecionado"
 
   return (
     <>
       <h2 className="text-xl font-semibold mb-4">Revisão e Confirmação</h2>
-
       <div className="space-y-6 border rounded-lg p-4">
-        <div>
-          <h3 className="text-lg font-medium border-b pb-2 mb-2">Informações Básicas</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Título do Trabalho</p>
-              <p className="font-medium">{values.tituloTrabalho}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Visibilidade</p>
-              <p className="font-medium">{values.visible ? "Pública" : "Privada"}</p>
-            </div>
-          </div>
-          <div className="mt-2">
-            <p className="text-sm text-muted-foreground">Resumo</p>
-            <p className="text-sm">{values.resumo}</p>
-          </div>
-          <div className="mt-2">
-            <p className="text-sm text-muted-foreground">Abstract</p>
-            <p className="text-sm">{values.abstract}</p>
-          </div>
-        </div>
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium border-b pb-2 mb-2">Informações do Autor</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Autor</p>
-              <p className="font-medium">{values.autor}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Matrícula</p>
-              <p className="font-medium">{values.matricula}</p>
-            </div>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Orientador</p>
-            <p className="font-medium">{orientadorNome}</p>
-            <p className="text-sm text-muted-foreground">{`(${orientador?.academicTitle})`}</p>
-          </div>
-        </div>
-        <div>
-          <h3 className="text-lg font-medium border-b pb-2 mb-2">Avaliadores da Banca</h3>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 border rounded">
-              <div>
-                <p className="font-medium">{orientador?.nome || "Não selecionado"}</p>
-                <p className="text-sm text-muted-foreground">{orientador?.academicTitle}</p>
-              </div>
-            </div>
-            {(() => {
-              const avaliador2 = teachers?.find((teacher) => Number(teacher.id) === Number(values.avaliador2Id))
-              return (
-                <div className="flex items-center justify-between p-3 border rounded">
-                  <div>
-                    <p className="font-medium">{avaliador2?.nome || "Não selecionado"}</p>
-                    <p className="text-sm text-muted-foreground">{avaliador2?.academicTitle}</p>
-                  </div>
-                </div>
-              )
-            })()}
-            {(() => {
-              const avaliador3 = teachers?.find((teacher) => Number(teacher.id) === Number(values.avaliador3Id))
-              return (
-                <div className="flex items-center justify-between p-3 border rounded">
-                  <div>
-                    <p className="font-medium">{avaliador3?.nome || "Não selecionado"}</p>
-                    <p className="text-sm text-muted-foreground">{avaliador3?.academicTitle}</p>
-                  </div>
-                </div>
-              )
-            })()}
-          </div>
-        </div>
-        <div>
-          <h3 className="text-lg font-medium border-b pb-2 mb-2">Metadados do Trabalho</h3>
-          <KeywordsList keywords={values.palavrasChave} className="mb-4" />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
-            <div>
-              <p className="text-sm text-muted-foreground">Turma</p>
-              <p className="font-medium">{values.turma}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Curso</p>
-              <p className="font-medium">{cursoNomes[String(values.cursoId) as keyof typeof cursoNomes]}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Período Acadêmico</p>
-              <p className="font-medium">{values.periodoAcademico}</p>
-            </div>
-          </div>
-        </div>
-        <div>
-          <h3 className="text-lg font-medium border-b pb-2 mb-2">Agendamento da Defesa</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Data</p>
-              <p className="font-medium">
-                {values.dataRealizacao
-                  ? new Date(values.dataRealizacao).toLocaleDateString("pt-BR", { timeZone: "UTC" })
-                  : "Não definida"}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Hora</p>
-              <p className="font-medium">{values.hora}</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-            <div>
-              <p className="text-sm text-muted-foreground">Modalidade</p>
-              <p className="font-medium">{values.modalidade === "local" ? "Presencial" : "Remoto"}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{values.modalidade === "local" ? "Local" : "Link"}</p>
-              <p className="font-medium">{values.local}</p>
-            </div>
-          </div>
-        </div>
+        <BasicInfoReviewSection values={values} />
+        <AuthorInfoReviewSection values={values} orientador={orientador} />
+        <EvaluatorsReviewSection values={values} teachers={teachers || []} />
+        <MetadataReviewSection values={values} />
+        <DefenseScheduleReviewSection values={values} />
       </div>
     </>
   )
