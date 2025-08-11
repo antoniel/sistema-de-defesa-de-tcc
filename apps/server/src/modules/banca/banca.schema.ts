@@ -16,6 +16,7 @@ export const createBancaSchema = baseBancaSchema.extend({
   alunoId: z.number().min(1, "Discente é obrigatório"),
   dataRealizacao: z.coerce.date(),
   avaliadores: z.array(z.string()).min(1, "Pelo menos um avaliador é necessário").optional(),
+  membros: z.array(z.object({ id: z.number().min(1, "ID do avaliador é obrigatório") })).optional(),
 })
 
 const partialCreateBancaSchema = createBancaSchema.partial()

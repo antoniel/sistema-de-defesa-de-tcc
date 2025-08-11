@@ -527,12 +527,36 @@ export const createBanca = async (
       return err({ type: "database_error", error: "Failed to create banca" })
     }
 
-    // Automatically add the advisor as a member of the committee
+    // Add the advisor as orientador
     await dbInstance.insert(usuariosBancas).values({
       bancaId: newBanca.id,
       usuarioId: bancaData.orientadorId,
       role: "orientador",
     })
+    
+    // Add the student as aluno
+    await dbInstance.insert(usuariosBancas).values({
+      bancaId: newBanca.id,
+      usuarioId: bancaData.alunoId,
+      role: "aluno",
+    })
+    
+    // Add evaluators if provided
+    if (bancaData.membros && bancaData.membros.length > 0) {
+      // Filter out the orientador from membros to avoid duplication
+      // The orientador is already added as "orientador" role above
+      const avaliadoresData = bancaData.membros
+        .filter((membro) => Number(membro.id) !== bancaData.orientadorId)
+        .map((membro) => ({
+          bancaId: newBanca.id,
+          usuarioId: Number(membro.id),
+          role: "avaliador" as const,
+        }))
+      
+      if (avaliadoresData.length > 0) {
+        await dbInstance.insert(usuariosBancas).values(avaliadoresData)
+      }
+    }
 
     return ok(newBanca)
   } catch (error: any) {
