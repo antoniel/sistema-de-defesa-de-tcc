@@ -46,6 +46,15 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json(result.data)
   })
+  .get("/students/available-for-banca", async (c) => {
+    const result = await service.getStudentsAvailableForBanca(c)
+    if (!result.ok) {
+      throw match(result.error)
+        .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar discentes"))
+        .exhaustive()
+    }
+    return c.json(result.data)
+  })
   .post("/", checkRole(["ADMIN", "TEACHER"]), zValidator("json", schema.createUserSchema), async (c) => {
     const validatedUserData = c.req.valid("json")
     const result = await service.createUser(c, validatedUserData)
