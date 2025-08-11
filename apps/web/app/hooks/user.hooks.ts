@@ -68,12 +68,21 @@ export const useTeachers = () => {
   })
 }
 
-// Hook to fetch students
 export const useStudents = () => {
   return useQuery({
     queryKey: ["students"],
     queryFn: async () => {
       const response = await apiClient.usuario.students.$get()
+      return rpcReturn(response)
+    },
+  })
+}
+
+export const useStudentsAvailableForBanca = () => {
+  return useQuery({
+    queryKey: ["students", "available-for-banca"],
+    queryFn: async () => {
+      const response = await apiClient.usuario.students["available-for-banca"].$get()
       return rpcReturn(response)
     },
   })
