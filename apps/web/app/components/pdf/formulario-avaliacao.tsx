@@ -24,7 +24,7 @@ export const FormularioAvaliacaoPDF = ({ bancaInfo }: { bancaInfo: DocumentInfo 
           <Text style={styles.headerLine}>Bacharelado em Sistemas de Informação</Text>
           <Text style={styles.headerLine}>MATC98 - TCC BACHARELADO SISTEMAS DE INFORMAÇÃO II</Text>
           <Text style={styles.headerLine}>
-            TURMA: {bancaInfo.turma} DATA: {defenseDate} - SEMESTRE: {bancaInfo.periodoAcademico}
+            TURMA: 010100 DATA: {defenseDate} - SEMESTRE: {bancaInfo.periodoAcademico}
           </Text>
         </View>
 
