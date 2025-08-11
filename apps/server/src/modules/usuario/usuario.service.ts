@@ -1,9 +1,9 @@
 import * as bcrypt from "bcryptjs"
 import crypto from "crypto"
-import { and, asc, desc, eq, or } from "drizzle-orm"
+import { and, asc, desc, eq, inArray, not, or } from "drizzle-orm"
 import { type Context } from "hono"
 import { z } from "zod"
-import { Bancas, resetPasswords, type SelectUser, Users } from "../../database/schema"
+import { Bancas, resetPasswords, type SelectUser, Users, usuariosBancas } from "../../database/schema"
 import { type AppResult, err, ok } from "../../result"
 import { createPasswordResetEmail, sendEmail } from "../../services/email.service"
 import { type AppVariables } from "../../types"
@@ -339,7 +339,7 @@ export const getStudents = async (
   }
 }
 
-type RequestPasswordResetError = 
+type RequestPasswordResetError =
   | { type: "user_not_found" }
   | { type: "database_error"; error: unknown }
   | { type: "email_error" }
@@ -349,7 +349,7 @@ export const requestPasswordReset = async (
   email: string
 ): Promise<AppResult<void, RequestPasswordResetError>> => {
   const dbInstance = c.get("db")
-  
+
   try {
     // Check if user exists
     const user = await dbInstance
@@ -357,41 +357,39 @@ export const requestPasswordReset = async (
       .from(Users)
       .where(eq(Users.email, email))
       .limit(1)
-    
+
     if (user.length === 0) {
       return err({ type: "user_not_found" })
     }
-    
+
     const userData = user[0]
-    
+
     // Generate reset token
     const resetToken = crypto.randomBytes(32).toString("hex")
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
-    
+
     // Store reset token
-    await dbInstance
-      .insert(resetPasswords)
-      .values({
-        userId: userData.id,
-        resetPasswordHash: resetToken,
-        expiresAt,
-      })
-    
+    await dbInstance.insert(resetPasswords).values({
+      userId: userData.id,
+      resetPasswordHash: resetToken,
+      expiresAt,
+    })
+
     // Send reset email
     const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password/${resetToken}`
     const emailHtml = createPasswordResetEmail(userData.nome, resetUrl)
-    
+
     const emailResult = await sendEmail({
       to: email,
       subject: "Recuperação de Senha - Sistema Banca",
       html: emailHtml,
     })
-    
+
     if (!emailResult.ok) {
       console.error("Failed to send password reset email:", emailResult.error)
       return err({ type: "email_error" })
     }
-    
+
     return ok(undefined)
   } catch (error) {
     console.error("Error requesting password reset:", error)
@@ -399,7 +397,7 @@ export const requestPasswordReset = async (
   }
 }
 
-type ResetPasswordError = 
+type ResetPasswordError =
   | { type: "invalid_token" }
   | { type: "token_expired" }
   | { type: "user_not_found" }
@@ -412,35 +410,33 @@ export const resetPassword = async (
   newPassword: string
 ): Promise<AppResult<void, ResetPasswordError>> => {
   const dbInstance = c.get("db")
-  
+
   try {
     // Find reset token
     const resetRecord = await dbInstance
-      .select({ 
+      .select({
         id: resetPasswords.id,
         userId: resetPasswords.userId,
-        expiresAt: resetPasswords.expiresAt 
+        expiresAt: resetPasswords.expiresAt,
       })
       .from(resetPasswords)
       .where(eq(resetPasswords.resetPasswordHash, token))
       .limit(1)
-    
+
     if (resetRecord.length === 0) {
       return err({ type: "invalid_token" })
     }
-    
+
     const reset = resetRecord[0]
-    
+
     // Check if token is expired
     if (reset.expiresAt < new Date()) {
       // Clean up expired token
-      await dbInstance
-        .delete(resetPasswords)
-        .where(eq(resetPasswords.id, reset.id))
-      
+      await dbInstance.delete(resetPasswords).where(eq(resetPasswords.id, reset.id))
+
       return err({ type: "token_expired" })
     }
-    
+
     // Hash new password
     let passwordHash: string
     try {
@@ -449,24 +445,53 @@ export const resetPassword = async (
       console.error("Password hashing failed during reset:", hashError)
       return err({ type: "hashing_error", error: hashError })
     }
-    
+
     // Update user password
     await dbInstance
       .update(Users)
-      .set({ 
+      .set({
         passwordHash,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(Users.id, reset.userId))
-    
+
     // Clean up used token
-    await dbInstance
-      .delete(resetPasswords)
-      .where(eq(resetPasswords.id, reset.id))
-    
+    await dbInstance.delete(resetPasswords).where(eq(resetPasswords.id, reset.id))
+
     return ok(undefined)
   } catch (error) {
     console.error("Error resetting password:", error)
+    return err({ type: "database_error", error })
+  }
+}
+
+type GetStudentsAvailableForBancaError = { type: "database_error"; error: unknown }
+export const getStudentsAvailableForBanca = async (
+  c: Context<{ Variables: AppVariables }>
+): Promise<AppResult<SelectUser[], GetStudentsAvailableForBancaError>> => {
+  const dbInstance = c.get("db")
+  try {
+    const studentsWithBancas = await dbInstance
+      .select({ id: Users.id })
+      .from(Users)
+      .innerJoin(usuariosBancas, eq(Users.id, usuariosBancas.usuarioId))
+      .where(and(eq(Users.role, "STUDENT"), eq(usuariosBancas.role, "aluno")))
+
+    const studentIdsWithBancas = studentsWithBancas.map((s) => s.id)
+
+    const availableStudents = await dbInstance
+      .select()
+      .from(Users)
+      .where(
+        and(
+          eq(Users.role, "STUDENT"),
+          studentIdsWithBancas.length > 0 ? not(inArray(Users.id, studentIdsWithBancas)) : undefined
+        )
+      )
+
+    return ok(availableStudents)
+  } catch (error) {
+    console.error("Error fetching students available for banca:", error)
     return err({ type: "database_error", error })
   }
 }

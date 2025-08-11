@@ -30,6 +30,9 @@ type BancaFormData = Omit<InsertBanca, "ano" | "semestreLetivo"> & {
   orientadorId?: number
   alunoId: number
   periodoAcademico: string // New combined field for ano.semestreLetivo
+  avaliador1Id?: number
+  avaliador2Id?: number
+  avaliador3Id?: number
 }
 
 const DEV_SEED_DATA: Partial<BancaFormData> = {
@@ -49,26 +52,28 @@ const DEV_SEED_DATA: Partial<BancaFormData> = {
   hora: "14:00",
   modalidade: "local",
   local: "Sala H-101",
-  orientadorId: 1,
+  // avaliador3Id: 3, // Commented out to test partial banca scenario
 }
 
-import { useAddBancaMutation, useStudents, useTeachers } from "@/hooks"
+import { useAddBancaMutation, useStudentsAvailableForBanca, useTeachers } from "@/hooks"
 
 const FORM_STEPS = [
   { id: 0, name: "Informações Básicas" },
   { id: 1, name: "Informações do Autor" },
   { id: 2, name: "Metadados e Agendamento" },
-  { id: 3, name: "Revisão e Confirmação" },
+  { id: 3, name: "Avaliadores" },
+  { id: 4, name: "Revisão e Confirmação" },
 ]
 
 type SubmissionPayload = query["input"]["json"] & {
   orientadorId?: number
+  membros?: Array<{ id: number }>
 }
 
 export default function AddBancaPage() {
   const { data: user, isLoading } = useUser()
   const navigate = useNavigate()
-  const [currentStep, setCurrentStep] = useState<0 | 1 | 2 | 3 | (number & {})>(0)
+  const [currentStep, setCurrentStep] = useState<0 | 1 | 2 | 3 | 4 | (number & {})>(0)
   const { toast } = useToast()
 
   const currentYear = new Date().getFullYear()
@@ -98,19 +103,20 @@ export default function AddBancaPage() {
   const addBancaMutation = useAddBancaMutation()
 
   const onSubmit = (data: BancaFormData) => {
-    // Extract year and semester from periodoAcademico (format: YYYY.S)
-    const [ano, semestreLetivo] = data.periodoAcademico.split(".")
-
-    // Combine date and time
     let dataRealizacaoCompleta = data.dataRealizacao
     if (data.hora && data.dataRealizacao) {
       const dataStr = data.dataRealizacao.toISOString().split("T")[0]
       dataRealizacaoCompleta = new Date(`${dataStr}T${data.hora}:00`)
     }
 
-    const { hora, ...dataWithoutHora } = data
+    const { hora, avaliador1Id, avaliador2Id, avaliador3Id, ...dataWithoutExtraFields } = data
+
+    const membros = [{ id: Number(avaliador1Id) }, { id: Number(avaliador2Id) }, { id: Number(avaliador3Id) }].filter(
+      (membro) => !!membro.id
+    )
+
     const submissionData: SubmissionPayload = {
-      ...dataWithoutHora,
+      ...dataWithoutExtraFields,
       matricula: data.matricula || "",
       cursoId: Number(data.cursoId),
       periodoAcademico: data.periodoAcademico,
@@ -118,6 +124,7 @@ export default function AddBancaPage() {
       alunoId: Number(data.alunoId),
       orientadorId: Number(data.orientadorId),
       dataRealizacao: dataRealizacaoCompleta,
+      membros,
     }
     addBancaMutation.mutate(
       { json: submissionData as query["input"]["json"] },
@@ -180,6 +187,8 @@ export default function AddBancaPage() {
           "modalidade",
           "local",
         ]
+      case 3:
+        return ["avaliador1Id", "avaliador2Id"] // Only require first 2 evaluators
       default:
         return []
     }
@@ -209,7 +218,8 @@ export default function AddBancaPage() {
                 .with(0, () => <BasicInfoSection />)
                 .with(1, () => <AuthorInfoSection />)
                 .with(2, () => <WorkAndDefenseSection />)
-                .with(3, () => <ReviewSection />)
+                .with(3, () => <EvaluatorsSection />)
+                .with(4, () => <ReviewSection />)
                 .otherwise(() => null)
             }
           </div>
@@ -265,13 +275,17 @@ const StepIndicator = ({
     <div className="flex items-center ">
       {steps.map((step, index) => (
         <div key={step.id} className="flex items-center">
-          <div
-            className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-              index <= currentStep ? "bg-primary text-primary-foreground border-primary" : "bg-background border-muted"
+          <button
+            type="button"
+            onClick={() => setCurrentStep(index)}
+            className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors hover:bg-primary/80 ${
+              index <= currentStep
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-background border-muted hover:border-primary/50"
             }`}
           >
             {index + 1}
-          </div>
+          </button>
           {index < steps.length - 1 && (
             <div
               className={`h-1 w-full flex-1 ${index < currentStep ? "bg-primary" : "bg-muted"}`}
@@ -363,7 +377,7 @@ const AuthorInfoSection = () => {
 
   // Buscar a lista de professores do servidor
   const { data: teachers, isLoading: isLoadingTeachers, error: teachersError } = useTeachers()
-  const studentsQuery = useStudents()
+  const studentsQuery = useStudentsAvailableForBanca()
 
   return (
     <>
@@ -478,64 +492,15 @@ const WorkAndDefenseSection = () => {
   } = useFormContext<BancaFormData>()
   const modalidadeValue = watch("modalidade")
 
-  // Handler for masking inputs with YYYY.S format
   const handleYearSemesterFormat = (
     e: React.ChangeEvent<HTMLInputElement>,
     fieldName: "periodoAcademico" | "turma"
   ) => {
-    let value = e.target.value.replace(/[^\d.]/g, "") // Remove non-digit and non-dot characters
-
-    // Handle backspace correctly (if the dot is the last character, remove it)
-    if (e.nativeEvent instanceof InputEvent && e.nativeEvent.inputType === "deleteContentBackward") {
-      if (value.endsWith(".")) {
-        value = value.slice(0, -1)
-      }
-    }
-
-    // If we have more than 4 digits and no dot yet, insert it
-    if (value.length > 4 && !value.includes(".")) {
-      value = value.slice(0, 4) + "." + value.slice(4)
-    }
-
-    // Limit the input after the dot to one digit
-    if (value.includes(".")) {
-      const [year, semester] = value.split(".")
-      // Keep only first 4 digits for year
-      const formattedYear = year.slice(0, 4)
-      // Keep only first digit for semester
-      const formattedSemester = semester.slice(0, 1)
-      // Only allow 1 or 2 for semester
-      if (formattedSemester && !["1", "2"].includes(formattedSemester)) {
-        value = formattedYear + "."
-      } else {
-        value = formattedYear + (formattedSemester ? "." + formattedSemester : "")
-      }
-    } else {
-      // Limit year to 4 digits
-      value = value.slice(0, 4)
-    }
-
-    setValue(fieldName, value)
+    setValue(fieldName, e.target.value)
   }
 
-  // Validation rules for YYYY.S format
   const yearSemesterValidationRules = {
     required: "Este campo é obrigatório",
-    pattern: {
-      value: /^\d{4}\.[12]$/,
-      message: "Formato inválido. Use YYYY.S (S=1 ou 2)",
-    },
-    validate: {
-      validYear: (value: string) => {
-        const year = parseInt(value.split(".")[0])
-        const currentYear = new Date().getFullYear()
-        return (year >= 2000 && year <= currentYear + 5) || `O ano deve estar entre 2000 e ${currentYear + 5}`
-      },
-      validSemester: (value: string) => {
-        const semester = value.split(".")[1]
-        return ["1", "2"].includes(semester) || "O semestre deve ser 1 ou 2"
-      },
-    },
   }
 
   return (
@@ -579,7 +544,6 @@ const WorkAndDefenseSection = () => {
               )}
             />
             {errors.turma && <p className="text-sm text-red-600 mt-1">{errors.turma.message}</p>}
-            <p className="text-xs text-muted-foreground mt-1">Formato: Ano.Semestre (ex: 2024.1)</p>
           </div>
           <div>
             <Label htmlFor="curso">Curso</Label>
@@ -633,24 +597,40 @@ const WorkAndDefenseSection = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           <div>
             <Label htmlFor="data_realizacao">Data da Defesa</Label>
-            <Input
-              id="dataRealizacao"
-              type="date"
-              {...register("dataRealizacao", {
+            <Controller
+              name="dataRealizacao"
+              control={control}
+              rules={{
                 required: "Data é obrigatória",
-                setValueAs: (value: string) => {
-                  if (!value) return undefined
-                  // Adiciona o T00:00:00 para evitar problemas de fuso horário
-                  return new Date(`${value}T00:00:00`)
-                },
                 validate: (value) => {
                   if (!value) {
                     return "Data é obrigatória"
                   }
                   return true
                 },
-              })}
-              aria-invalid={errors.dataRealizacao ? "true" : "false"}
+              }}
+              render={({ field }) => (
+                <Input
+                  id="dataRealizacao"
+                  type="date"
+                  value={
+                    field.value instanceof Date
+                      ? field.value.toISOString().split('T')[0]
+                      : field.value || ''
+                  }
+                  onChange={(e) => {
+                    const value = e.target.value
+                    if (!value) {
+                      field.onChange(undefined)
+                    } else {
+                      // Adiciona o T00:00:00 para evitar problemas de fuso horário
+                      field.onChange(new Date(`${value}T00:00:00`))
+                    }
+                  }}
+                  onBlur={field.onBlur}
+                  aria-invalid={errors.dataRealizacao ? "true" : "false"}
+                />
+              )}
             />
             {errors.dataRealizacao && <p className="text-sm text-red-600 mt-1">{errors.dataRealizacao.message}</p>}
           </div>
@@ -702,6 +682,143 @@ const WorkAndDefenseSection = () => {
             />
             {errors.local && <p className="text-sm text-red-600 mt-1">{errors.local.message}</p>}
           </div>
+        </div>
+      </div>
+    </>
+  )
+}
+
+const EvaluatorsSection = () => {
+  const {
+    control,
+    watch,
+    formState: { errors },
+  } = useFormContext<BancaFormData>()
+
+  // Watch the orientadorId to include as avaliador1
+  const orientadorId = watch("orientadorId")
+
+  // Buscar a lista de professores
+  const { data: teachers, isLoading: isLoadingTeachers, error: teachersError } = useTeachers()
+
+  // Filter teachers excluding the supervisor
+  const availableTeachers = teachers?.filter((teacher) => teacher.id !== Number(orientadorId)) || []
+
+  return (
+    <>
+      <h2 className="text-xl font-semibold mb-4">Avaliadores da Banca</h2>
+      <p className="text-sm text-muted-foreground mb-6">
+        Selecione os avaliadores para compor a banca. Mínimo: orientador + 1 avaliador adicional. Para gerar
+        certificados e relatórios, é necessário ter 3 avaliadores com notas atribuídas.
+      </p>
+
+      <div className="space-y-4">
+        <div>
+          <Label htmlFor="avaliador1">1º Avaliador (Orientador)</Label>
+          <Controller
+            name="avaliador1Id"
+            control={control}
+            rules={{ required: "O orientador deve ser selecionado como avaliador" }}
+            render={({ field }) => {
+              // Automatically set orientador as avaliador1
+              if (orientadorId && !field.value) {
+                field.onChange(orientadorId)
+              }
+
+              const orientador = teachers?.find((t) => t.id === Number(orientadorId))
+
+              return (
+                <div className="flex items-center p-3 border rounded bg-muted/50">
+                  <div className="flex-1">
+                    <p className="font-medium">{orientador?.nome || "Orientador não selecionado"}</p>
+                    <p className="text-sm text-muted-foreground">{orientador?.academicTitle}</p>
+                  </div>
+                  <span className="text-sm text-muted-foreground">Orientador</span>
+                </div>
+              )
+            }}
+          />
+          {errors.avaliador1Id && <p className="text-sm text-red-600 mt-1">{errors.avaliador1Id.message}</p>}
+        </div>
+
+        <div>
+          <Label htmlFor="avaliador2">2º Avaliador</Label>
+          <Controller
+            name="avaliador2Id"
+            control={control}
+            render={({ field }) => (
+              <Select onValueChange={field.onChange} value={field.value?.toString() ?? ""}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o 2º avaliador..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {isLoadingTeachers ? (
+                    <SelectItem value="0" disabled>
+                      Carregando professores...
+                    </SelectItem>
+                  ) : teachersError ? (
+                    <SelectItem value="0" disabled>
+                      Erro ao carregar professores
+                    </SelectItem>
+                  ) : availableTeachers.length > 0 ? (
+                    availableTeachers.map((teacher) => (
+                      <SelectItem key={teacher.id} value={teacher.id.toString()}>
+                        {teacher.nome} - {teacher.academicTitle}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="0" disabled>
+                      Nenhum professor disponível
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            )}
+          />
+          {errors.avaliador2Id && <p className="text-sm text-red-600 mt-1">{errors.avaliador2Id.message}</p>}
+        </div>
+
+        <div>
+          <Label htmlFor="avaliador3">3º Avaliador</Label>
+          <Controller
+            name="avaliador3Id"
+            control={control}
+            rules={{ required: false }} // Made optional
+            render={({ field }) => {
+              const avaliador2Id = watch("avaliador2Id")
+              const filteredTeachers = availableTeachers.filter((teacher) => teacher.id !== Number(avaliador2Id))
+
+              return (
+                <Select onValueChange={field.onChange} value={field.value?.toString() ?? ""}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o 3º avaliador..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {isLoadingTeachers ? (
+                      <SelectItem value="0" disabled>
+                        Carregando professores...
+                      </SelectItem>
+                    ) : teachersError ? (
+                      <SelectItem value="0" disabled>
+                        Erro ao carregar professores
+                      </SelectItem>
+                    ) : filteredTeachers.length > 0 ? (
+                      filteredTeachers.map((teacher) => (
+                        <SelectItem key={teacher.id} value={teacher.id.toString()}>
+                          {teacher.nome} - {teacher.academicTitle}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="0" disabled>
+                        Nenhum professor disponível
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              )
+            }}
+          />
+          {errors.avaliador3Id && <p className="text-sm text-red-600 mt-1">{errors.avaliador3Id.message}</p>}
         </div>
       </div>
     </>
@@ -768,6 +885,39 @@ const ReviewSection = () => {
           </div>
         </div>
         <div>
+          <h3 className="text-lg font-medium border-b pb-2 mb-2">Avaliadores da Banca</h3>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-3 border rounded">
+              <div>
+                <p className="font-medium">{orientador?.nome || "Não selecionado"}</p>
+                <p className="text-sm text-muted-foreground">{orientador?.academicTitle}</p>
+              </div>
+            </div>
+            {(() => {
+              const avaliador2 = teachers?.find((teacher) => Number(teacher.id) === Number(values.avaliador2Id))
+              return (
+                <div className="flex items-center justify-between p-3 border rounded">
+                  <div>
+                    <p className="font-medium">{avaliador2?.nome || "Não selecionado"}</p>
+                    <p className="text-sm text-muted-foreground">{avaliador2?.academicTitle}</p>
+                  </div>
+                </div>
+              )
+            })()}
+            {(() => {
+              const avaliador3 = teachers?.find((teacher) => Number(teacher.id) === Number(values.avaliador3Id))
+              return (
+                <div className="flex items-center justify-between p-3 border rounded">
+                  <div>
+                    <p className="font-medium">{avaliador3?.nome || "Não selecionado"}</p>
+                    <p className="text-sm text-muted-foreground">{avaliador3?.academicTitle}</p>
+                  </div>
+                </div>
+              )
+            })()}
+          </div>
+        </div>
+        <div>
           <h3 className="text-lg font-medium border-b pb-2 mb-2">Metadados do Trabalho</h3>
           <KeywordsList keywords={values.palavrasChave} className="mb-4" />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
@@ -813,10 +963,6 @@ const ReviewSection = () => {
           </div>
         </div>
       </div>
-
-      <p className="text-center text-muted-foreground mt-4">
-        Verifique as informações acima e clique em "Salvar Defesa" para confirmar.
-      </p>
     </>
   )
 }
