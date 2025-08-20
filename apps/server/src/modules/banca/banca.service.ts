@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, ilike, lt, or } from "drizzle-orm"
+import { and, asc, desc, eq, gte, ilike, inArray, lt, or } from "drizzle-orm"
 import { type Context } from "hono"
 import type { InferResultType } from "../../database"
 import {
@@ -132,8 +132,11 @@ export const getUpcomingBancasVisible = async (
       tituloTrabalho: Bancas.tituloTrabalho,
       autor: Bancas.autor,
       local: Bancas.local,
+      orientador: Users.nome,
+      curso: Cursos.nome,
     }
     const hasOrder = orderBy && fieldMap[orderBy]
+    const needsJoins = hasOrder && (orderBy === "orientador" || orderBy === "curso")
 
     // For upcoming defenses, use ascending order for dates (closest first)
     const getOrderClause = () => {
@@ -146,21 +149,62 @@ export const getUpcomingBancasVisible = async (
       return asc(Bancas.dataRealizacao)
     }
 
-    const bancasWithMembros = await dbInstance.query.Bancas.findMany({
-      where: whereConditionMainTable,
-      orderBy: getOrderClause(),
-      limit,
-      offset,
-      with: {
-        orientador: true,
-        curso: true,
-        membros: {
+    let bancasWithMembros: InferResultType<"Bancas", { curso: true; orientador: true; membros: { with: { usuario: true } } }>[]
+    
+    if (needsJoins) {
+      // Use core Drizzle API with explicit joins for sorting by related fields
+      const bancasResult = await dbInstance
+        .select({
+          banca: Bancas,
+        })
+        .from(Bancas)
+        .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
+        .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
+        .where(whereConditionWithJoins)
+        .orderBy(getOrderClause())
+        .limit(limit)
+        .offset(offset)
+      
+      // Now fetch the full data with relations for the found bancas
+      const bancaIds = bancasResult.map(row => row.banca.id)
+      if (bancaIds.length > 0) {
+        bancasWithMembros = await dbInstance.query.Bancas.findMany({
+          where: inArray(Bancas.id, bancaIds),
           with: {
-            usuario: true,
+            orientador: true,
+            curso: true,
+            membros: {
+              with: {
+                usuario: true,
+              },
+            },
+          },
+        })
+        
+        // Sort the results to match the original order from the join query
+        const orderMap = new Map(bancasResult.map((row, index) => [row.banca.id, index]))
+        bancasWithMembros.sort((a, b) => (orderMap.get(a.id) || 0) - (orderMap.get(b.id) || 0))
+      } else {
+        bancasWithMembros = []
+      }
+    } else {
+      // Use query API for non-join sorting (faster)
+      bancasWithMembros = await dbInstance.query.Bancas.findMany({
+        where: whereConditionMainTable,
+        orderBy: getOrderClause(),
+        limit,
+        offset,
+        with: {
+          orientador: true,
+          curso: true,
+          membros: {
+            with: {
+              usuario: true,
+            },
           },
         },
-      },
-    })
+      })
+    }
 
     return ok({
       bancasWithMembros,
@@ -250,8 +294,11 @@ export const getPastBancasVisible = async (
       tituloTrabalho: Bancas.tituloTrabalho,
       autor: Bancas.autor,
       local: Bancas.local,
+      orientador: Users.nome,
+      curso: Cursos.nome,
     }
     const hasOrder = orderBy && fieldMap[orderBy]
+    const needsJoins = hasOrder && (orderBy === "orientador" || orderBy === "curso")
 
     // For past defenses, use descending order for dates (most recent first)
     const getOrderClause = () => {
@@ -264,21 +311,62 @@ export const getPastBancasVisible = async (
       return desc(Bancas.dataRealizacao)
     }
 
-    const bancasWithMembros = await dbInstance.query.Bancas.findMany({
-      where: whereConditionMainTable,
-      orderBy: getOrderClause(),
-      limit,
-      offset,
-      with: {
-        orientador: true,
-        curso: true,
-        membros: {
+    let bancasWithMembros: InferResultType<"Bancas", { curso: true; orientador: true; membros: { with: { usuario: true } } }>[]
+    
+    if (needsJoins) {
+      // Use core Drizzle API with explicit joins for sorting by related fields
+      const bancasResult = await dbInstance
+        .select({
+          banca: Bancas,
+        })
+        .from(Bancas)
+        .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
+        .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
+        .where(whereConditionWithJoins)
+        .orderBy(getOrderClause())
+        .limit(limit)
+        .offset(offset)
+      
+      // Now fetch the full data with relations for the found bancas
+      const bancaIds = bancasResult.map(row => row.banca.id)
+      if (bancaIds.length > 0) {
+        bancasWithMembros = await dbInstance.query.Bancas.findMany({
+          where: inArray(Bancas.id, bancaIds),
           with: {
-            usuario: true,
+            orientador: true,
+            curso: true,
+            membros: {
+              with: {
+                usuario: true,
+              },
+            },
+          },
+        })
+        
+        // Sort the results to match the original order from the join query
+        const orderMap = new Map(bancasResult.map((row, index) => [row.banca.id, index]))
+        bancasWithMembros.sort((a, b) => (orderMap.get(a.id) || 0) - (orderMap.get(b.id) || 0))
+      } else {
+        bancasWithMembros = []
+      }
+    } else {
+      // Use query API for non-join sorting (faster)
+      bancasWithMembros = await dbInstance.query.Bancas.findMany({
+        where: whereConditionMainTable,
+        orderBy: getOrderClause(),
+        limit,
+        offset,
+        with: {
+          orientador: true,
+          curso: true,
+          membros: {
+            with: {
+              usuario: true,
+            },
           },
         },
-      },
-    })
+      })
+    }
 
     return ok({
       bancasWithMembros,
@@ -373,8 +461,11 @@ export const getAllBancasVisible = async (
       tituloTrabalho: Bancas.tituloTrabalho,
       autor: Bancas.autor,
       local: Bancas.local,
+      orientador: Users.nome,
+      curso: Cursos.nome,
     }
     const hasOrder = orderBy && fieldMap[orderBy]
+    const needsJoins = hasOrder && (orderBy === "orientador" || orderBy === "curso")
 
     // For date field, always use natural ordering (past: desc, upcoming: asc)
     // For other fields, respect user's order preference
@@ -398,36 +489,115 @@ export const getAllBancasVisible = async (
       return asc(Bancas.dataRealizacao)
     }
 
-    const bancasWithMembrosPast = await dbInstance.query.Bancas.findMany({
-      where: and(whereConditionMainTable, lt(Bancas.dataRealizacao, new Date())),
-      orderBy: getPastOrderClause(),
-      limit,
-      offset,
-      with: {
-        orientador: true,
-        curso: true,
-        membros: {
+    let bancasWithMembrosPast: InferResultType<"Bancas", { curso: true; orientador: true; membros: { with: { usuario: true } } }>[]
+    let bancasWithMembrosUpcoming: InferResultType<"Bancas", { curso: true; orientador: true; membros: { with: { usuario: true } } }>[]
+    
+    if (needsJoins) {
+      // Use core Drizzle API with explicit joins for sorting by related fields
+      // Past defenses
+      const bancasResultPast = await dbInstance
+        .select({
+          banca: Bancas,
+        })
+        .from(Bancas)
+        .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
+        .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
+        .where(and(whereConditionWithJoins, lt(Bancas.dataRealizacao, new Date())))
+        .orderBy(getPastOrderClause())
+        .limit(limit)
+        .offset(offset)
+      
+      // Upcoming defenses  
+      const bancasResultUpcoming = await dbInstance
+        .select({
+          banca: Bancas,
+        })
+        .from(Bancas)
+        .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
+        .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
+        .where(and(whereConditionWithJoins, gte(Bancas.dataRealizacao, new Date())))
+        .orderBy(getUpcomingOrderClause())
+        .limit(limit)
+        .offset(offset)
+      
+      // Fetch full data for past defenses
+      const bancaIdsPast = bancasResultPast.map(row => row.banca.id)
+      if (bancaIdsPast.length > 0) {
+        bancasWithMembrosPast = await dbInstance.query.Bancas.findMany({
+          where: inArray(Bancas.id, bancaIdsPast),
           with: {
-            usuario: true,
+            orientador: true,
+            curso: true,
+            membros: {
+              with: {
+                usuario: true,
+              },
+            },
+          },
+        })
+        
+        // Sort the results to match the original order from the join query
+        const orderMapPast = new Map(bancasResultPast.map((row, index) => [row.banca.id, index]))
+        bancasWithMembrosPast.sort((a, b) => (orderMapPast.get(a.id) || 0) - (orderMapPast.get(b.id) || 0))
+      } else {
+        bancasWithMembrosPast = []
+      }
+      
+      // Fetch full data for upcoming defenses
+      const bancaIdsUpcoming = bancasResultUpcoming.map(row => row.banca.id)
+      if (bancaIdsUpcoming.length > 0) {
+        bancasWithMembrosUpcoming = await dbInstance.query.Bancas.findMany({
+          where: inArray(Bancas.id, bancaIdsUpcoming),
+          with: {
+            orientador: true,
+            curso: true,
+            membros: {
+              with: {
+                usuario: true,
+              },
+            },
+          },
+        })
+        
+        // Sort the results to match the original order from the join query
+        const orderMapUpcoming = new Map(bancasResultUpcoming.map((row, index) => [row.banca.id, index]))
+        bancasWithMembrosUpcoming.sort((a, b) => (orderMapUpcoming.get(a.id) || 0) - (orderMapUpcoming.get(b.id) || 0))
+      } else {
+        bancasWithMembrosUpcoming = []
+      }
+    } else {
+      // Use query API for non-join sorting (faster)
+      bancasWithMembrosPast = await dbInstance.query.Bancas.findMany({
+        where: and(whereConditionMainTable, lt(Bancas.dataRealizacao, new Date())),
+        orderBy: getPastOrderClause(),
+        limit,
+        offset,
+        with: {
+          orientador: true,
+          curso: true,
+          membros: {
+            with: {
+              usuario: true,
+            },
           },
         },
-      },
-    })
-    const bancasWithMembrosUpcoming = await dbInstance.query.Bancas.findMany({
-      where: and(whereConditionMainTable, gte(Bancas.dataRealizacao, new Date())),
-      orderBy: getUpcomingOrderClause(),
-      limit,
-      offset,
-      with: {
-        orientador: true,
-        curso: true,
-        membros: {
-          with: {
-            usuario: true,
+      })
+      bancasWithMembrosUpcoming = await dbInstance.query.Bancas.findMany({
+        where: and(whereConditionMainTable, gte(Bancas.dataRealizacao, new Date())),
+        orderBy: getUpcomingOrderClause(),
+        limit,
+        offset,
+        with: {
+          orientador: true,
+          curso: true,
+          membros: {
+            with: {
+              usuario: true,
+            },
           },
         },
-      },
-    })
+      })
+    }
 
     return ok({
       bancasWithMembrosPast,
@@ -949,15 +1119,27 @@ export const getBancasByOrientador = async (
     // Calculate offset for pagination
     const offset = (page - 1) * limit
 
-    // Build search condition
-    // Note: When using Drizzle query API, we can only search in the main table fields
-    // Related table fields are fetched via 'with' relations, so we search in Bancas fields only
-    const searchCondition = searchQuery
+    // Build search condition for count query (with joins - can reference related tables)
+    const searchConditionWithJoins = searchQuery
+      ? or(
+          ilike(Bancas.tituloTrabalho, `%${searchQuery}%`),
+          ilike(Bancas.autor, `%${searchQuery}%`),
+          ilike(Users.nome, `%${searchQuery}%`),
+          ilike(Cursos.nome, `%${searchQuery}%`)
+        )
+      : undefined
+
+    // Build search condition for data queries (without joins - only main table fields)
+    const searchConditionMainTable = searchQuery
       ? or(ilike(Bancas.tituloTrabalho, `%${searchQuery}%`), ilike(Bancas.autor, `%${searchQuery}%`))
       : undefined
 
-    const whereCondition = searchCondition
-      ? and(eq(Bancas.orientadorId, orientadorId), searchCondition)
+    const whereConditionWithJoins = searchConditionWithJoins
+      ? and(eq(Bancas.orientadorId, orientadorId), searchConditionWithJoins)
+      : eq(Bancas.orientadorId, orientadorId)
+      
+    const whereConditionMainTable = searchConditionMainTable
+      ? and(eq(Bancas.orientadorId, orientadorId), searchConditionMainTable)
       : eq(Bancas.orientadorId, orientadorId)
 
     // First, get the total count with search
@@ -966,7 +1148,7 @@ export const getBancasByOrientador = async (
       .from(Bancas)
       .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
       .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
-      .where(whereCondition)
+      .where(whereConditionWithJoins)
 
     const total = totalResult.length
     const totalPages = Math.ceil(total / limit)
@@ -977,8 +1159,11 @@ export const getBancasByOrientador = async (
       tituloTrabalho: Bancas.tituloTrabalho,
       autor: Bancas.autor,
       local: Bancas.local,
+      orientador: Users.nome,
+      curso: Cursos.nome,
     }
     const hasOrder = orderBy && fieldMap[orderBy]
+    const needsJoins = hasOrder && (orderBy === "orientador" || orderBy === "curso")
 
     // For date field, always use natural ordering (past: desc, upcoming: asc)
     // For other fields, respect user's order preference
@@ -1002,36 +1187,115 @@ export const getBancasByOrientador = async (
       return asc(Bancas.dataRealizacao)
     }
 
-    const bancasWithMembrosPast = await dbInstance.query.Bancas.findMany({
-      where: and(whereCondition, lt(Bancas.dataRealizacao, new Date())),
-      orderBy: getPastOrderClause(),
-      limit,
-      offset,
-      with: {
-        orientador: true,
-        curso: true,
-        membros: {
+    let bancasWithMembrosPast: InferResultType<"Bancas", { curso: true; orientador: true; membros: { with: { usuario: true } } }>[]
+    let bancasWithMembrosUpcoming: InferResultType<"Bancas", { curso: true; orientador: true; membros: { with: { usuario: true } } }>[]
+    
+    if (needsJoins) {
+      // Use core Drizzle API with explicit joins for sorting by related fields
+      // Past defenses
+      const bancasResultPast = await dbInstance
+        .select({
+          banca: Bancas,
+        })
+        .from(Bancas)
+        .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
+        .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
+        .where(and(whereConditionWithJoins, lt(Bancas.dataRealizacao, new Date())))
+        .orderBy(getPastOrderClause())
+        .limit(limit)
+        .offset(offset)
+      
+      // Upcoming defenses  
+      const bancasResultUpcoming = await dbInstance
+        .select({
+          banca: Bancas,
+        })
+        .from(Bancas)
+        .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
+        .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
+        .where(and(whereConditionWithJoins, gte(Bancas.dataRealizacao, new Date())))
+        .orderBy(getUpcomingOrderClause())
+        .limit(limit)
+        .offset(offset)
+      
+      // Fetch full data for past defenses
+      const bancaIdsPast = bancasResultPast.map(row => row.banca.id)
+      if (bancaIdsPast.length > 0) {
+        bancasWithMembrosPast = await dbInstance.query.Bancas.findMany({
+          where: inArray(Bancas.id, bancaIdsPast),
           with: {
-            usuario: true,
+            orientador: true,
+            curso: true,
+            membros: {
+              with: {
+                usuario: true,
+              },
+            },
+          },
+        })
+        
+        // Sort the results to match the original order from the join query
+        const orderMapPast = new Map(bancasResultPast.map((row, index) => [row.banca.id, index]))
+        bancasWithMembrosPast.sort((a, b) => (orderMapPast.get(a.id) || 0) - (orderMapPast.get(b.id) || 0))
+      } else {
+        bancasWithMembrosPast = []
+      }
+      
+      // Fetch full data for upcoming defenses
+      const bancaIdsUpcoming = bancasResultUpcoming.map(row => row.banca.id)
+      if (bancaIdsUpcoming.length > 0) {
+        bancasWithMembrosUpcoming = await dbInstance.query.Bancas.findMany({
+          where: inArray(Bancas.id, bancaIdsUpcoming),
+          with: {
+            orientador: true,
+            curso: true,
+            membros: {
+              with: {
+                usuario: true,
+              },
+            },
+          },
+        })
+        
+        // Sort the results to match the original order from the join query
+        const orderMapUpcoming = new Map(bancasResultUpcoming.map((row, index) => [row.banca.id, index]))
+        bancasWithMembrosUpcoming.sort((a, b) => (orderMapUpcoming.get(a.id) || 0) - (orderMapUpcoming.get(b.id) || 0))
+      } else {
+        bancasWithMembrosUpcoming = []
+      }
+    } else {
+      // Use query API for non-join sorting (faster)
+      bancasWithMembrosPast = await dbInstance.query.Bancas.findMany({
+        where: and(whereConditionMainTable, lt(Bancas.dataRealizacao, new Date())),
+        orderBy: getPastOrderClause(),
+        limit,
+        offset,
+        with: {
+          orientador: true,
+          curso: true,
+          membros: {
+            with: {
+              usuario: true,
+            },
           },
         },
-      },
-    })
-    const bancasWithMembrosUpcoming = await dbInstance.query.Bancas.findMany({
-      where: and(whereCondition, gte(Bancas.dataRealizacao, new Date())),
-      orderBy: getUpcomingOrderClause(),
-      limit,
-      offset,
-      with: {
-        orientador: true,
-        curso: true,
-        membros: {
-          with: {
-            usuario: true,
+      })
+      bancasWithMembrosUpcoming = await dbInstance.query.Bancas.findMany({
+        where: and(whereConditionMainTable, gte(Bancas.dataRealizacao, new Date())),
+        orderBy: getUpcomingOrderClause(),
+        limit,
+        offset,
+        with: {
+          orientador: true,
+          curso: true,
+          membros: {
+            with: {
+              usuario: true,
+            },
           },
         },
-      },
-    })
+      })
+    }
 
     return ok({
       past: bancasWithMembrosPast,
