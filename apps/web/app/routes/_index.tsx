@@ -443,8 +443,8 @@ const columns = [
   { key: "dataRealizacao", header: "Data", minWidth: "100px", sortable: true },
   { key: "tituloTrabalho", header: "Título do Trabalho", minWidth: "350px", sortable: true },
   { key: "autor", header: "Discente", minWidth: "120px", sortable: true },
-  { key: "orientador", header: "Orientador", minWidth: "150px", sortable: true },
-  { key: "curso", header: "Curso", minWidth: "80px", sortable: true },
+  { key: "orientador", header: "Orientador", minWidth: "150px", sortable: false },
+  { key: "curso", header: "Curso", minWidth: "80px", sortable: false },
   { key: "local", header: "Virtual", minWidth: "200px", sortable: true },
 ] as const
 
