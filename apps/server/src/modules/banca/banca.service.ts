@@ -790,14 +790,24 @@ export const setEvaluatorGrade = async (
     }
 
     // Check if current user is authorized to set this grade
-    // Only the user themselves can set their own grade (unless they're admin)
+    // Allow: admin, the user themselves, or the orientador of the banca
     const currentUserResult = await getUserById(c, currentUserId)
     if (!currentUserResult.ok) {
       return err({ type: "database_error", error: "User not found" })
     }
 
     const isAdmin = currentUserResult.data.role === "ADMIN"
-    if (!isAdmin && currentUserId !== userId) {
+    const isOwnGrade = currentUserId === userId
+    
+    // Check if current user is the orientador of this banca
+    const banca = await dbInstance.query.Bancas.findFirst({
+      where: eq(Bancas.id, bancaId),
+      columns: { orientadorId: true }
+    })
+    
+    const isOrientadorDaBanca = banca?.orientadorId === currentUserId
+    
+    if (!isAdmin && !isOwnGrade && !isOrientadorDaBanca) {
       return err({ type: "unauthorized" })
     }
 
