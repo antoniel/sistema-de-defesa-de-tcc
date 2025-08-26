@@ -47,14 +47,14 @@ export default function Home() {
     <div className="container mx-auto p-4 md:p-8">
       <Header className="mb-6" />
       <div className="flex flex-col lg:flex-row justify-between items-center gap-4 mb-6">
-        <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full self-stretch">
           <Input
             id="banca-search"
             type="search"
             placeholder="Buscar defesas, alunos, orientadores ou avaliadores..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="max-w-2xl w-full"
+            className="w-full sm:w-[400px] self-stretch"
           />
         </div>
         {!!userQuery.data && <Button onClick={() => navigate("/add-banca")}>Cadastrar Defesa de TCC</Button>}
