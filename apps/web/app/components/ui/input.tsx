@@ -10,14 +10,17 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
     const inputType = isPassword && show ? "text" : type
 
     return (
-      <div style={{ position: isPassword ? "relative" : undefined }}>
+      <div
+        className={cn("flex  rounded-md  bg-transparent  text-base shadow-sm ", className, isPassword ? "pr-10" : "")}
+        style={{ position: isPassword ? "relative" : undefined }}
+      >
         <input
-          type={inputType}
           className={cn(
-            "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-            className,
-            isPassword ? "pr-10" : ""
+            "h-9 w-full px-3 py-1",
+            "transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+            "border border-input rounded-md bg-transparent"
           )}
+          type={inputType}
           ref={ref}
           {...props}
         />
@@ -39,7 +42,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "#888"
+              color: "#888",
             }}
             aria-label={show ? "Ocultar senha" : "Mostrar senha"}
           >
