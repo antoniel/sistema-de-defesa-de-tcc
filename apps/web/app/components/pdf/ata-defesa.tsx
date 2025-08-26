@@ -35,7 +35,7 @@ export const AtaDefesaPDF = ({ bancaInfo }: { bancaInfo: DocumentInfo }) => {
           <Text style={styles.headerLine}>Instituto de Computação</Text>
           <Text style={styles.headerLine}>Colegiado do Curso de {bancaInfo.curso.nome}</Text>
           <Text style={styles.headerSubline}>
-            Av. Adhemar de Barros s/n - Campus Universitário de Ondina, Ondina - Salvador-Bahia
+            Avenida Milton Santos, s/n - Campus de Ondina, CEP: 40.170-110 Salvador-Bahia
           </Text>
           <Text style={styles.cep}>CEP 40170-110 Tel: (071) 3283-6337 / 6336</Text>
         </View>
