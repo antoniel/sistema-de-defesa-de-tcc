@@ -47,14 +47,14 @@ export default function Home() {
     <div className="container mx-auto p-4 md:p-8">
       <Header className="mb-6" />
       <div className="flex flex-col lg:flex-row justify-between items-center gap-4 mb-6">
-        <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full self-stretch">
           <Input
             id="banca-search"
             type="search"
             placeholder="Buscar defesas, alunos, orientadores ou avaliadores..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="max-w-2xl w-full"
+            className="w-full sm:w-[400px] self-stretch"
           />
         </div>
         {!!userQuery.data && <Button onClick={() => navigate("/add-banca")}>Cadastrar Defesa de TCC</Button>}
@@ -215,7 +215,7 @@ function AllDefensesTab(props: AllDefensesTabProps) {
                     Anterior
                   </Button>
                   <span className="text-sm text-muted-foreground">
-                    Página {upcomingBancasQuery.data.meta.currentPage} de {upcomingBancasQuery.data.meta.totalPages}
+                    Paginação {upcomingBancasQuery.data.meta.currentPage} de {upcomingBancasQuery.data.meta.totalPages}
                   </span>
                   <Button
                     variant="outline"
@@ -265,7 +265,7 @@ function AllDefensesTab(props: AllDefensesTabProps) {
                   Anterior
                 </Button>
                 <span className="text-sm text-muted-foreground">
-                  Página {pastBancasQuery.data.meta.currentPage} de {pastBancasQuery.data.meta.totalPages}
+                  Paginação {pastBancasQuery.data.meta.currentPage} de {pastBancasQuery.data.meta.totalPages}
                 </span>
                 <Button
                   variant="outline"
@@ -373,7 +373,7 @@ function MyDefensesTab(props: MyDefensesTabProps) {
                   Anterior
                 </Button>
                 <span className="text-sm text-muted-foreground">
-                  Página {meta.currentPage} de {meta.totalPages}
+                  Paginação {meta.currentPage} de {meta.totalPages}
                 </span>
                 <Button
                   variant="outline"
@@ -420,7 +420,7 @@ function MyDefensesTab(props: MyDefensesTabProps) {
                   Anterior
                 </Button>
                 <span className="text-sm text-muted-foreground">
-                  Página {meta.currentPage} de {meta.totalPages}
+                  Paginação {meta.currentPage} de {meta.totalPages}
                 </span>
                 <Button
                   variant="outline"
@@ -583,7 +583,7 @@ function TableWithInfo(props: {
               Anterior
             </Button>
             <span className="text-sm text-muted-foreground">
-              Página {meta.currentPage} de {meta.totalPages}
+              Paginação {meta.currentPage} de {meta.totalPages}
             </span>
             <Button
               variant="outline"
