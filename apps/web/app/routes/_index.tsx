@@ -215,7 +215,7 @@ function AllDefensesTab(props: AllDefensesTabProps) {
                     Anterior
                   </Button>
                   <span className="text-sm text-muted-foreground">
-                    Página {upcomingBancasQuery.data.meta.currentPage} de {upcomingBancasQuery.data.meta.totalPages}
+                    Paginação {upcomingBancasQuery.data.meta.currentPage} de {upcomingBancasQuery.data.meta.totalPages}
                   </span>
                   <Button
                     variant="outline"
@@ -265,7 +265,7 @@ function AllDefensesTab(props: AllDefensesTabProps) {
                   Anterior
                 </Button>
                 <span className="text-sm text-muted-foreground">
-                  Página {pastBancasQuery.data.meta.currentPage} de {pastBancasQuery.data.meta.totalPages}
+                  Paginação {pastBancasQuery.data.meta.currentPage} de {pastBancasQuery.data.meta.totalPages}
                 </span>
                 <Button
                   variant="outline"
@@ -373,7 +373,7 @@ function MyDefensesTab(props: MyDefensesTabProps) {
                   Anterior
                 </Button>
                 <span className="text-sm text-muted-foreground">
-                  Página {meta.currentPage} de {meta.totalPages}
+                  Paginação {meta.currentPage} de {meta.totalPages}
                 </span>
                 <Button
                   variant="outline"
@@ -420,7 +420,7 @@ function MyDefensesTab(props: MyDefensesTabProps) {
                   Anterior
                 </Button>
                 <span className="text-sm text-muted-foreground">
-                  Página {meta.currentPage} de {meta.totalPages}
+                  Paginação {meta.currentPage} de {meta.totalPages}
                 </span>
                 <Button
                   variant="outline"
@@ -583,7 +583,7 @@ function TableWithInfo(props: {
               Anterior
             </Button>
             <span className="text-sm text-muted-foreground">
-              Página {meta.currentPage} de {meta.totalPages}
+              Paginação {meta.currentPage} de {meta.totalPages}
             </span>
             <Button
               variant="outline"
