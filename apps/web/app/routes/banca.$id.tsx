@@ -44,7 +44,6 @@ export default function BancaDetalhesPage() {
   const isAdmin = user?.role === "ADMIN"
   const isOrientador = !!user?.id && user?.id === orientador?.id
   const canEdit = isAdmin || isOrientador
-  console.log({ isAdmin, isOrientador, canEdit })
 
   const isLoading = bancaQuery.isLoading || userQuery.isLoading
   const error = bancaQuery.error || userQuery.error
