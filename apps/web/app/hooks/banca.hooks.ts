@@ -1,15 +1,13 @@
+import type { RpcType } from "@/lib/utils"
+import { rpcReturn } from "@/lib/utils"
+import apiClient from "@/services/apiClient"
+import { useUser } from "@/services/useUser"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "react-router"
-import apiClient from "@/services/apiClient"
-import { rpcReturn } from "@/lib/utils"
 import { useToast } from "./use-toast"
-import { useUser } from "@/services/useUser"
-import type { RpcType } from "@/lib/utils"
 
-// Types
 type updateBanca = RpcType<(typeof apiClient.banca)[":id"]["$put"]>["input"]["json"]
 
-// Hook to fetch a specific banca by ID
 export const useBanca = (id: string) => {
   return useQuery({
     queryKey: ["banca", id],
@@ -22,7 +20,6 @@ export const useBanca = (id: string) => {
   })
 }
 
-// Hook to delete a banca
 export const useDeleteBanca = () => {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
@@ -39,7 +36,6 @@ export const useDeleteBanca = () => {
   })
 }
 
-// Hook to toggle banca visibility
 export const useToggleBancaVisibility = (bancaId: string) => {
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -68,7 +64,6 @@ export const useToggleBancaVisibility = (bancaId: string) => {
   })
 }
 
-// Hook to update a banca
 export const useUpdateBanca = (id: string) => {
   const queryClient = useQueryClient()
   const banca = useBanca(id)
@@ -98,21 +93,18 @@ export const useUpdateBanca = (id: string) => {
   })
 }
 
-// Hook to add a new banca
 export const useAddBancaMutation = () => {
   return useMutation({
     mutationFn: async (data: any) => {
       const response = await apiClient.banca.$post(data)
       const body = await response.json()
       if (!response.ok) {
-        throw body // Throw the error body
       }
       return body
     },
   })
 }
 
-// Hook to fetch upcoming bancas with filtering and pagination
 export const useUpcomingBancasDefesa = (
   orderBy?: string,
   order?: "asc" | "desc",
@@ -138,7 +130,6 @@ export const useUpcomingBancasDefesa = (
   })
 }
 
-// Hook to fetch past bancas with filtering and pagination
 export const usePastBancasDefesa = (
   orderBy?: string,
   order?: "asc" | "desc",
@@ -164,7 +155,6 @@ export const usePastBancasDefesa = (
   })
 }
 
-// Hook to fetch all bancas with filtering and pagination (legacy - will be deprecated)
 export const useBancasDefesa = (
   orderBy?: string,
   order?: "asc" | "desc",
@@ -190,7 +180,6 @@ export const useBancasDefesa = (
   })
 }
 
-// Hook to fetch user's own defesas (for teachers and admins)
 export const useMyDefesas = (
   orderBy?: string,
   order?: "asc" | "desc",
@@ -219,7 +208,6 @@ export const useMyDefesas = (
   })
 }
 
-// Hook to assign grade to a committee member
 export const useAssignGradeMutation = () => {
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -233,7 +221,6 @@ export const useAssignGradeMutation = () => {
       return rpcReturn(response)
     },
     onSuccess: (_, { bancaId }) => {
-      // Invalidate banca query to refresh the data
       void queryClient.invalidateQueries({ queryKey: ["banca", bancaId] })
       toast({
         title: "Nota atribuída",

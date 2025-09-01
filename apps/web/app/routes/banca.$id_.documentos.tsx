@@ -1,20 +1,18 @@
+import { CeapgEmailModal, type CeapgEmailData } from "@/components/CeapgEmailModal"
 import { BancaHeader } from "@/components/layout/BancaHeader"
 import { BancaNavigation } from "@/components/layout/BancaNavigation"
-import { CeapgEmailModal, type CeapgEmailData } from "@/components/CeapgEmailModal"
 import { Header } from "@/components/layout/Header"
-import { FormularioAvaliacaoPDF } from "@tcc/pdf-components"
-import { DeclaracaoOrientacaoPDF } from "@tcc/pdf-components"
-import { DeclaracaoParticipacaoPDF } from "@tcc/pdf-components"
 import { PDFGenerator } from "@/components/pdf/pdf-generator"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useBanca } from "@/hooks"
-import { useBancaDocumentInfo } from "@/hooks/documento.hooks"
+import { fileAvaliadores, useBancaDocumentInfo } from "@/hooks/documento.hooks"
 import { useToast } from "@/hooks/use-toast"
 import { useSendCeapgDeclarationsMutation } from "@/services/authService"
 import { useUser } from "@/services/useUser"
 import { pdf } from "@react-pdf/renderer"
+import { DeclaracaoOrientacaoPDF, DeclaracaoParticipacaoPDF, FormularioAvaliacaoPDF } from "@tcc/pdf-components"
 import { ArrowLeft, Download, Eye, FileText, Mail } from "lucide-react"
 import React, { useState } from "react"
 import { useNavigate, useParams } from "react-router"
@@ -50,8 +48,7 @@ export default function BancaDocumentosPage() {
   const isTeacher = user?.role === "TEACHER"
   const hasAccess = isAdmin || isTeacher
 
-  // Get eligible participants for participation declaration (exclude students)
-  const eligibleParticipants = bancaInfo?.membros.filter(m => m.role !== "aluno") || []
+  const eligibleParticipants = fileAvaliadores(bancaInfo?.membros) || []
 
   const isLoading = bancaQuery.isLoading || userQuery.isLoading
   const error = bancaQuery.error || userQuery.error
@@ -69,8 +66,11 @@ export default function BancaDocumentosPage() {
           docName = "Formulário de Avaliação"
           break
         case "participacao":
-          const participanteId = membroId || selectedParticipant || 
-            bancaInfo.membros.find((m) => m.role !== "aluno")?.id || bancaInfo.membros[0]?.id
+          const participanteId =
+            membroId ||
+            selectedParticipant ||
+            bancaInfo.membros.find((m) => m.role !== "aluno")?.id ||
+            bancaInfo.membros[0]?.id
           if (!participanteId) return
           pdfComponent = <DeclaracaoParticipacaoPDF bancaInfo={bancaInfo} membroId={participanteId} />
           docName = "Declaração de Participação"
@@ -196,7 +196,9 @@ export default function BancaDocumentosPage() {
                     <FileText className="h-4 w-4" />
                     Formulário de Avaliação
                   </h3>
-                  <p className="text-sm text-muted-foreground mb-3">Formulário oficial para avaliação do trabalho de conclusão de curso.</p>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Formulário oficial para avaliação do trabalho de conclusão de curso.
+                  </p>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
@@ -212,7 +214,7 @@ export default function BancaDocumentosPage() {
                       size="sm"
                       onClick={async () => {
                         if (!bancaInfo) return
-                        
+
                         try {
                           const pdfComponent = <FormularioAvaliacaoPDF bancaInfo={bancaInfo} />
                           const blob = await pdf(pdfComponent).toBlob()
@@ -242,12 +244,12 @@ export default function BancaDocumentosPage() {
                     Declaração de Participação
                   </h3>
                   <p className="text-sm text-muted-foreground mb-3">Declaração para membros da banca examinadora.</p>
-                  
+
                   {eligibleParticipants.length > 0 && (
                     <div className="mb-3">
                       <label className="text-sm font-medium mb-2 block">Selecione o participante:</label>
-                      <Select 
-                        value={selectedParticipant?.toString() || ""} 
+                      <Select
+                        value={selectedParticipant?.toString() || ""}
                         onValueChange={(value) => setSelectedParticipant(value ? Number(value) : null)}
                       >
                         <SelectTrigger className="w-full">
@@ -256,7 +258,7 @@ export default function BancaDocumentosPage() {
                         <SelectContent>
                           {eligibleParticipants.map((membro) => (
                             <SelectItem key={membro.id} value={membro.id.toString()}>
-                              {membro.usuario.nome} ({membro.role === "orientador" ? "Orientador" : "Avaliador"})
+                              {membro.usuario.nome}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -280,9 +282,11 @@ export default function BancaDocumentosPage() {
                       size="sm"
                       onClick={async () => {
                         if (!bancaInfo || !selectedParticipant) return
-                        
+
                         try {
-                          const pdfComponent = <DeclaracaoParticipacaoPDF bancaInfo={bancaInfo} membroId={selectedParticipant} />
+                          const pdfComponent = (
+                            <DeclaracaoParticipacaoPDF bancaInfo={bancaInfo} membroId={selectedParticipant} />
+                          )
                           const blob = await pdf(pdfComponent).toBlob()
                           const url = URL.createObjectURL(blob)
                           const link = document.createElement("a")
@@ -361,8 +365,8 @@ export default function BancaDocumentosPage() {
                 </div>
 
                 <div className="hidden">
-                  <PDFGenerator 
-                    bancaId={parseInt(id)} 
+                  <PDFGenerator
+                    bancaId={parseInt(id)}
                     showParticipantSelection={true}
                     onParticipantSelect={setSelectedParticipant}
                   />

@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useAssignGradeMutation, useBanca } from "@/hooks"
+import { useAssignGradeMutation, useBanca, useDocumentAvaliadores } from "@/hooks"
 import { useToast } from "@/hooks/use-toast"
 import { useUser } from "@/services/useUser"
 import { ArrowLeft, BarChart3, Info, Save, User } from "lucide-react"
@@ -267,10 +267,7 @@ const AvaliacoesMembros = (props: {
   isAdmin: boolean
   isAssigningGrade: boolean
 }) => {
-  const bancaQuery = useBanca(props.bancaId)
-  const banca = bancaQuery.data
-  const membrosAvaliadores =
-    banca?.membros?.filter((m) => m.role !== "aluno").sort((a, b) => a.usuario.nome.localeCompare(b.usuario.nome)) || []
+  const membrosAvaliadores = useDocumentAvaliadores(Number(props.bancaId)) || []
   return (
     <div>
       <h2 className="text-xl font-semibold mb-4">Avaliações dos Membros da Banca</h2>
@@ -280,7 +277,7 @@ const AvaliacoesMembros = (props: {
           if (!avaliacao) return null
 
           const isCurrentUserMembro = props.user?.id === membro.usuario.id
-          const orientador = banca?.membros?.find((m) => m.role === "orientador")?.usuario
+          const orientador = membrosAvaliadores?.find((m) => m.role === "orientador")?.usuario
           const isOrientadorDaBanca = !!props.user?.id && props.user?.id === orientador?.id
           const canEdit = props.isAdmin || isCurrentUserMembro || isOrientadorDaBanca
 
