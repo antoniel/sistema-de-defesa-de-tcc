@@ -1,3 +1,4 @@
+import { fileAvaliadores } from "@/hooks/documento.hooks"
 import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer"
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { DocumentInfo } from "./types"
@@ -10,11 +11,13 @@ export function FormularioAvaliacaoPDF({ bancaInfo }: FormularioAvaliacaoPDFProp
   const defenseDate = new Date(bancaInfo.dataRealizacao).toLocaleDateString("pt-BR")
   const orientador = bancaInfo.membros.find((m) => m.role === "orientador")
   const coorientador = bancaInfo.membros.find((m) => m.role === "coorientador")
-  const avaliadores = bancaInfo.membros.filter((m) => m.role !== "aluno")
+  const avaliadores = fileAvaliadores(bancaInfo.membros) || []
 
   const notasValidas = avaliadores.filter((a) => a.nota).map((a) => Number(a.nota))
   const media =
     notasValidas.length > 0 ? (notasValidas.reduce((sum, nota) => sum + nota, 0) / notasValidas.length).toFixed(1) : ""
+
+  const curso = bancaInfo.curso?.nome || ""
 
   return (
     <Document>
@@ -23,8 +26,8 @@ export function FormularioAvaliacaoPDF({ bancaInfo }: FormularioAvaliacaoPDFProp
         <View style={styles.header}>
           <Text style={styles.headerLine}>Universidade Federal da Bahia</Text>
           <Text style={styles.headerLine}>Departamento de Ciência da Computação</Text>
-          <Text style={styles.headerLine}>Bacharelado em {bancaInfo.curso.nome}</Text>
-          <Text style={styles.headerLine}>MATC98 - TCC {bancaInfo.curso.nome.toUpperCase()}</Text>
+          <Text style={styles.headerLine}>Bacharelado em {curso}</Text>
+          <Text style={styles.headerLine}>MATC98 - TCC BACHARELADO {curso.toUpperCase()}</Text>
           <Text style={styles.headerLine}>
             TURMA: 010100 DATA: {defenseDate} - SEMESTRE: {bancaInfo.periodoAcademico}
           </Text>
