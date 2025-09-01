@@ -87,7 +87,7 @@ export default function BancaDetalhesPage() {
       <Header className="mb-6" />
 
       <BancaNavigation id={id} user={user!} currentPage="detalhes">
-        <div className="mb-6 flex items-center justify-end gap-4">
+        <div className="flex items-center justify-end gap-4">
           {canEdit && (
             <>
               <div className="flex items-center space-x-2">
