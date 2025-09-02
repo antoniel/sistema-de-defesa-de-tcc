@@ -6,6 +6,13 @@ import { getBancaInfoForDocument } from "../../services/document.service"
 import { sendEmail, createCeapgDeclarationsEmail, type EmailAttachment } from "../../services/email.service"
 import type { AppVariables } from "../../types"
 import { pdf } from "@react-pdf/renderer"
+import React from "react"
+import { 
+  DeclaracaoParticipacaoPDF, 
+  DeclaracaoOrientacaoPDF, 
+  FormularioAvaliacaoPDF,
+  type DocumentInfo
+} from "@tcc/pdf-components"
 
 export const getBancaDocumentInfo = async (c: Context<{ Variables: AppVariables }>, bancaId: number) => {
   const result = await getBancaInfoForDocument(c, bancaId)
@@ -44,32 +51,81 @@ export const sendCeapgDeclarations = async (
     }
 
     const bancaInfo = bancaResult.data
+    console.log("Generating PDFs for banca:", bancaId)
 
-    // For now, we'll return a placeholder since PDF generation requires complex setup
-    // In a real implementation, this would generate the PDF attachments
-    console.log("Sending CEAPG declarations for banca:", bancaId)
-    console.log("Banca info:", {
-      autor: bancaInfo.autor,
-      titulo: bancaInfo.tituloTrabalho,
-      membros: bancaInfo.membros.length,
-    })
+    // Generate PDF attachments
+    const attachments: EmailAttachment[] = []
+
+    try {
+      // 1. Formulário de Avaliação
+      const formularioComponent = React.createElement(FormularioAvaliacaoPDF, { 
+        bancaInfo: bancaInfo as unknown as DocumentInfo
+      }) as any
+      const formularioStream = await pdf(formularioComponent).toBlob()
+      const formularioBuffer = Buffer.from(await formularioStream.arrayBuffer())
+      attachments.push({
+        filename: "Formulario_Avaliacao.pdf",
+        content: formularioBuffer,
+        contentType: "application/pdf"
+      })
+
+      // 2. Declaração de Orientação (se houver orientador)
+      const orientador = bancaInfo.membros.find(m => m.role === "orientador")
+      if (orientador) {
+        const orientacaoComponent = React.createElement(DeclaracaoOrientacaoPDF, { 
+          bancaInfo: bancaInfo as unknown as DocumentInfo, 
+          orientadorId: orientador.id 
+        }) as any
+        const orientacaoStream = await pdf(orientacaoComponent).toBlob()
+        const orientacaoBuffer = Buffer.from(await orientacaoStream.arrayBuffer())
+        attachments.push({
+          filename: "Declaracao_Orientacao.pdf",
+          content: orientacaoBuffer,
+          contentType: "application/pdf"
+        })
+      }
+
+      // 3. Declarações de Participação (para cada membro não-aluno)
+      const membrosParticipantes = bancaInfo.membros.filter(m => m.role !== "aluno")
+      for (const membro of membrosParticipantes) {
+        const participacaoComponent = React.createElement(DeclaracaoParticipacaoPDF, { 
+          bancaInfo: bancaInfo as unknown as DocumentInfo, 
+          membroId: membro.id 
+        }) as any
+        const participacaoStream = await pdf(participacaoComponent).toBlob()
+        const participacaoBuffer = Buffer.from(await participacaoStream.arrayBuffer())
+        attachments.push({
+          filename: `Declaracao_Participacao_${membro.usuario.nome.replace(/\s+/g, "_")}.pdf`,
+          content: participacaoBuffer,
+          contentType: "application/pdf"
+        })
+      }
+
+      console.log(`Generated ${attachments.length} PDF attachments`)
+
+    } catch (pdfError) {
+      console.error("Error generating PDFs:", pdfError)
+      return err({ type: "pdf_generation_error" })
+    }
 
     // Generate email content
     const emailHtml = createCeapgDeclarationsEmail()
 
-    // Send email (without attachments for now)
+    // Send email with attachments
     const emailResult = await sendEmail({
       to: input.ceapgEmail,
       cc: [input.senderEmail],
       subject: `Declarações para Assinatura - ${bancaInfo.autor}`,
       html: emailHtml,
       from: `"${input.senderName} via SISDEF" <noreply@sistema-banca.com>`,
+      attachments: attachments,
     })
 
     if (!emailResult.ok) {
       return err({ type: "email_error" })
     }
 
+    console.log("CEAPG email sent successfully with attachments")
     return ok(undefined)
   } catch (error) {
     console.error("Error sending CEAPG declarations:", error)
