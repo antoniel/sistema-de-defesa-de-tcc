@@ -33,15 +33,9 @@ export interface CeapgEmailData {
   senderEmail: string
 }
 
-export function CeapgEmailModal({
-  isOpen,
-  onClose,
-  onConfirm,
-  isLoading = false,
-  bancaInfo,
-}: CeapgEmailModalProps) {
+export function CeapgEmailModal({ isOpen, onClose, onConfirm, isLoading = false, bancaInfo }: CeapgEmailModalProps) {
   const { data: user } = useUser()
-  const [ceapgEmail, setCeapgEmail] = useState("ceapg@ufba.br")
+  const [ceapgEmail, setCeapgEmail] = useState("ceapg-ic@ufba.br")
   const [senderName, setSenderName] = useState(user?.nome || "")
   const [senderEmail, setSenderEmail] = useState(user?.email || "")
 
@@ -54,11 +48,7 @@ export function CeapgEmailModal({
     })
   }
 
-  const attachments = [
-    "Formulário de Avaliação.pdf",
-    "Declaração de Participação.pdf", 
-    "Declaração de Orientação.pdf"
-  ]
+  const attachments = ["Formulário de Avaliação.pdf", "Declaração de Participação.pdf", "Declaração de Orientação.pdf"]
 
   const emailPreview = `Prezados Coordenadores do CEAPG,
 
@@ -78,9 +68,7 @@ Universidade Federal da Bahia`
             <Mail className="h-5 w-5" />
             Confirmar Envio para CEAPG
           </DialogTitle>
-          <DialogDescription>
-            Revise os dados abaixo antes de enviar as declarações para o CEAPG.
-          </DialogDescription>
+          <DialogDescription>Revise os dados abaixo antes de enviar as declarações para o CEAPG.</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -89,10 +77,18 @@ Universidade Federal da Bahia`
             <div className="bg-muted/50 p-4 rounded-lg">
               <h4 className="font-semibold mb-2">Informações da Banca</h4>
               <div className="space-y-1 text-sm">
-                <p><span className="font-medium">Autor:</span> {bancaInfo.autor}</p>
-                <p><span className="font-medium">Trabalho:</span> {bancaInfo.tituloTrabalho}</p>
-                <p><span className="font-medium">Curso:</span> {bancaInfo.curso.nome}</p>
-                <p><span className="font-medium">Membros:</span> {bancaInfo.membros.length} participantes</p>
+                <p>
+                  <span className="font-medium">Autor:</span> {bancaInfo.autor}
+                </p>
+                <p>
+                  <span className="font-medium">Trabalho:</span> {bancaInfo.tituloTrabalho}
+                </p>
+                <p>
+                  <span className="font-medium">Curso:</span> {bancaInfo.curso.nome}
+                </p>
+                <p>
+                  <span className="font-medium">Membros:</span> {bancaInfo.membros.length} participantes
+                </p>
               </div>
             </div>
           )}
@@ -105,7 +101,7 @@ Universidade Federal da Bahia`
               type="email"
               value={ceapgEmail}
               onChange={(e) => setCeapgEmail(e.target.value)}
-              placeholder="ceapg@ufba.br"
+              placeholder="ceapg-ic@ufba.br"
               required
             />
           </div>
@@ -155,27 +151,14 @@ Universidade Federal da Bahia`
           {/* Preview da Mensagem */}
           <div className="space-y-2">
             <Label>Preview da Mensagem</Label>
-            <Textarea
-              value={emailPreview}
-              readOnly
-              className="min-h-[120px] bg-muted/30"
-            />
+            <Textarea value={emailPreview} readOnly className="min-h-[120px] bg-muted/30" />
           </div>
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={isLoading}
-            >
+            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
               Cancelar
             </Button>
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="flex items-center gap-2"
-            >
+            <Button type="submit" disabled={isLoading} className="flex items-center gap-2">
               {isLoading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
