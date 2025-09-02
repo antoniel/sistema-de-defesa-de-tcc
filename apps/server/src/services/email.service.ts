@@ -1,7 +1,10 @@
 import nodemailer from "nodemailer"
 import { env } from "../config/env"
 import { err, ok, type AppResult } from "../result"
-import { createTeacherInvitationEmail as createTeacherInvitationEmailTemplate, createPasswordResetEmail as createPasswordResetEmailTemplate } from "../templates/email"
+import {
+  createPasswordResetEmail as createPasswordResetEmailTemplate,
+  createTeacherInvitationEmail as createTeacherInvitationEmailTemplate,
+} from "../templates/email"
 
 export interface EmailAttachment {
   filename: string
@@ -112,13 +115,6 @@ export const createCeapgDeclarationsEmail = (): string => {
               Universidade Federal da Bahia
             </p>
           </div>
-        </div>
-        
-        <div style="margin-top: 20px; padding: 15px; background: #fef3c7; border-radius: 6px; border-left: 4px solid #f59e0b;">
-          <p style="margin: 0; font-size: 14px; color: #92400e;">
-            <strong>Importante:</strong> Este e-mail foi enviado automaticamente pelo sistema. 
-            Para dúvidas ou suporte, entre em contato com a coordenação do curso.
-          </p>
         </div>
       </div>
     </div>
