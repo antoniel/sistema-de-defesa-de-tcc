@@ -75,3 +75,13 @@ export const removeAuthToken = (): void => {
     console.error("Failed to remove auth token:", error)
   }
 }
+
+export const useSendCeapgDeclarationsMutation = () => {
+  type Query = RpcType<typeof apiClient.documentos["send-ceapg-declarations"][":bancaId"]["$post"]>
+  return useMutation({
+    mutationFn: async (request: Query["input"]) => {
+      const response = await apiClient.documentos["send-ceapg-declarations"][":bancaId"]["$post"](request)
+      return rpcReturn(response)
+    },
+  })
+}

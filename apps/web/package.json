@@ -51,6 +51,7 @@
     "@react-router/serve": "^7.2.0",
     "@tanstack/react-query": "^5.70.0",
     "@tanstack/react-query-devtools": "^5.71.0",
+    "@tcc/pdf-components": "*",
     "@tcc/server": "*",
     "@tcc/tests": "*",
     "@types/glob": "^8.1.0",

@@ -1,18 +1,21 @@
 import { BancaHeader } from "@/components/layout/BancaHeader"
 import { BancaNavigation } from "@/components/layout/BancaNavigation"
+import { CeapgEmailModal, type CeapgEmailData } from "@/components/CeapgEmailModal"
 import { Header } from "@/components/layout/Header"
-import { FormularioAvaliacaoPDF } from "@/components/pdf/formulario-avaliacao"
-import { DeclaracaoOrientacaoPDF } from "@/components/pdf/declaracao-orientacao"
-import { DeclaracaoParticipacaoPDF } from "@/components/pdf/declaracao-participacao"
+import { FormularioAvaliacaoPDF } from "@tcc/pdf-components"
+import { DeclaracaoOrientacaoPDF } from "@tcc/pdf-components"
+import { DeclaracaoParticipacaoPDF } from "@tcc/pdf-components"
 import { PDFGenerator } from "@/components/pdf/pdf-generator"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useBanca } from "@/hooks"
 import { useBancaDocumentInfo } from "@/hooks/documento.hooks"
+import { useToast } from "@/hooks/use-toast"
+import { useSendCeapgDeclarationsMutation } from "@/services/authService"
 import { useUser } from "@/services/useUser"
 import { pdf } from "@react-pdf/renderer"
-import { ArrowLeft, Download, Eye, FileText } from "lucide-react"
+import { ArrowLeft, Download, Eye, FileText, Mail } from "lucide-react"
 import React, { useState } from "react"
 import { useNavigate, useParams } from "react-router"
 import type { Route } from "./+types/banca.$id_.documentos"
@@ -22,9 +25,13 @@ export const meta: Route.MetaFunction = () => [{ title: "SISDEF - Documentos da 
 export default function BancaDocumentosPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
+  const { toast } = useToast()
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewType, setPreviewType] = useState<string | null>(null)
   const [selectedParticipant, setSelectedParticipant] = useState<number | null>(null)
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false)
+
+  const sendCeapgMutation = useSendCeapgDeclarationsMutation()
 
   if (!id) {
     navigate("/")
@@ -91,6 +98,31 @@ export default function BancaDocumentosPage() {
       setPreviewType(docName)
     } catch (error) {
       console.error("Erro ao gerar preview:", error)
+    }
+  }
+
+  const handleSendCeapgEmail = async (emailData: CeapgEmailData) => {
+    if (!id) return
+
+    try {
+      await sendCeapgMutation.mutateAsync({
+        param: { bancaId: id },
+        json: emailData,
+      })
+
+      toast({
+        title: "Email enviado com sucesso!",
+        description: "As declarações foram enviadas para o CEAPG.",
+      })
+
+      setIsEmailModalOpen(false)
+    } catch (error) {
+      console.error("Error sending CEAPG email:", error)
+      toast({
+        title: "Erro ao enviar email",
+        description: "Ocorreu um erro ao enviar as declarações. Tente novamente.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -307,6 +339,27 @@ export default function BancaDocumentosPage() {
                   </div>
                 </div>
 
+                {/* CEAPG Email Section */}
+                <div className="border rounded-lg p-4 bg-blue-50/50 dark:bg-blue-950/20">
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    Enviar para CEAPG
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Envie todas as declarações para o CEAPG (Colegiado de Ensino, Pesquisa e Extensão) por email.
+                  </p>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => setIsEmailModalOpen(true)}
+                    className="flex items-center gap-2"
+                    disabled={sendCeapgMutation.isPending}
+                  >
+                    <Mail className="h-4 w-4" />
+                    Enviar para CEAPG
+                  </Button>
+                </div>
+
                 <div className="hidden">
                   <PDFGenerator 
                     bancaId={parseInt(id)} 
@@ -340,6 +393,15 @@ export default function BancaDocumentosPage() {
           </div>
         </div>
       </div>
+
+      {/* CEAPG Email Modal */}
+      <CeapgEmailModal
+        isOpen={isEmailModalOpen}
+        onClose={() => setIsEmailModalOpen(false)}
+        onConfirm={handleSendCeapgEmail}
+        isLoading={sendCeapgMutation.isPending}
+        bancaInfo={bancaInfo}
+      />
     </div>
   )
 }
