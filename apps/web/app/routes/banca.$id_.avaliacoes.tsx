@@ -268,7 +268,8 @@ const AvaliacoesMembros = (props: {
   isAssigningGrade: boolean
 }) => {
   const bancaQuery = useBanca(props.bancaId)
-  const membrosAvaliadores = bancaQuery.data?.membros
+  const banca = bancaQuery.data
+  const membrosAvaliadores = banca?.membros
     ?.filter((m) => m.role !== "aluno")
     .sort((a, b) => a.usuario.nome.localeCompare(b.usuario.nome)) || []
   return (
@@ -280,7 +281,9 @@ const AvaliacoesMembros = (props: {
           if (!avaliacao) return null
 
           const isCurrentUserMembro = props.user?.id === membro.usuario.id
-          const canEdit = props.isAdmin || isCurrentUserMembro
+          const orientador = banca?.membros?.find((m) => m.role === "orientador")?.usuario
+          const isOrientadorDaBanca = !!props.user?.id && props.user?.id === orientador?.id
+          const canEdit = props.isAdmin || isCurrentUserMembro || isOrientadorDaBanca
 
           return (
             <Card key={membro.id} className={!canEdit ? "bg-muted/30" : ""}>
