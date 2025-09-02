@@ -1,10 +1,13 @@
-import { fileAvaliadores } from "@/hooks/documento.hooks"
 import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer"
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { DocumentInfo } from "./types"
 
 interface FormularioAvaliacaoPDFProps {
   bancaInfo: DocumentInfo
+}
+
+export const fileAvaliadores = (membros: DocumentInfo["membros"] | undefined) => {
+  return membros?.filter((m) => m.role !== "aluno" && m.role !== "orientador")
 }
 
 export function FormularioAvaliacaoPDF({ bancaInfo }: FormularioAvaliacaoPDFProps) {
