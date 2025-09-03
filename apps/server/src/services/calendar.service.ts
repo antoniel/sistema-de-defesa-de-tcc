@@ -27,6 +27,7 @@ export const generateICSContent = (data: BancaCalendarData): string => {
 
   // Create event description
   const description = [
+    `Título: ${banca.tituloTrabalho}`,
     `Autor: ${banca.autor}`,
     banca.orientador ? `Orientador: ${banca.orientador.nome}` : '',
     banca.curso ? `Curso: ${banca.curso.nome}` : '',
@@ -49,7 +50,7 @@ export const generateICSContent = (data: BancaCalendarData): string => {
     `UID:${uid}`,
     `DTSTART:${startFormatted}`,
     `DTEND:${endFormatted}`,
-    `SUMMARY:Defesa de TCC - ${banca.tituloTrabalho}`,
+    `SUMMARY:Defesa de TCC - ${banca.autor}`,
     `DESCRIPTION:${description}`,
     banca.local ? `LOCATION:${banca.local}` : '',
     'ORGANIZER:mailto:noreply@sisdef.ufba.br',
@@ -82,16 +83,17 @@ export const generateGoogleCalendarUrl = (data: BancaCalendarData): string => {
   const endFormatted = formatDateForGoogle(endDate)
 
   // Create event details
-  const title = encodeURIComponent(`Defesa de TCC - ${banca.tituloTrabalho}`)
-  const details = encodeURIComponent([
+  const title = `Defesa de TCC - ${banca.autor}`
+  const details = [
+    `Título: ${banca.tituloTrabalho}`,
     `Autor: ${banca.autor}`,
     banca.orientador ? `Orientador: ${banca.orientador.nome}` : '',
     banca.curso ? `Curso: ${banca.curso.nome}` : '',
     `Período: ${banca.periodoAcademico}`,
     banca.turma ? `Turma: ${banca.turma}` : ''
-  ].filter(Boolean).join('\n'))
+  ].filter(Boolean).join('\n')
 
-  const location = banca.local ? encodeURIComponent(banca.local) : ''
+  const location = banca.local || ''
 
   const params = new URLSearchParams({
     action: 'TEMPLATE',
@@ -118,8 +120,9 @@ export const generateOutlookUrl = (data: BancaCalendarData): string => {
   const startFormatted = startDate.toISOString()
   const endFormatted = endDate.toISOString()
 
-  const subject = encodeURIComponent(`Defesa de TCC - ${banca.tituloTrabalho}`)
-  const body = encodeURIComponent([
+  const subject = `Defesa de TCC - ${banca.autor}`
+  const body = [
+    `Título: ${banca.tituloTrabalho}`,
     `Autor: ${banca.autor}`,
     banca.orientador ? `Orientador: ${banca.orientador.nome}` : '',
     banca.curso ? `Curso: ${banca.curso.nome}` : '',
@@ -127,9 +130,9 @@ export const generateOutlookUrl = (data: BancaCalendarData): string => {
     banca.turma ? `Turma: ${banca.turma}` : '',
     '',
     banca.resumo ? `Resumo: ${banca.resumo.substring(0, 200)}...` : ''
-  ].filter(Boolean).join('\n'))
+  ].filter(Boolean).join('\n')
 
-  const location = banca.local ? encodeURIComponent(banca.local) : ''
+  const location = banca.local || ''
 
   const params = new URLSearchParams({
     subject: subject,

@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Mail, Calendar } from "lucide-react"
+import { Mail } from "lucide-react"
 import { CalendarQuickLinks } from "./CalendarQuickLinks"
 import { EmailInviteDialog } from "./EmailInviteDialog"
 
@@ -13,12 +13,7 @@ export function CalendarInviteSection({ bancaId, bancaTitle }: CalendarInviteSec
   const [emailDialogOpen, setEmailDialogOpen] = useState(false)
 
   return (
-    <div className="bg-card border rounded-lg p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <Calendar className="h-5 w-5 text-muted-foreground" />
-        <h3 className="font-semibold">Adicionar ao Calendário</h3>
-      </div>
-      
+    <div className="p-4">
       <div className="space-y-4">
         {/* Quick Links */}
         <div>
