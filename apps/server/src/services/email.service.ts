@@ -1,12 +1,17 @@
 import nodemailer from "nodemailer"
 import { env } from "../config/env"
 import { err, ok, type AppResult } from "../result"
-import { createTeacherInvitationEmail as createTeacherInvitationEmailTemplate, createPasswordResetEmail as createPasswordResetEmailTemplate } from "../templates/email"
+import { createTeacherInvitationEmail as createTeacherInvitationEmailTemplate, createPasswordResetEmail as createPasswordResetEmailTemplate, createCalendarInviteEmail, type CalendarInviteEmailProps } from "../templates/email"
 
 interface SendEmailInput {
   to: string
   subject: string
   html: string
+  attachments?: {
+    filename: string
+    content: string | Buffer
+    contentType: string
+  }[]
 }
 
 type SendEmailError = { type: "email_error" } | { type: "config_error" }
@@ -40,6 +45,7 @@ export const sendEmail = async (input: SendEmailInput): Promise<AppResult<void, 
         to: input.to,
         subject: input.subject,
         html: input.html,
+        attachments: input.attachments,
       })
 
       console.log("Message sent: %s", info.messageId)
@@ -54,6 +60,7 @@ export const sendEmail = async (input: SendEmailInput): Promise<AppResult<void, 
       to: input.to,
       subject: input.subject,
       html: input.html,
+      attachments: input.attachments,
     })
 
     console.log("Email sent: %s", info.messageId)
@@ -70,4 +77,27 @@ export const createTeacherInvitationEmail = (nome: string, invitationUrl: string
 
 export const createPasswordResetEmail = (nome: string, resetUrl: string): string => {
   return createPasswordResetEmailTemplate({ nome, resetUrl })
+}
+
+export const sendCalendarInviteEmail = async (
+  to: string,
+  emailProps: CalendarInviteEmailProps,
+  icsContent: string,
+  bancaId: number
+): Promise<AppResult<void, SendEmailError>> => {
+  const subject = `Convite: Defesa de TCC - ${emailProps.tituloTrabalho}`
+  const html = createCalendarInviteEmail(emailProps)
+  
+  const attachments = [{
+    filename: `defesa-tcc-banca-${bancaId}.ics`,
+    content: icsContent,
+    contentType: 'text/calendar; charset=utf-8'
+  }]
+  
+  return sendEmail({
+    to,
+    subject,
+    html,
+    attachments
+  })
 }
