@@ -45,7 +45,6 @@ export default function BancaDetalhesPage() {
   const isAdmin = user?.role === "ADMIN"
   const isOrientador = !!user?.id && user?.id === orientador?.id
   const canEdit = isAdmin || isOrientador
-  console.log({ isAdmin, isOrientador, canEdit })
 
   const isLoading = bancaQuery.isLoading || userQuery.isLoading
   const error = bancaQuery.error || userQuery.error
@@ -88,7 +87,7 @@ export default function BancaDetalhesPage() {
       <Header className="mb-6" />
 
       <BancaNavigation id={id} user={user!} currentPage="detalhes">
-        <div className="mb-6 flex items-center justify-end gap-4">
+        <div className="flex items-center justify-end gap-4">
           {canEdit && (
             <>
               <div className="flex items-center space-x-2">
@@ -148,9 +147,9 @@ export default function BancaDetalhesPage() {
 
         {/* Conteúdo principal */}
         <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             {/* Coluna da esquerda - Informações da Banca */}
-            <div className="space-y-6">
+            <div className="space-y-6 md:col-span-2 lg:col-span-1">
               <section>
                 <h2 className="text-xl font-semibold mb-4">Detalhes da Defesa</h2>
                 <div className="grid grid-cols-1 gap-3">
@@ -232,7 +231,7 @@ export default function BancaDetalhesPage() {
             </div>
 
             {/* Coluna da direita - Conteúdo Acadêmico */}
-            <div className="space-y-6">
+            <div className="space-y-6 md:col-span-2 lg:col-span-3">
               <section>
                 <h2 className="text-xl font-semibold mb-4">Resumo</h2>
                 <p className="whitespace-pre-line text-muted-foreground text-justify">{banca.resumo}</p>

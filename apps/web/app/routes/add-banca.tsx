@@ -532,7 +532,7 @@ const WorkAndDefenseSection = () => {
               render={({ field }) => (
                 <Input
                   id="turma"
-                  placeholder="Ex: 2024.1"
+                  placeholder="Ex: 010101"
                   value={field.value || ""}
                   onChange={(e) => {
                     field.onChange(e)
@@ -613,11 +613,7 @@ const WorkAndDefenseSection = () => {
                 <Input
                   id="dataRealizacao"
                   type="date"
-                  value={
-                    field.value instanceof Date
-                      ? field.value.toISOString().split('T')[0]
-                      : field.value || ''
-                  }
+                  value={field.value instanceof Date ? field.value.toISOString().split("T")[0] : field.value || ""}
                   onChange={(e) => {
                     const value = e.target.value
                     if (!value) {
@@ -826,7 +822,15 @@ const EvaluatorsSection = () => {
 }
 
 // Helper components for review section
-const ReviewField = ({ label, value, className = "" }: { label: string; value: string | null | undefined; className?: string }) => (
+const ReviewField = ({
+  label,
+  value,
+  className = "",
+}: {
+  label: string
+  value: string | null | undefined
+  className?: string
+}) => (
   <div className={className}>
     <p className="text-sm text-muted-foreground">{label}</p>
     <p className="font-medium">{value || "Não informado"}</p>
@@ -912,9 +916,13 @@ const DefenseScheduleReviewSection = ({ values }: { values: BancaFormData }) => 
   <div>
     <SectionHeader title="Agendamento da Defesa" />
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <ReviewField 
-        label="Data" 
-        value={values.dataRealizacao ? new Date(values.dataRealizacao).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "Não definida"} 
+      <ReviewField
+        label="Data"
+        value={
+          values.dataRealizacao
+            ? new Date(values.dataRealizacao).toLocaleDateString("pt-BR", { timeZone: "UTC" })
+            : "Não definida"
+        }
       />
       <ReviewField label="Hora" value={values.hora} />
     </div>

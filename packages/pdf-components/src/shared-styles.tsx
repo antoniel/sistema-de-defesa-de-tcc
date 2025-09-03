@@ -1,24 +1,6 @@
-import { Image, StyleSheet, Text, View } from "@react-pdf/renderer"
+import { StyleSheet } from "@react-pdf/renderer"
 
-export const SharedDocumentHeader = ({ curso }: { curso: { nome: string } }) => {
-  return (
-    <View style={styles.header}>
-      <Image src="/brasao_ufba.png" style={styles.brasao} />
-      <View style={styles.headerText}>
-        <Text style={styles.headerLine}>Ministério da Educação</Text>
-        <Text style={styles.headerLine}>Universidade Federal da Bahia</Text>
-        <Text style={styles.headerLine}>Instituto de Computação</Text>
-        <Text style={styles.headerLine}>Colegiado do Curso de {curso.nome}</Text>
-        <Text style={styles.headerSubline}>
-          Avenida Milton Santos, s/n - Campus de Ondina, CEP: 40.170-110 Salvador-Bahia
-        </Text>
-        <Text style={styles.cep}>CEP 40170-110 Tel: (071) 3283-6337 / 6336</Text>
-      </View>
-    </View>
-  )
-}
-
-const styles = StyleSheet.create({
+export const sharedStyles = StyleSheet.create({
   page: {
     flexDirection: "column",
     backgroundColor: "#ffffff",
@@ -28,20 +10,8 @@ const styles = StyleSheet.create({
     lineHeight: 1.6,
   },
   header: {
-    marginBottom: 50,
-    position: "relative",
-  },
-  brasao: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    width: 60,
-    height: 60,
-    objectFit: "contain",
-  },
-  headerText: {
     textAlign: "center",
-    width: "100%",
+    marginBottom: 50,
   },
   headerLine: {
     fontSize: 14,
@@ -99,5 +69,36 @@ const styles = StyleSheet.create({
   signatureTitle: {
     fontSize: 11,
     lineHeight: 1.2,
+  },
+  divider: {
+    borderBottom: "2 solid #000",
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 40,
+    textTransform: "uppercase",
+  },
+  section: {
+    marginBottom: 30,
+  },
+  row: {
+    flexDirection: "row",
+    marginBottom: 15,
+    alignItems: "center",
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: "bold",
+    width: 120,
+  },
+  underline: {
+    fontSize: 12,
+    flex: 1,
+    borderBottom: "1 solid #000",
+    paddingBottom: 2,
+    paddingLeft: 5,
   },
 })
