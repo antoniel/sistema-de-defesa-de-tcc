@@ -2,15 +2,11 @@ import nodemailer from "nodemailer"
 import { env } from "../config/env"
 import { err, ok, type AppResult } from "../result"
 import {
+  createCalendarInviteEmail,
   createPasswordResetEmail as createPasswordResetEmailTemplate,
   createTeacherInvitationEmail as createTeacherInvitationEmailTemplate,
+  type CalendarInviteEmailProps,
 } from "../templates/email"
-
-export interface EmailAttachment {
-  filename: string
-  content: Buffer
-  contentType: string
-}
 
 interface SendEmailInput {
   to: string
@@ -18,7 +14,11 @@ interface SendEmailInput {
   html: string
   cc?: string[]
   from?: string
-  attachments?: EmailAttachment[]
+  attachments?: {
+    filename: string
+    content: string | Buffer
+    contentType: string
+  }[]
 }
 
 type SendEmailError = { type: "email_error" } | { type: "config_error" }
@@ -119,4 +119,28 @@ export const createCeapgDeclarationsEmail = (): string => {
       </div>
     </div>
   `
+}
+export const sendCalendarInviteEmail = async (
+  to: string,
+  emailProps: CalendarInviteEmailProps,
+  icsContent: string,
+  bancaId: number
+): Promise<AppResult<void, SendEmailError>> => {
+  const subject = `Convite: Defesa de TCC - ${emailProps.tituloTrabalho}`
+  const html = createCalendarInviteEmail(emailProps)
+
+  const attachments = [
+    {
+      filename: `defesa-tcc-banca-${bancaId}.ics`,
+      content: icsContent,
+      contentType: "text/calendar; charset=utf-8",
+    },
+  ]
+
+  return sendEmail({
+    to,
+    subject,
+    html,
+    attachments,
+  })
 }

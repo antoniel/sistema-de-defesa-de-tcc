@@ -23,6 +23,7 @@ import type { Route } from "./+types/banca.$id"
 export const meta: Route.MetaFunction = () => [{ title: "SISDEF - Detalhes da Defesa" }]
 
 import { useBanca, useDeleteBanca, useToggleBancaVisibility } from "@/hooks"
+import { CalendarInviteSection } from "@/components/calendar/CalendarInviteSection"
 
 export default function BancaDetalhesPage() {
   const navigate = useNavigate()
@@ -188,6 +189,8 @@ export default function BancaDetalhesPage() {
                   </div>
                 </div>
               </section>
+
+              <CalendarInviteSection bancaId={id} bancaTitle={banca.tituloTrabalho} />
 
               <section>
                 <h2 className="text-xl font-semibold mb-4">Orientação</h2>
