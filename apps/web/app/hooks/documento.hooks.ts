@@ -18,3 +18,12 @@ export const useBancaDocumentInfo = (bancaId: number) => {
 export type DocumentInfo = Awaited<
   ReturnType<RpcType<(typeof apiClient.documentos.info)[":bancaId"]["$get"]>["output"]>
 >
+
+export const useDocumentAvaliadores = (bancaId: number) => {
+  const bandaDocumentInfo = useBancaDocumentInfo(bancaId)
+  const avaliadores = fileAvaliadores(bandaDocumentInfo.data?.membros)
+  return avaliadores
+}
+export const fileAvaliadores = (membros: DocumentInfo["membros"] | undefined) => {
+  return membros?.filter((m) => m.role !== "aluno" && m.role !== "orientador")
+}
