@@ -1,18 +1,18 @@
-import type { Context } from "hono"
-import { match } from "ts-pattern"
-import { err, ok, type AppResult } from "../../result"
-import { AppError } from "../../error"
-import { getBancaInfoForDocument } from "../../services/document.service"
-import { sendEmail, createCeapgDeclarationsEmail, type EmailAttachment } from "../../services/email.service"
-import type { AppVariables } from "../../types"
 import { pdf } from "@react-pdf/renderer"
-import React from "react"
-import { 
-  DeclaracaoParticipacaoPDF, 
-  DeclaracaoOrientacaoPDF, 
+import {
+  DeclaracaoOrientacaoPDF,
+  DeclaracaoParticipacaoPDF,
   FormularioAvaliacaoPDF,
-  type DocumentInfo
+  type DocumentInfo,
 } from "@tcc/pdf-components"
+import type { Context } from "hono"
+import React from "react"
+import { match } from "ts-pattern"
+import { AppError } from "../../error"
+import { err, ok, type AppResult } from "../../result"
+import { getBancaInfoForDocument } from "../../services/document.service"
+import { createCeapgDeclarationsEmail, sendEmail, type EmailAttachment } from "../../services/email.service"
+import type { AppVariables } from "../../types"
 
 export const getBancaDocumentInfo = async (c: Context<{ Variables: AppVariables }>, bancaId: number) => {
   const result = await getBancaInfoForDocument(c, bancaId)
@@ -33,13 +33,13 @@ interface SendCeapgDeclarationsInput {
   senderEmail: string
 }
 
-type SendCeapgDeclarationsError = 
+type SendCeapgDeclarationsError =
   | { type: "banca_not_found" }
   | { type: "email_error" }
   | { type: "pdf_generation_error" }
 
 export const sendCeapgDeclarations = async (
-  c: Context<{ Variables: AppVariables }>, 
+  c: Context<{ Variables: AppVariables }>,
   bancaId: number,
   input: SendCeapgDeclarationsInput
 ): Promise<AppResult<void, SendCeapgDeclarationsError>> => {
@@ -58,51 +58,50 @@ export const sendCeapgDeclarations = async (
 
     try {
       // 1. Formulário de Avaliação
-      const formularioComponent = React.createElement(FormularioAvaliacaoPDF, { 
-        bancaInfo: bancaInfo as unknown as DocumentInfo
+      const formularioComponent = React.createElement(FormularioAvaliacaoPDF, {
+        bancaInfo: bancaInfo as unknown as DocumentInfo,
       }) as any
       const formularioStream = await pdf(formularioComponent).toBlob()
       const formularioBuffer = Buffer.from(await formularioStream.arrayBuffer())
       attachments.push({
         filename: "Formulario_Avaliacao.pdf",
         content: formularioBuffer,
-        contentType: "application/pdf"
+        contentType: "application/pdf",
       })
 
       // 2. Declaração de Orientação (se houver orientador)
-      const orientador = bancaInfo.membros.find(m => m.role === "orientador")
+      const orientador = bancaInfo.membros.find((m) => m.role === "orientador")
       if (orientador) {
-        const orientacaoComponent = React.createElement(DeclaracaoOrientacaoPDF, { 
-          bancaInfo: bancaInfo as unknown as DocumentInfo, 
-          orientadorId: orientador.id 
+        const orientacaoComponent = React.createElement(DeclaracaoOrientacaoPDF, {
+          bancaInfo: bancaInfo as unknown as DocumentInfo,
+          orientadorId: orientador.id,
         }) as any
         const orientacaoStream = await pdf(orientacaoComponent).toBlob()
         const orientacaoBuffer = Buffer.from(await orientacaoStream.arrayBuffer())
         attachments.push({
           filename: "Declaracao_Orientacao.pdf",
           content: orientacaoBuffer,
-          contentType: "application/pdf"
+          contentType: "application/pdf",
         })
       }
 
       // 3. Declarações de Participação (para cada membro não-aluno)
-      const membrosParticipantes = bancaInfo.membros.filter(m => m.role !== "aluno")
+      const membrosParticipantes = bancaInfo.membros.filter((m) => m.role !== "aluno")
       for (const membro of membrosParticipantes) {
-        const participacaoComponent = React.createElement(DeclaracaoParticipacaoPDF, { 
-          bancaInfo: bancaInfo as unknown as DocumentInfo, 
-          membroId: membro.id 
+        const participacaoComponent = React.createElement(DeclaracaoParticipacaoPDF, {
+          bancaInfo: bancaInfo as unknown as DocumentInfo,
+          membroId: membro.id,
         }) as any
         const participacaoStream = await pdf(participacaoComponent).toBlob()
         const participacaoBuffer = Buffer.from(await participacaoStream.arrayBuffer())
         attachments.push({
           filename: `Declaracao_Participacao_${membro.usuario.nome.replace(/\s+/g, "_")}.pdf`,
           content: participacaoBuffer,
-          contentType: "application/pdf"
+          contentType: "application/pdf",
         })
       }
 
       console.log(`Generated ${attachments.length} PDF attachments`)
-
     } catch (pdfError) {
       console.error("Error generating PDFs:", pdfError)
       return err({ type: "pdf_generation_error" })

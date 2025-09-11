@@ -8,17 +8,19 @@ import {
   type CalendarInviteEmailProps,
 } from "../templates/email"
 
+export type EmailAttachment = {
+  filename: string
+  content: string | Buffer
+  contentType: string
+}
+
 interface SendEmailInput {
   to: string
   subject: string
   html: string
   cc?: string[]
   from?: string
-  attachments?: {
-    filename: string
-    content: string | Buffer
-    contentType: string
-  }[]
+  attachments?: EmailAttachment[]
 }
 
 type SendEmailError = { type: "email_error" } | { type: "config_error" }
