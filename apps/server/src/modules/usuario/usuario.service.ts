@@ -145,7 +145,7 @@ export const updateUser = async (
   updateData: UpdateUserInput
 ): Promise<AppResult<SelectUser, UpdateUserError>> => {
   const dbInstance = c.get("db")
-  const { nome, school, academicTitle } = updateData
+  const { nome, school, academicTitle, role } = updateData
 
   try {
     const userCheck = await dbInstance.select({ id: Users.id }).from(Users).where(eq(Users.id, id)).limit(1)
@@ -159,6 +159,7 @@ export const updateUser = async (
         nome: nome,
         school: school,
         academicTitle: academicTitle,
+        role: role,
         updatedAt: new Date(),
       })
       .where(eq(Users.id, id))
