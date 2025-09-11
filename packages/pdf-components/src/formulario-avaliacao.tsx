@@ -1,18 +1,26 @@
-import type { DocumentInfo } from "@/hooks/documento.hooks"
 import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer"
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import type { DocumentInfo } from "./types"
 
-export const FormularioAvaliacaoPDF = ({ bancaInfo }: { bancaInfo: DocumentInfo }) => {
+interface FormularioAvaliacaoPDFProps {
+  bancaInfo: DocumentInfo
+}
+
+export const fileAvaliadores = (membros: DocumentInfo["membros"] | undefined) => {
+  return membros?.filter((m) => m.role !== "aluno" && m.role !== "orientador")
+}
+
+export function FormularioAvaliacaoPDF({ bancaInfo }: FormularioAvaliacaoPDFProps) {
   const defenseDate = new Date(bancaInfo.dataRealizacao).toLocaleDateString("pt-BR")
-
   const orientador = bancaInfo.membros.find((m) => m.role === "orientador")
   const coorientador = bancaInfo.membros.find((m) => m.role === "coorientador")
-  // Incluir todos os membros exceto aluno como avaliadores (orientador, coorientador e avaliadores)
-  const avaliadores = bancaInfo.membros.filter((m) => m.role !== "aluno")
+  const avaliadores = fileAvaliadores(bancaInfo.membros) || []
 
-  // Calcular média das notas
   const notasValidas = avaliadores.filter((a) => a.nota).map((a) => Number(a.nota))
   const media =
     notasValidas.length > 0 ? (notasValidas.reduce((sum, nota) => sum + nota, 0) / notasValidas.length).toFixed(1) : ""
+
+  const curso = bancaInfo.curso?.nome || ""
 
   return (
     <Document>
@@ -21,8 +29,8 @@ export const FormularioAvaliacaoPDF = ({ bancaInfo }: { bancaInfo: DocumentInfo 
         <View style={styles.header}>
           <Text style={styles.headerLine}>Universidade Federal da Bahia</Text>
           <Text style={styles.headerLine}>Departamento de Ciência da Computação</Text>
-          <Text style={styles.headerLine}>Bacharelado em Sistemas de Informação</Text>
-          <Text style={styles.headerLine}>MATC98 - TCC BACHARELADO SISTEMAS DE INFORMAÇÃO II</Text>
+          <Text style={styles.headerLine}>Bacharelado em {curso}</Text>
+          <Text style={styles.headerLine}>MATC98 - TCC BACHARELADO {curso.toUpperCase()}</Text>
           <Text style={styles.headerLine}>
             TURMA: 010100 DATA: {defenseDate} - SEMESTRE: {bancaInfo.periodoAcademico}
           </Text>

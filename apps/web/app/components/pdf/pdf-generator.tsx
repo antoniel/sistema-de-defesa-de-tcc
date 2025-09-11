@@ -5,9 +5,9 @@ import { useToast } from "@/hooks/use-toast"
 import { pdf } from "@react-pdf/renderer"
 import { Download, FileText, Loader2 } from "lucide-react"
 import React, { useState } from "react"
-import { AtaDefesaPDF } from "./ata-defesa"
-import { DeclaracaoOrientacaoPDF } from "./declaracao-orientacao"
-import { DeclaracaoParticipacaoPDF } from "./declaracao-participacao"
+import { FormularioAvaliacaoPDF as AtaDefesaPDF } from "@tcc/pdf-components"
+import { DeclaracaoOrientacaoPDF } from "@tcc/pdf-components"
+import { DeclaracaoParticipacaoPDF } from "@tcc/pdf-components"
 
 interface PDFGeneratorProps {
   bancaId: number
