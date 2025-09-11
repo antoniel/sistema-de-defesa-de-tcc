@@ -1,3 +1,4 @@
+import { BancaNavigation } from "@/components/layout/BancaNavigation"
 import { Header } from "@/components/layout/Header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card"
@@ -5,10 +6,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useBanca, useAssignGradeMutation } from "@/hooks"
+import { useAssignGradeMutation, useBanca, useDocumentAvaliadores } from "@/hooks"
 import { useToast } from "@/hooks/use-toast"
-import { useUser, type AppUser } from "@/services/useUser"
-import { ArrowLeft, BarChart3, FileText, Info, Save, User } from "lucide-react"
+import { useUser } from "@/services/useUser"
+import { ArrowLeft, BarChart3, Info, Save, User } from "lucide-react"
 import React, { useState } from "react"
 import { useNavigate, useParams } from "react-router"
 import type { Route } from "./+types/banca.$id_.avaliacoes"
@@ -67,7 +68,7 @@ export default function BancaAvaliacoesPage() {
 
   const handleSaveUserGrade = async (membroId: number, nota: string) => {
     if (!user || !banca) return
-    
+
     const membro = banca.membros?.find((m) => m.id === membroId)
     if (!membro) return
 
@@ -94,7 +95,7 @@ export default function BancaAvaliacoesPage() {
     <div className="container mx-auto p-4 md:p-8">
       <Header className="mb-6" />
 
-      <BancaNavigation id={id} user={user!} />
+      <BancaNavigation id={id} user={user!} currentPage="avaliacoes" />
 
       <div className="bg-card shadow-md rounded-lg overflow-hidden">
         <BancaHeader banca={banca} />
@@ -115,56 +116,55 @@ export default function BancaAvaliacoesPage() {
   )
 }
 
-function BancaNavigation({ id, user }: { id: string; user: AppUser }) {
-  const navigate = useNavigate()
+// function BancaNavigation({ id, user }: { id: string; user: AppUser }) {
+//   const navigate = useNavigate()
 
-  return (
-    <div className="mb-6 flex items-center justify-between">
-      <div className="flex items-center gap-4">
-        <Button onClick={() => navigate(-1)} variant="outline" className="flex items-center">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
-        </Button>
+//   return (
+//     <div className="mb-6 flex items-center justify-between">
+//       <div className="flex items-center gap-4">
+//         <Button onClick={() => navigate(-1)} variant="outline" className="flex items-center">
+//           <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+//         </Button>
 
-        {/* Navegação tipo tabs */}
-        <nav className="flex items-center gap-1 ml-6">
-          <Button
-            variant="ghost"
-            className="flex items-center gap-2 relative px-4 py-2 hover:bg-muted border-b-2 border-transparent hover:border-muted-foreground/20"
-            onClick={() => navigate(`/banca/${id}`)}
-          >
-            <User className="h-4 w-4" />
-            Detalhes
-          </Button>
+//         {/* Navegação tipo tabs */}
+//         <nav className="flex items-center gap-1 ml-6">
+//           <Button
+//             variant="ghost"
+//             className="flex items-center gap-2 relative px-4 py-2 hover:bg-muted border-b-2 border-transparent hover:border-muted-foreground/20"
+//             onClick={() => navigate(`/banca/${id}`)}
+//           >
+//             <User className="h-4 w-4" />
+//             Detalhes
+//           </Button>
 
-          {(user?.role === "ADMIN" || user?.role === "TEACHER") && (
-            <Button
-              variant="ghost"
-              className="flex items-center gap-2 relative px-4 py-2 hover:bg-muted border-b-2 border-transparent hover:border-muted-foreground/20"
-              onClick={() => navigate(`/banca/${id}/documentos`)}
-            >
-              <FileText className="h-4 w-4" />
-              Documentos
-            </Button>
-          )}
+//           {(user?.role === "ADMIN" || user?.role === "TEACHER") && (
+//             <Button
+//               variant="ghost"
+//               className="flex items-center gap-2 relative px-4 py-2 hover:bg-muted border-b-2 border-primary bg-primary/5"
+//               onClick={() => {}}
+//             >
+//               <BarChart3 className="h-4 w-4" />
+//               Avaliações
+//             </Button>
+//           )}
 
-          {/* Botão Avaliações - para membros da banca */}
-          {(user?.role === "ADMIN" || user?.role === "TEACHER") && (
-            <Button
-              variant="ghost"
-              className="flex items-center gap-2 relative px-4 py-2 hover:bg-muted border-b-2 border-primary bg-primary/5"
-              onClick={() => {}}
-            >
-              <BarChart3 className="h-4 w-4" />
-              Avaliações
-            </Button>
-          )}
-        </nav>
-      </div>
+//           {(user?.role === "ADMIN" || user?.role === "TEACHER") && (
+//             <Button
+//               variant="ghost"
+//               className="flex items-center gap-2 relative px-4 py-2 hover:bg-muted border-b-2 border-transparent hover:border-muted-foreground/20"
+//               onClick={() => navigate(`/banca/${id}/documentos`)}
+//             >
+//               <FileText className="h-4 w-4" />
+//               Documentos
+//             </Button>
+//           )}
+//         </nav>
+//       </div>
 
-      <div className="flex items-center gap-4">{/* Área para controles administrativos se necessário */}</div>
-    </div>
-  )
-}
+//       <div className="flex items-center gap-4">{/* Área para controles administrativos se necessário */}</div>
+//     </div>
+//   )
+// }
 
 const BancaHeader = ({ banca }: { banca: any }) => (
   <div className="bg-muted p-6 border-b">
@@ -267,10 +267,7 @@ const AvaliacoesMembros = (props: {
   isAdmin: boolean
   isAssigningGrade: boolean
 }) => {
-  const bancaQuery = useBanca(props.bancaId)
-  const membrosAvaliadores = bancaQuery.data?.membros
-    ?.filter((m) => m.role !== "aluno")
-    .sort((a, b) => a.usuario.nome.localeCompare(b.usuario.nome)) || []
+  const membrosAvaliadores = useDocumentAvaliadores(Number(props.bancaId)) || []
   return (
     <div>
       <h2 className="text-xl font-semibold mb-4">Avaliações dos Membros da Banca</h2>
@@ -280,7 +277,9 @@ const AvaliacoesMembros = (props: {
           if (!avaliacao) return null
 
           const isCurrentUserMembro = props.user?.id === membro.usuario.id
-          const canEdit = props.isAdmin || isCurrentUserMembro
+          const orientador = membrosAvaliadores?.find((m) => m.role === "orientador")?.usuario
+          const isOrientadorDaBanca = !!props.user?.id && props.user?.id === orientador?.id
+          const canEdit = props.isAdmin || isCurrentUserMembro || isOrientadorDaBanca
 
           return (
             <Card key={membro.id} className={!canEdit ? "bg-muted/30" : ""}>
@@ -339,7 +338,6 @@ const AvaliacoesMembros = (props: {
     </div>
   )
 }
-
 
 function AccessDeniedMessage() {
   const navigate = useNavigate()

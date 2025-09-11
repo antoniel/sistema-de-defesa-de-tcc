@@ -12,16 +12,18 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { useUser } from "@/services/useUser"
-import { ArrowLeft, Calendar, Clock, MapPin, School, User } from "lucide-react"
+import { ArrowLeft, Calendar, ChevronDown, Clock, MapPin, School, User } from "lucide-react"
 import { useNavigate, useParams } from "react-router"
 import type { Route } from "./+types/banca.$id"
 
 export const meta: Route.MetaFunction = () => [{ title: "SISDEF - Detalhes da Defesa" }]
 
+import { CalendarInviteSection } from "@/components/calendar/CalendarInviteSection"
 import { useBanca, useDeleteBanca, useToggleBancaVisibility } from "@/hooks"
 
 export default function BancaDetalhesPage() {
@@ -44,7 +46,6 @@ export default function BancaDetalhesPage() {
   const isAdmin = user?.role === "ADMIN"
   const isOrientador = !!user?.id && user?.id === orientador?.id
   const canEdit = isAdmin || isOrientador
-  console.log({ isAdmin, isOrientador, canEdit })
 
   const isLoading = bancaQuery.isLoading || userQuery.isLoading
   const error = bancaQuery.error || userQuery.error
@@ -87,7 +88,7 @@ export default function BancaDetalhesPage() {
       <Header className="mb-6" />
 
       <BancaNavigation id={id} user={user!} currentPage="detalhes">
-        <div className="mb-6 flex items-center justify-end gap-4">
+        <div className="flex items-center justify-end gap-4">
           {canEdit && (
             <>
               <div className="flex items-center space-x-2">
@@ -142,6 +143,22 @@ export default function BancaDetalhesPage() {
                 <span>{banca.curso?.nome}</span>
               </div>
             </div>
+            {user && (
+              <div className="mt-4">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Adicionar ao Calendário
+                      <ChevronDown className="h-4 w-4 ml-2" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="p-0">
+                    <CalendarInviteSection bancaId={id} bancaTitle={banca.tituloTrabalho} />
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
           </div>
         </div>
 
