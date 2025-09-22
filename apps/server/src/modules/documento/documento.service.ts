@@ -11,7 +11,7 @@ import { match } from "ts-pattern"
 import { AppError } from "../../error"
 import { err, ok, type AppResult } from "../../result"
 import { getBancaInfoForDocument } from "../../services/document.service"
-import { createCeapgDeclarationsEmail, sendEmail, type EmailAttachment } from "../../services/email.service"
+import { createCeagDeclarationsEmail, sendEmail, type EmailAttachment } from "../../services/email.service"
 import type { AppVariables } from "../../types"
 
 export const getBancaDocumentInfo = async (c: Context<{ Variables: AppVariables }>, bancaId: number) => {
@@ -27,22 +27,23 @@ export const getBancaDocumentInfo = async (c: Context<{ Variables: AppVariables 
   return result.data
 }
 
-interface SendCeapgDeclarationsInput {
+interface SendCeagDeclarationsInput {
   ceapgEmail: string
   senderName: string
   senderEmail: string
+  message: string
 }
 
-type SendCeapgDeclarationsError =
+type SendCeagDeclarationsError =
   | { type: "banca_not_found" }
   | { type: "email_error" }
   | { type: "pdf_generation_error" }
 
-export const sendCeapgDeclarations = async (
+export const sendCeagDeclarations = async (
   c: Context<{ Variables: AppVariables }>,
   bancaId: number,
-  input: SendCeapgDeclarationsInput
-): Promise<AppResult<void, SendCeapgDeclarationsError>> => {
+  input: SendCeagDeclarationsInput
+): Promise<AppResult<void, SendCeagDeclarationsError>> => {
   try {
     // Get banca information
     const bancaResult = await getBancaInfoForDocument(c, bancaId)
@@ -107,8 +108,8 @@ export const sendCeapgDeclarations = async (
       return err({ type: "pdf_generation_error" })
     }
 
-    // Generate email content
-    const emailHtml = createCeapgDeclarationsEmail()
+    // Generate email content from provided message
+    const emailHtml = createCeagDeclarationsEmail(input.message)
 
     // Send email with attachments
     const emailResult = await sendEmail({
@@ -124,10 +125,10 @@ export const sendCeapgDeclarations = async (
       return err({ type: "email_error" })
     }
 
-    console.log("CEAPG email sent successfully with attachments")
+    console.log("CEAG email sent successfully with attachments")
     return ok(undefined)
   } catch (error) {
-    console.error("Error sending CEAPG declarations:", error)
+    console.error("Error sending CEAG declarations:", error)
     return err({ type: "email_error" })
   }
 }
