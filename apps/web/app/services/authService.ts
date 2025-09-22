@@ -76,11 +76,11 @@ export const removeAuthToken = (): void => {
   }
 }
 
-export const useSendCeapgDeclarationsMutation = () => {
-  type Query = RpcType<typeof apiClient.documentos["send-ceapg-declarations"][":bancaId"]["$post"]>
+export const useSendCeagDeclarationsMutation = () => {
+  type Query = RpcType<typeof apiClient.documentos["send-ceag-declarations"][":bancaId"]["$post"]>
   return useMutation({
     mutationFn: async (request: Query["input"]) => {
-      const response = await apiClient.documentos["send-ceapg-declarations"][":bancaId"]["$post"](request)
+      const response = await apiClient.documentos["send-ceag-declarations"][":bancaId"]["$post"](request)
       return rpcReturn(response)
     },
   })

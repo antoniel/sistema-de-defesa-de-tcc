@@ -1,16 +1,17 @@
 import { zValidator } from "@hono/zod-validator"
 import { Hono } from "hono"
-import { z } from "zod"
 import { match } from "ts-pattern"
+import { z } from "zod"
 import { AppError } from "../../error"
 import type { AppVariables } from "../../types"
 import { checkRole } from "../auth/auth.middleware"
-import { getBancaDocumentInfo, sendCeapgDeclarations } from "./documento.service"
+import { getBancaDocumentInfo, sendCeagDeclarations } from "./documento.service"
 
-const sendCeapgDeclarationsSchema = z.object({
-  ceapgEmail: z.string().email("Email do CEAPG inválido"),
+const sendCeagDeclarationsSchema = z.object({
+  ceapgEmail: z.string().email("Email do CEAG inválido"),
   senderName: z.string().min(1, "Nome do remetente é obrigatório"),
   senderEmail: z.string().email("Email do remetente inválido"),
+  message: z.string().min(1, "Mensagem do email é obrigatória"),
 })
 
 export const documentoRoutes = new Hono<{ Variables: AppVariables }>()
@@ -31,23 +32,24 @@ export const documentoRoutes = new Hono<{ Variables: AppVariables }>()
     }
   )
   .post(
-    "/send-ceapg-declarations/:bancaId",
+    "/send-ceag-declarations/:bancaId",
     checkRole(["TEACHER", "ADMIN"]),
     zValidator("param", z.object({ bancaId: z.string() })),
-    zValidator("json", sendCeapgDeclarationsSchema),
+    zValidator("json", sendCeagDeclarationsSchema),
     async (c) => {
       const { bancaId } = c.req.valid("param")
-      const { ceapgEmail, senderName, senderEmail } = c.req.valid("json")
+      const { ceapgEmail, senderName, senderEmail, message } = c.req.valid("json")
       const bancaIdNumber = parseInt(bancaId)
 
       if (isNaN(bancaIdNumber)) {
         throw new AppError(400, "ID da banca inválido")
       }
 
-      const result = await sendCeapgDeclarations(c, bancaIdNumber, {
+      const result = await sendCeagDeclarations(c, bancaIdNumber, {
         ceapgEmail,
         senderName,
         senderEmail,
+        message,
       })
 
       if (!result.ok) {
@@ -58,7 +60,7 @@ export const documentoRoutes = new Hono<{ Variables: AppVariables }>()
           .exhaustive()
       }
 
-      return c.json({ message: "Declarações enviadas com sucesso para o CEAPG" })
+      return c.json({ message: "Declarações enviadas com sucesso para o CEAG" })
     }
   )
 // PDF generation endpoints removed - moved to frontend

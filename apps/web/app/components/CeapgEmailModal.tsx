@@ -14,10 +14,10 @@ import { useUser } from "@/services/useUser"
 import { Mail, Paperclip } from "lucide-react"
 import { useState } from "react"
 
-interface CeapgEmailModalProps {
+interface CeagEmailModalProps {
   isOpen: boolean
   onClose: () => void
-  onConfirm: (data: CeapgEmailData) => void
+  onConfirm: (data: CeagEmailData) => void
   isLoading?: boolean
   bancaInfo?: {
     autor: string
@@ -27,30 +27,19 @@ interface CeapgEmailModalProps {
   }
 }
 
-export interface CeapgEmailData {
+export interface CeagEmailData {
   ceapgEmail: string
   senderName: string
   senderEmail: string
+  message: string
 }
 
-export function CeapgEmailModal({ isOpen, onClose, onConfirm, isLoading = false, bancaInfo }: CeapgEmailModalProps) {
+export function CeagEmailModal({ isOpen, onClose, onConfirm, isLoading = false, bancaInfo }: CeagEmailModalProps) {
   const { data: user } = useUser()
-  const [ceapgEmail, setCeapgEmail] = useState("ceapg-ic@ufba.br")
+  const [ceapgEmail, setCeagEmail] = useState(import.meta.env.PROD ? "ceag-ic@ufba.br" : "antoinel2210@gmail.com")
   const [senderName, setSenderName] = useState(user?.nome || "")
   const [senderEmail, setSenderEmail] = useState(user?.email || "")
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onConfirm({
-      ceapgEmail,
-      senderName,
-      senderEmail,
-    })
-  }
-
-  const attachments = ["Formulário de Avaliação.pdf", "Declaração de Participação.pdf", "Declaração de Orientação.pdf"]
-
-  const emailPreview = `Prezados Coordenadores do CEAPG,
+  const defaultMessage = `Prezados coleagas do CEAG,
 
 Seguem as declarações para a assinatura por parte dos coordenadores do Colegiado.
 
@@ -59,6 +48,19 @@ Os documentos estão anexados a este e-mail para sua análise e providências ne
 Atenciosamente,
 Sistema de Defesas (SISDEF)
 Universidade Federal da Bahia`
+  const [message, setMessage] = useState(defaultMessage)
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    onConfirm({
+      ceapgEmail,
+      senderName,
+      senderEmail,
+      message,
+    })
+  }
+
+  const attachments = ["Formulário de Avaliação.pdf", "Declaração de Participação.pdf", "Declaração de Orientação.pdf"]
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -66,9 +68,9 @@ Universidade Federal da Bahia`
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
-            Confirmar Envio para CEAPG
+            Confirmar Envio para CEAG
           </DialogTitle>
-          <DialogDescription>Revise os dados abaixo antes de enviar as declarações para o CEAPG.</DialogDescription>
+          <DialogDescription>Revise os dados abaixo antes de enviar as declarações para o CEAG.</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -86,9 +88,6 @@ Universidade Federal da Bahia`
                 <p>
                   <span className="font-medium">Curso:</span> {bancaInfo.curso.nome}
                 </p>
-                <p>
-                  <span className="font-medium">Membros:</span> {bancaInfo.membros.length} participantes
-                </p>
               </div>
             </div>
           )}
@@ -100,8 +99,8 @@ Universidade Federal da Bahia`
               id="ceapgEmail"
               type="email"
               value={ceapgEmail}
-              onChange={(e) => setCeapgEmail(e.target.value)}
-              placeholder="ceapg-ic@ufba.br"
+              onChange={(e) => setCeagEmail(e.target.value)}
+              placeholder="ceag-ic@ufba.br"
               required
             />
           </div>
@@ -148,10 +147,10 @@ Universidade Federal da Bahia`
             </div>
           </div>
 
-          {/* Preview da Mensagem */}
+          {/* Mensagem do Email */}
           <div className="space-y-2">
-            <Label>Preview da Mensagem</Label>
-            <Textarea value={emailPreview} readOnly className="min-h-[120px] bg-muted/30" />
+            <Label>Mensagem do Email</Label>
+            <Textarea value={message} onChange={(e) => setMessage(e.target.value)} className="min-h-[160px]" />
           </div>
 
           <DialogFooter>
