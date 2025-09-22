@@ -533,6 +533,7 @@ const WorkAndDefenseSection = () => {
                 <Input
                   id="turma"
                   placeholder="Ex: 010101"
+                  defaultValue={"010101"}
                   value={field.value || ""}
                   onChange={(e) => {
                     field.onChange(e)
