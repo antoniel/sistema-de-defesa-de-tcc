@@ -1,4 +1,4 @@
-import { CeapgEmailModal, type CeapgEmailData } from "@/components/CeapgEmailModal"
+import { CeagEmailModal, type CeagEmailData } from "@/components/CeapgEmailModal"
 import { BancaHeader } from "@/components/layout/BancaHeader"
 import { BancaNavigation } from "@/components/layout/BancaNavigation"
 import { Header } from "@/components/layout/Header"
@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useBanca } from "@/hooks"
 import { fileAvaliadores, useBancaDocumentInfo } from "@/hooks/documento.hooks"
 import { useToast } from "@/hooks/use-toast"
-import { useSendCeapgDeclarationsMutation } from "@/services/authService"
+import { useSendCeagDeclarationsMutation } from "@/services/authService"
 import { useUser } from "@/services/useUser"
 import { pdf } from "@react-pdf/renderer"
 import { DeclaracaoOrientacaoPDF, DeclaracaoParticipacaoPDF, FormularioAvaliacaoPDF } from "@tcc/pdf-components"
@@ -29,7 +29,7 @@ export default function BancaDocumentosPage() {
   const [selectedParticipant, setSelectedParticipant] = useState<number | null>(null)
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false)
 
-  const sendCeapgMutation = useSendCeapgDeclarationsMutation()
+  const sendCeagMutation = useSendCeagDeclarationsMutation()
 
   if (!id) {
     navigate("/")
@@ -101,23 +101,23 @@ export default function BancaDocumentosPage() {
     }
   }
 
-  const handleSendCeapgEmail = async (emailData: CeapgEmailData) => {
+  const handleSendCeagEmail = async (emailData: CeagEmailData) => {
     if (!id) return
 
     try {
-      await sendCeapgMutation.mutateAsync({
+      await sendCeagMutation.mutateAsync({
         param: { bancaId: id },
         json: emailData,
       })
 
       toast({
         title: "Email enviado com sucesso!",
-        description: "As declarações foram enviadas para o CEAPG.",
+        description: "As declarações foram enviadas para o CEAG.",
       })
 
       setIsEmailModalOpen(false)
     } catch (error) {
-      console.error("Error sending CEAPG email:", error)
+      console.error("Error sending CEAG email:", error)
       toast({
         title: "Erro ao enviar email",
         description: "Ocorreu um erro ao enviar as declarações. Tente novamente.",
@@ -343,24 +343,24 @@ export default function BancaDocumentosPage() {
                   </div>
                 </div>
 
-                {/* CEAPG Email Section */}
+                {/* CEAG Email Section */}
                 <div className="border rounded-lg p-4 bg-blue-50/50 dark:bg-blue-950/20">
                   <h3 className="font-semibold mb-2 flex items-center gap-2">
                     <Mail className="h-4 w-4" />
-                    Enviar para CEAPG
+                    Enviar para CEAG
                   </h3>
                   <p className="text-sm text-muted-foreground mb-3">
-                    Envie todas as declarações para o CEAPG (Colegiado de Ensino, Pesquisa e Extensão) por email.
+                    Envie todas as declarações para o CEAG (Colegiado de Ensino, Pesquisa e Extensão) por email.
                   </p>
                   <Button
                     variant="default"
                     size="sm"
                     onClick={() => setIsEmailModalOpen(true)}
                     className="flex items-center gap-2"
-                    disabled={sendCeapgMutation.isPending}
+                    disabled={sendCeagMutation.isPending}
                   >
                     <Mail className="h-4 w-4" />
-                    Enviar para CEAPG
+                    Enviar para CEAG
                   </Button>
                 </div>
 
@@ -398,12 +398,12 @@ export default function BancaDocumentosPage() {
         </div>
       </div>
 
-      {/* CEAPG Email Modal */}
-      <CeapgEmailModal
+      {/* CEAG Email Modal */}
+      <CeagEmailModal
         isOpen={isEmailModalOpen}
         onClose={() => setIsEmailModalOpen(false)}
-        onConfirm={handleSendCeapgEmail}
-        isLoading={sendCeapgMutation.isPending}
+        onConfirm={handleSendCeagEmail}
+        isLoading={sendCeagMutation.isPending}
         bancaInfo={bancaInfo}
       />
     </div>
