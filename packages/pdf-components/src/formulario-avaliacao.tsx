@@ -1,6 +1,10 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer"
+import React from "react"
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { DocumentInfo } from "./types"
+let a = React as any
 
 interface FormularioAvaliacaoPDFProps {
   bancaInfo: DocumentInfo

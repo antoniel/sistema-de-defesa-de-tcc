@@ -83,7 +83,7 @@ export const createCalendarInviteEmail = (props: CalendarInviteEmailProps): stri
     
     <p style="margin-top: 32px;">
       Atenciosamente,<br/>
-      <strong>Sistema de Gerenciamento de Bancas - UFBA</strong>
+      <strong>Sistema de Defesas de TCC do Instituto de Computação - UFBA</strong>
     </p>
   `
 
