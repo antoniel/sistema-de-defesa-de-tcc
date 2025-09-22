@@ -10,8 +10,7 @@ export default defineConfig({
     tsconfigPaths(),
     codeInspectorPlugin({
       bundler: "vite",
-      showSwitch: true,
-      hotKeys: ['altKey']
+      hotKeys: ['altKey', 'shiftKey']
     })
   ],
 })
