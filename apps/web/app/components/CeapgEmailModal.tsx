@@ -39,7 +39,7 @@ export function CeagEmailModal({ isOpen, onClose, onConfirm, isLoading = false, 
   const [ceapgEmail, setCeagEmail] = useState(import.meta.env.PROD ? "ceag-ic@ufba.br" : "antoinel2210@gmail.com")
   const [senderName, setSenderName] = useState(user?.nome || "")
   const [senderEmail, setSenderEmail] = useState(user?.email || "")
-  const defaultMessage = `Prezados coleagas do CEAG,
+  const defaultMessage = `Prezados colegas do CEAG,
 
 Seguem as declarações para a assinatura por parte dos coordenadores do Colegiado.
 
