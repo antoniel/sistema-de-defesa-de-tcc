@@ -134,7 +134,11 @@ export default function AdminUsersPage() {
           <TableBody>
             {filteredUsers.length > 0 ? (
               filteredUsers.map((user) => (
-                <TableRow key={user.id}>
+                <TableRow
+                  key={user.id}
+                  onClick={() => navigate(`/users/${user.id}`)}
+                  className="cursor-pointer hover:bg-muted/50"
+                >
                   <TableCell className="font-medium">{user.nome}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>{user.matricula}</TableCell>
@@ -147,7 +151,7 @@ export default function AdminUsersPage() {
                         .otherwise(() => user.role)}
                     </Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
@@ -158,6 +162,9 @@ export default function AdminUsersPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Ações</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => handleEditUser(user)}>Editar</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate(`/users/${user.id}`)}>
+                          Ver perfil
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

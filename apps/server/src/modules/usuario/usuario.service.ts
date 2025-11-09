@@ -4,6 +4,7 @@ import { and, asc, desc, eq, inArray, not, or } from "drizzle-orm"
 import { type Context } from "hono"
 import { z } from "zod"
 import { Bancas, resetPasswords, type SelectUser, Users, usuariosBancas } from "../../database/schema"
+import type { InferResultType } from "../../database"
 import { type AppResult, err, ok } from "../../result"
 import { createPasswordResetEmail, sendEmail } from "../../services/email.service"
 import { type AppVariables } from "../../types"
@@ -292,20 +293,74 @@ export const changeUserPassword = async (
   }
 }
 
+type UserBancaWithRole = InferResultType<"Bancas", { curso: true; membros: { with: { usuario: true } } }> & {
+  userRole: "orientador" | "coorientador" | "aluno" | "avaliador"
+}
+
 export const getUserBancas = async (
   c: Context<{ Variables: AppVariables }>,
   id: number
-): Promise<AppResult<any[], GetUserBancasError>> => {
+): Promise<AppResult<UserBancaWithRole[], GetUserBancasError>> => {
   const dbInstance = c.get("db")
   try {
+    // Check if user exists
     const userCheck = await dbInstance.select({ id: Users.id }).from(Users).where(eq(Users.id, id)).limit(1)
     if (userCheck.length === 0) {
       return err({ type: "user_not_found" })
     }
 
-    const relatedBancas = await dbInstance.select().from(Bancas)
+    // Get current viewer's role (admin or not)
+    let isAdmin = false
+    const payload = c.get("jwtPayload")
+    if (payload) {
+      const viewerResult = await getUserById(c, Number(payload.sub))
+      if (viewerResult.ok) {
+        isAdmin = viewerResult.data.role === "ADMIN"
+      }
+    }
 
-    return ok(relatedBancas)
+    // Get all bancas where user participated, with their role
+    const userBancasRelations = await dbInstance
+      .select({
+        bancaId: usuariosBancas.bancaId,
+        userRole: usuariosBancas.role,
+      })
+      .from(usuariosBancas)
+      .where(eq(usuariosBancas.usuarioId, id))
+
+    if (userBancasRelations.length === 0) {
+      return ok([])
+    }
+
+    const bancaIds = userBancasRelations.map((r) => r.bancaId)
+    const roleMap = new Map(userBancasRelations.map((r) => [r.bancaId, r.userRole]))
+
+    // Build visibility filter: admins see all, non-admins see only visible
+    const whereConditions = isAdmin
+      ? inArray(Bancas.id, bancaIds)
+      : and(inArray(Bancas.id, bancaIds), eq(Bancas.visible, true))
+
+    // Fetch bancas with relationships
+    const bancas = await dbInstance.query.Bancas.findMany({
+      where: whereConditions,
+      with: {
+        curso: true,
+        membros: {
+          with: {
+            usuario: true,
+          },
+        },
+      },
+      orderBy: desc(Bancas.dataRealizacao),
+    })
+
+    // Add user's role to each banca
+    const bancasWithRole: UserBancaWithRole[] = bancas.map((banca) => ({
+      ...banca,
+      userRole: roleMap.get(banca.id) as "orientador" | "coorientador" | "aluno" | "avaliador",
+    }))
+
+    return ok(bancasWithRole)
   } catch (error) {
     console.error(`Error fetching bancas for user ID ${id}:`, error)
     return err({ type: "database_error", error })
