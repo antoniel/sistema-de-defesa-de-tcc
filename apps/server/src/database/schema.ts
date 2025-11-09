@@ -155,6 +155,69 @@ export const bancasDocumentos = pgTable("banca_documento", {
     .references(() => documentos.id),
 })
 
+// === FEEDBACK SYSTEM ===
+
+export const feedbackSubmissions = pgTable(
+  "feedback_submission",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => Users.id)
+      .unique(), // Only one feedback per user
+    taskComplexityRating: integer("task_complexity_rating").notNull(), // 1-5 scale
+    interfaceConsistencyRating: integer("interface_consistency_rating").notNull(), // 1-5 scale
+    responseTimeRating: integer("response_time_rating").notNull(), // 1-5 scale
+    satisfactionRating: integer("satisfaction_rating").notNull(), // 1-5 scale
+    usagePurposes: text("usage_purposes").notNull(), // JSON array of strings
+    usagePurposeOther: text("usage_purpose_other"), // Custom text when "Other" is selected
+    completedAllTasks: boolean("completed_all_tasks").notNull(),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  }
+)
+export type InsertFeedbackSubmission = typeof feedbackSubmissions.$inferInsert
+export type SelectFeedbackSubmission = typeof feedbackSubmissions.$inferSelect
+
+export const featureRequests = pgTable("feature_request", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => Users.id),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  voteCount: integer("vote_count").notNull().default(0),
+  createdAt: timestamp("created_at")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+})
+export type InsertFeatureRequest = typeof featureRequests.$inferInsert
+export type SelectFeatureRequest = typeof featureRequests.$inferSelect
+
+export const featureRequestVotes = pgTable(
+  "feature_request_vote",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => Users.id),
+    featureRequestId: integer("feature_request_id")
+      .notNull()
+      .references(() => featureRequests.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => {
+    return {
+      userFeatureRequestUnique: unique("user_feature_request_unique").on(table.userId, table.featureRequestId),
+    }
+  }
+)
+export type InsertFeatureRequestVote = typeof featureRequestVotes.$inferInsert
+export type SelectFeatureRequestVote = typeof featureRequestVotes.$inferSelect
+
 // === DEFINIÇÃO DAS RELAÇÕES ===
 
 export const usuariosRelations = relations(Users, ({ one, many }) => ({
@@ -164,6 +227,9 @@ export const usuariosRelations = relations(Users, ({ one, many }) => ({
   bancasAssociadas: many(usuariosBancas), // Relação através da tabela de junção
   teacherInvitationsSent: many(teacherInvitations),
   teacherInvitationReceived: one(teacherInvitations),
+  feedbackSubmissions: many(feedbackSubmissions),
+  featureRequests: many(featureRequests),
+  featureRequestVotes: many(featureRequestVotes),
   // bancasCriadas: many(bancas), // Descomentar se banca.userId for mantido
 }))
 
@@ -250,5 +316,34 @@ export const bancasDocumentosRelations = relations(bancasDocumentos, ({ one }) =
   documento: one(documentos, {
     fields: [bancasDocumentos.documentoId],
     references: [documentos.id],
+  }),
+}))
+
+// Relações para feedback submissions
+export const feedbackSubmissionsRelations = relations(feedbackSubmissions, ({ one }) => ({
+  user: one(Users, {
+    fields: [feedbackSubmissions.userId],
+    references: [Users.id],
+  }),
+}))
+
+// Relações para feature requests
+export const featureRequestsRelations = relations(featureRequests, ({ one, many }) => ({
+  user: one(Users, {
+    fields: [featureRequests.userId],
+    references: [Users.id],
+  }),
+  votes: many(featureRequestVotes),
+}))
+
+// Relações para feature request votes
+export const featureRequestVotesRelations = relations(featureRequestVotes, ({ one }) => ({
+  user: one(Users, {
+    fields: [featureRequestVotes.userId],
+    references: [Users.id],
+  }),
+  featureRequest: one(featureRequests, {
+    fields: [featureRequestVotes.featureRequestId],
+    references: [featureRequests.id],
   }),
 }))

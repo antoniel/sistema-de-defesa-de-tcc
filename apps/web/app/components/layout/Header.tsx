@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils"
 import { removeAuthToken } from "@/services/authService"
 import { useUser } from "@/services/useUser"
 import { useQueryClient } from "@tanstack/react-query"
-import { ChevronDown, LogOut, Menu, User, Users, X } from "lucide-react"
+import { ChevronDown, LogOut, Menu, MessageSquare, User, Users, X } from "lucide-react"
 import { useState } from "react"
 import { Link } from "react-router"
 import { match } from "ts-pattern"
@@ -72,7 +72,8 @@ export function Header(props: HeaderProps) {
         </Button>
 
         {/* Desktop Navigation */}
-        <div className="hidden lg:block">
+        <div className="hidden lg:flex lg:items-center lg:gap-4 lg:flex-1">
+          <DesktopNavLinks />
           <RightSideButtons
             loginDialogOpen={loginDialogOpen}
             setLoginDialogOpen={setLoginDialogOpen}
@@ -121,6 +122,19 @@ export function Header(props: HeaderProps) {
         </DialogContent>
       </Dialog>
     </header>
+  )
+}
+
+function DesktopNavLinks() {
+  return (
+    <nav className="flex items-center gap-2">
+      <Button variant="ghost" size="sm" asChild>
+        <Link to="/feedback" className="flex items-center gap-2">
+          <MessageSquare className="h-4 w-4" />
+          Feedback
+        </Link>
+      </Button>
+    </nav>
   )
 }
 
@@ -274,6 +288,13 @@ function MobileRightSideButtons(props: MobileRightSideButtonsProps) {
 
       <div className="space-y-1">
         <Button variant="ghost" className="w-full justify-start" asChild>
+          <Link to="/feedback" onClick={props.onClose} className="flex items-center">
+            <MessageSquare className="mr-2 h-4 w-4" aria-hidden="true" />
+            Feedback
+          </Link>
+        </Button>
+
+        <Button variant="ghost" className="w-full justify-start" asChild>
           <Link to="/profile" onClick={props.onClose} className="flex items-center">
             <User className="mr-2 h-4 w-4" aria-hidden="true" />
             Meu Perfil
@@ -329,6 +350,13 @@ function LoggedOutButtonsContent(props: RightSideButtonsProps) {
 function MobileLoggedOutButtons(props: MobileRightSideButtonsProps) {
   return (
     <div className="space-y-2">
+      <Button variant="ghost" className="w-full justify-start" asChild>
+        <Link to="/feedback" onClick={props.onClose} className="flex items-center">
+          <MessageSquare className="mr-2 h-4 w-4" aria-hidden="true" />
+          Feedback
+        </Link>
+      </Button>
+
       <Button
         variant="ghost"
         className="w-full justify-start"
