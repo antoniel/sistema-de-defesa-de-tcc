@@ -16,8 +16,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/compon
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
+import { useToast } from "@/hooks/use-toast"
 import { useUser } from "@/services/useUser"
-import { ArrowLeft, Calendar, ChevronDown, Clock, MapPin, School, User } from "lucide-react"
+import { ArrowLeft, Calendar, Check, ChevronDown, Clock, Copy, MapPin, School, User } from "lucide-react"
+import { useState } from "react"
 import { useNavigate, useParams } from "react-router"
 import type { Route } from "./+types/banca.$id"
 
@@ -29,6 +31,9 @@ import { useBanca, useDeleteBanca, useToggleBancaVisibility } from "@/hooks"
 export default function BancaDetalhesPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
+  const { toast } = useToast()
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
   if (!id) {
     navigate("/")
     return
@@ -38,6 +43,17 @@ export default function BancaDetalhesPage() {
   const bancaQuery = useBanca(id)
   const deleteBancaMutation = useDeleteBanca()
   const toggleVisibilityMutation = useToggleBancaVisibility(id)
+
+  function handleCopy(text: string, id: string) {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedId(id)
+      toast({
+        title: "Copiado!",
+        description: "Texto copiado para a área de transferência.",
+      })
+      setTimeout(() => setCopiedId(null), 2000)
+    })
+  }
 
   const banca = bancaQuery.data
   const user = userQuery.data
@@ -134,7 +150,20 @@ export default function BancaDetalhesPage() {
           <div className="flex items-start gap-4">
             <img src="/brasao_ufba.png" alt="Brasão da UFBA" className="w-16 h-16 object-contain" />
             <div className="flex-1">
-              <h1 className="text-2xl font-bold">{banca.tituloTrabalho}</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold">{banca.tituloTrabalho}</h1>
+                <button
+                  onClick={() => handleCopy(banca.tituloTrabalho, "titulo")}
+                  className="p-1 hover:bg-muted rounded transition-colors"
+                  title="Copiar título"
+                >
+                  {copiedId === "titulo" ? (
+                    <Check className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <Copy className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </button>
+              </div>
               <div className="flex items-center mt-2 text-muted-foreground">
                 <User className="h-4 w-4 mr-1" />
                 <span className="mr-4">{banca.autor}</span>
@@ -248,17 +277,56 @@ export default function BancaDetalhesPage() {
             {/* Coluna da direita - Conteúdo Acadêmico */}
             <div className="space-y-6 md:col-span-2 lg:col-span-3">
               <section>
-                <h2 className="text-xl font-semibold mb-4">Resumo</h2>
+                <div className="flex items-center gap-2 mb-4">
+                  <h2 className="text-xl font-semibold">Resumo</h2>
+                  <button
+                    onClick={() => handleCopy(banca.resumo || "", "resumo")}
+                    className="p-1 hover:bg-muted rounded transition-colors"
+                    title="Copiar resumo"
+                  >
+                    {copiedId === "resumo" ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Copy className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </button>
+                </div>
                 <p className="whitespace-pre-line text-muted-foreground text-justify">{banca.resumo}</p>
               </section>
 
               <section>
-                <h2 className="text-xl font-semibold mb-4">Abstract</h2>
+                <div className="flex items-center gap-2 mb-4">
+                  <h2 className="text-xl font-semibold">Abstract</h2>
+                  <button
+                    onClick={() => handleCopy(banca.abstract || "", "abstract")}
+                    className="p-1 hover:bg-muted rounded transition-colors"
+                    title="Copiar abstract"
+                  >
+                    {copiedId === "abstract" ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Copy className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </button>
+                </div>
                 <p className="whitespace-pre-line text-muted-foreground text-justify">{banca.abstract}</p>
               </section>
 
               <section>
-                <h2 className="text-xl font-semibold mb-4">Palavras-chave</h2>
+                <div className="flex items-center gap-2 mb-4">
+                  <h2 className="text-xl font-semibold">Palavras-chave</h2>
+                  <button
+                    onClick={() => handleCopy(banca.palavrasChave || "", "palavras-chave")}
+                    className="p-1 hover:bg-muted rounded transition-colors"
+                    title="Copiar palavras-chave"
+                  >
+                    {copiedId === "palavras-chave" ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Copy className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </button>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {banca.palavrasChave?.split(",").map((palavra, index) => (
                     <span key={index} className="bg-muted px-3 py-1 rounded-full text-sm">

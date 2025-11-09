@@ -11,6 +11,8 @@ import { bancaRoutes } from "./modules/banca/banca.route"
 import { calendarRoutes } from "./modules/calendar/calendar.route"
 import { cursoRoutes } from "./modules/curso/curso.route"
 import { documentoRoutes } from "./modules/documento/documento.route"
+import { feedbackRoutes } from "./modules/feedback/feedback.route"
+import { featureRequestRoutes } from "./modules/feature-request/feature-request.route"
 import { usuarioRoutes } from "./modules/usuario/usuario.route"
 import teacherInvitationRoutes from "./modules/teacher-invitation/teacher-invitation.route"
 import { type AppVariables } from "./types"
@@ -28,6 +30,8 @@ export const app = (depsMiddleware: MiddlewareHandler<{ Variables: AppVariables 
     .route("/calendar", calendarRoutes)
     .route("/cursos", cursoRoutes)
     .route("/documentos", documentoRoutes)
+    .route("/feedback", feedbackRoutes)
+    .route("/feature-request", featureRequestRoutes)
     .route("/usuario", usuarioRoutes)
     .route("/teacher-invitation", teacherInvitationRoutes)
     .notFound((c) => {
