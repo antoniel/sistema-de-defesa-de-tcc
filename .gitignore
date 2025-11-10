@@ -40,3 +40,23 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+*.aux
+*.log
+*.out
+*.pdf
+*.toc
+*.bbl
+*.blg
+*.fis
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+*.synctex.gz
