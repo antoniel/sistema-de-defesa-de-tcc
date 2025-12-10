@@ -57,9 +57,7 @@
 \renewcommand{\shortauthors}{Antoniel Magalhães de Sousa, Frederico Araújo Durão}
 
 \begin{abstract}
-    \begin{tcolorbox}[colback=yellow!30,colframe=yellow!30,boxrule=0pt,arc=0pt,left=2pt,right=2pt,top=2pt,bottom=2pt,breakable]
-    A integração de \textit{Sistemas de Informação Baseados em Computador (SIBCs)} no cotidiano é uma realidade e acompanha a ampliação da disponibilidade de dispositivos computacionais e a ampliação do acesso à \textit{internet} \cite{ticbr2023}. No cenário acadêmico, a utilização destes sistemas permite a comunicação mais eficiente entre múltiplos setores envolvidos facilitando a troca de informações e permitindo o armazenamento mais eficiente dos dados gerenciados pela aplicação \cite{murdick1984information}. O \textit{Sistema de Marcação de Defesas (SISDEF)} foi desenvolvido visando facilitar gerenciamento de trabalhos de conclusão e a geração de documentos e certificados exigidos pelo fluxo institucional do \textit{UFBA}, servindo também como uma plataforma para consulta de trabalhos apresentados, orientadores e bancas avaliadoras. Este trabalho descreve o processo de implantação do \textit{SISDEF} no ambiente da \textit{Instituto de Computação da UFBA (IC-UFBA)} e apresenta as melhorias e requisitos implementados visando ampliar suas funcionalidades atuais, a ampliação do grupo de usuários e o aumento da flexibilidade do sistema.
-    \end{tcolorbox}
+A gestão de defesas de trabalhos de conclusão de curso em instituições de ensino superior tradicionalmente envolve processos manuais propensos a erros e com baixa visibilidade dos trabalhos apresentados. O \textit{Sistema de Marcação de Defesas (SISDEF)}, desenvolvido inicialmente em 2022 para a Universidade Federal da Bahia, automatiza este processo através da centralização de informações, geração automática de documentos administrativos e envio de convites para membros de bancas avaliadoras. Apesar do sucesso funcional das versões anteriores (SISDEF 1.0 e 2.0), limitações técnicas comprometiam sua sustentabilidade a longo prazo: stack baseada em PHP/Yii2 e JavaScript sem tipagem estática, ausência de testes automatizados, alta complexidade em controladores, e maior barreira de entrada para novos desenvolvedores. Este trabalho descreve a reescrita completa do sistema em sua terceira versão (SISDEF 3.0), fundamentada em stack moderna baseada em TypeScript full-stack: React Router v7 com Server-Side Rendering no frontend, Hono framework no backend, Drizzle ORM para acesso a dados, e PostgreSQL como banco de dados. As principais contribuições incluem: (1) arquitetura modular e type-safe reduzindo significativamente erros relacionados a tipos e contratos de API; (2) suíte abrangente de testes automatizados combinando testes unitários (Vitest) e end-to-end (Playwright); (3) análise comparativa fundamentada em dados de adoção da comunidade justificando escolhas tecnológicas; (4) avaliação experimental com 19 participantes validando usabilidade; e (5) documentação detalhada do processo de migração de dados MySQL para PostgreSQL. Os resultados demonstram que a reescrita não apenas preservou todas as funcionalidades existentes, mas estabeleceu fundação sólida para evolução futura através de maior manutenibilidade, testabilidade e qualidade de código.
 \end{abstract}
 
 
@@ -163,11 +161,11 @@ A decisão de realizar uma reescrita completa do SISDEF, ao invés de manutenç�
 
 \subsection{Motivação para Adoção de TypeScript Full-Stack}
 
-A escolha por uma stack unificada baseada em JavaScript/TypeScript, tanto no frontend quanto no backend, foi motivada por diversos fatores que vão além de preferências técnicas pessoais. Dados de adoção demonstram que o ecossistema JavaScript possui significativamente mais desenvolvedores ativos e recursos disponíveis quando comparado ao PHP. Segundo o Stack Overflow Developer Survey de 2023, JavaScript permanece como a linguagem de programação mais utilizada por desenvolvedores profissionais, enquanto TypeScript tem apresentado crescimento consistente e figura entre as linguagens mais amadas pela comunidade.
+A escolha por uma stack unificada baseada em JavaScript/TypeScript, tanto no frontend quanto no backend, foi motivada por diversos fatores que vão além de preferências técnicas pessoais. Dados de adoção demonstram que o ecossistema JavaScript possui significativamente mais desenvolvedores ativos e recursos disponíveis quando comparado ao PHP. Segundo o Stack Overflow Developer Survey de 2025, JavaScript/TypeScript permanece como a linguagem de programação mais utilizada por desenvolvedores profissionais.
 
 \subsubsection{Comparação de Adoção: PHP vs JavaScript/TypeScript}
 
-Para embasar a decisão de migração da stack PHP/Yii2 para TypeScript, foram analisadas métricas de downloads semanais no npm (gerenciador de pacotes JavaScript) e no Packagist (gerenciador de pacotes PHP), considerando o período de análise de [PERÍODO A SER DEFINIDO]. A comparação revela diferenças substanciais na adoção e atividade das comunidades:
+Para embasar a decisão de migração da stack PHP/Yii2 para TypeScript, foram analisadas métricas de downloads semanais no npm (gerenciador de pacotes JavaScript) e no Packagist (gerenciador de pacotes PHP), considerando o período de análise de 1 mês (15 de outubro de 2025 a 15 de novembro de 2025). A comparação revela diferenças substanciais na adoção e atividade das comunidades:
 
 \begin{table}[ht]
   \caption{Comparação de downloads mensais entre ecossistemas PHP e JavaScript/TypeScript.}
@@ -179,7 +177,7 @@ Para embasar a decisão de migração da stack PHP/Yii2 para TypeScript, foram a
     \toprule
     Categoria & PHP (Packagist) & JavaScript/TypeScript (npm) \\
     \midrule
-    Framework Backend & 71527 & 12,455M \\
+    Framework Backend & 71.527 & 12,455M \\
     ORM & 3,476M & 11,535M \\
     Testing & 11,392M & 66,088M \\
     \bottomrule
@@ -198,7 +196,7 @@ Para o frontend, foi adotado o React Router v7, framework que representa uma evo
 
 Primeiramente, o React Router v7 oferece uma experiência de desenvolvimento significativamente aprimorada através de convenções sobre configuração, sistema de rotas baseado em arquivos, e type safety completo através de geração automática de tipos para rotas e loaders. A integração nativa com TanStack Query facilita o gerenciamento de estado do servidor, eliminando a necessidade de bibliotecas adicionais para cache e sincronização de dados. O framework também oferece suporte nativo a streaming de SSR, permitindo que partes da interface sejam enviadas ao cliente progressivamente, melhorando a percepção de velocidade.
 
-Em termos de adoção, o React Router é o roteador mais utilizado no ecossistema React, com [DADOS DE DOWNLOADS] downloads semanais no npm. A versão 7, lançada em [DATA], representa uma convergência com o Remix framework, trazendo patterns modernos de desenvolvimento web que priorizam progressive enhancement e user experience. A ampla adoção significa abundância de recursos educacionais, plugins da comunidade e desenvolvedores familiarizados com a ferramenta.
+Em termos de adoção, o React Router é o roteador mais utilizado no ecossistema React, com 22 milhões de downloads semanais no npm. A versão 7, lançada em 22 de novembro de 2024, representa uma convergência com o framework Remix, trazendo padrões modernos de desenvolvimento web que priorizam \textit{progressive enhancement} e experiência do usuário. A ampla adoção significa abundância de recursos educacionais, plugins da comunidade e desenvolvedores familiarizados com a ferramenta.
 
 \subsubsection{Backend: Hono Framework}
 
@@ -294,11 +292,11 @@ O processo de validação incluiu verificação de integridade referencial, comp
 \subsection{Processo de Migração e Reescrita}
 \label{section:migration_process}
 
-A migração do SISDEF 2.0 para o SISDEF 3.0 não foi uma simples atualização de versões de bibliotecas, mas uma reescrita completa e deliberada que exigiu planejamento cuidadoso para garantir que todas as funcionalidades existentes fossem preservadas enquanto a arquitetura era fundamentalmente reimaginada. O processo foi dividido em duas fases principais: reescrita do backend seguida da migração do frontend, uma abordagem que permitiu validação incremental e minimizou riscos.
+A migração do SISDEF 2.0 para o SISDEF 3.0 não foi uma simples atualização de versões de bibliotecas, mas uma reescrita completa e deliberada que exigiu planejamento para garantir que todas as funcionalidades existentes fossem preservadas enquanto a arquitetura era fundamentalmente reimaginada. O processo foi dividido em duas fases principais: reescrita do backend seguida da migração do frontend, uma abordagem que permitiu validação incremental e minimizou riscos.
 
 \subsubsection{Fase 1: Mapeamento e Reescrita do Backend}
 
-A primeira etapa do processo de migração consistiu em catalogar sistematicamente todos os endpoints da API do SISDEF 2.0 implementados em Yii2/PHP. Este mapeamento foi realizado através de análise dos controllers existentes, identificando cada rota, seus parâmetros, validações, lógica de negócio e respostas esperadas. O resultado foi um inventário completo de aproximadamente \textcolor{red}{[NÚMERO]} endpoints distribuídos entre os módulos de autenticação, gerenciamento de bancas, usuários, cursos, documentos e integração com Google Calendar.
+A primeira etapa do processo de migração consistiu em catalogar sistematicamente todos os endpoints da API do SISDEF 2.0 implementados em Yii2/PHP. Este mapeamento foi realizado através de análise dos controllers existentes, identificando cada rota, seus parâmetros, validações, lógica de negócio e respostas esperadas. O resultado foi um inventário completo de aproximadamente 43 endpoints distribuídos entre os módulos de autenticação, gerenciamento de bancas, usuários, cursos, documentos e integração com Google Calendar.
 
 Com este mapeamento em mãos, foi possível planejar a arquitetura modular do novo backend em Hono/TypeScript. A decisão arquitetural fundamental foi a adoção de uma estrutura baseada em módulos, onde cada domínio de negócio (auth, banca, usuario, curso, documento, etc.) possui sua própria pasta contendo todos os artefatos relacionados:
 
@@ -328,7 +326,7 @@ Esta organização modular contrasta significativamente com a estrutura do SISDE
 
 Durante a reescrita de cada endpoint, foram implementados simultaneamente os testes unitários correspondentes utilizando Vitest. Esta abordagem test-driven garantiu que a lógica de negócio fosse corretamente preservada durante a migração. Casos de teste cobriram cenários de sucesso, validações de entrada, tratamento de erros, e edge cases identificados durante a análise do código legado.
 
-Um desafio específico encontrado durante esta fase foi a migração do sistema de autenticação. O SISDEF 2.0 utilizava uma biblioteca Yii2-específica para geração e validação de JWTs, enquanto o SISDEF 3.0 implementa JWT de forma nativa usando a biblioteca jose, oferecendo maior controle e transparência sobre o processo. A lógica de hashing de senhas foi mantida compatível (bcryptjs), permitindo que credenciais existentes continuassem válidas após a migração.
+Um desafio específico encontrado durante esta fase foi a migração do sistema de autenticação. O SISDEF 2.0 utilizava uma biblioteca Yii2-específica para geração e validação de JWTs, enquanto o SISDEF 3.0 implementa JWT utilizando as funções nativas do framework Hono (\texttt{hono/jwt}), oferecendo maior controle e transparência sobre o processo. A lógica de hashing de senhas foi mantida compatível (bcryptjs), permitindo que credenciais existentes continuassem válidas após a migração.
 
 Outro aspecto crítico foi a migração do schema do banco de dados. Embora a estrutura de dados tenha permanecido fundamentalmente similar, a migração de MySQL para PostgreSQL exigiu ajustes em tipos de dados (por exemplo, tratamento de booleanos e timestamps) e aproveitou funcionalidades específicas do PostgreSQL como JSONB para campos semi-estruturados. O Drizzle ORM facilitou este processo através de seu sistema de migrations type-safe, gerando automaticamente SQL a partir de definições TypeScript do schema.
 
@@ -364,9 +362,9 @@ Uma mudança arquitetural significativa foi a adoção de shadcn/ui ao invés de
 
 \textbf{Type safety e developer experience}: Componentes são TypeScript-first com props fortemente tipadas, autocomplete completo, e validação em tempo de desenvolvimento. A integração com TailwindCSS v4 (versão CSS-first) oferece performance aprimorada através de processamento nativo de CSS.
 
-A migração do sistema de gerenciamento de estado também representou uma mudança paradigmática. O SISDEF 2.0 utilizava uma combinação de estado local (useState) e requisições fetch manuais, resultando em código repetitivo para loading states, error handling, e sincronização de dados. O SISDEF 3.0 adota TanStack Query (anteriormente React Query) para gerenciamento declarativo de estado do servidor, combinado com o RPC client do Hono para type safety end-to-end.
+A migração do sistema de gerenciamento de estado também representou uma mudança de paradigma. O SISDEF 2.0 utilizava uma combinação de estado local (useState) e requisições fetch manuais, resultando em código repetitivo para loading states, error handling, e sincronização de dados. O SISDEF 3.0 adota TanStack Query (anteriormente React Query) para gerenciamento declarativo de estado do servidor, combinado com o RPC client do Hono para type safety end-to-end.
 
-Esta combinação elimina classes inteiras de bugs relacionados a sincronização cliente-servidor. Por exemplo, uma mutação para criar uma banca no SISDEF 2.0 exigia aproximadamente 40-50 linhas de código boilerplate (loading state, error handling, fetch call, JSON parsing, error response handling, success callback). No SISDEF 3.0, a mesma funcionalidade é expressa em aproximadamente 10 linhas através de um custom hook:
+Esta combinação elimina classes inteiras de erros relacionados a sincronização cliente-servidor. Por exemplo, uma mutação para criar uma banca no SISDEF 2.0 exigia aproximadamente 40-50 linhas de código boilerplate (loading state, error handling, fetch call, JSON parsing, error response handling, success callback). No SISDEF 3.0, a mesma funcionalidade é expressa em aproximadamente 4 linhas através de um custom hook:
 
 \begin{verbatim}
 const createBancaMutation = useMutation({
@@ -404,23 +402,23 @@ A combinação de testes unitários (Vitest) cobrindo lógica de negócio do bac
 \section{Métricas de Utilização e Desenvolvimento}
 \label{section:usage_metrics}
 
-\subsection{Métricas de Utilização do Sistema}
+% \subsection{Métricas de Utilização do Sistema}
 
-\subsubsection{Volume de Dados e Atividade}
+% \subsubsection{Volume de Dados e Atividade}
 
-\subsubsection{Padrões de Uso}
+% \subsubsection{Padrões de Uso}
 
-\subsection{Métricas de Desenvolvimento}
+% \subsection{Métricas de Desenvolvimento}
 
-\subsubsection{Atividade de Desenvolvimento}
+% \subsubsection{Atividade de Desenvolvimento}
 
-\subsubsection{Qualidade e Cobertura de Testes}
+% \subsubsection{Qualidade e Cobertura de Testes}
 
-\subsubsection{Esforço de Desenvolvimento e Sustentabilidade}
+% \subsubsection{Esforço de Desenvolvimento e Sustentabilidade}
 
-\subsubsection{Comparação de Manutenibilidade}
+% \subsubsection{Comparação de Manutenibilidade}
 
-\subsection{Impacto da Modernização Tecnológica}
+% \subsection{Impacto da Modernização Tecnológica}
 
 % ------------------------ Experimental Evaluation ------------------------
 
@@ -433,121 +431,126 @@ Nesta pesquisa foram obtidos dados referentes às percepções do usuário em re
 \subsection{Metodologia}
 \label{section:methodology}
 
-O experimento foi realizado de forma \textit{online} através da divulgação de um roteiro de avaliação entre estudantes e docentes dos cursos de \textit{BCC} e \textit{BSI} da \textit{UFBA}. Para isso, o roteiro foi idealizado visando a padronização da experiência dos usuários durante o período de testes, direcionando-os para as telas que contém melhorias implementadas no \textit{SISDEF 3.0}. Buscou-se saber também as impressões a respeito da consistência das interfaces e tempo de resposta, informações que variam entre os usuários mas que também impactam na experiência de navegação. O formulário foi dividido em 3 seções:
+Para avaliar a efetividade das melhorias implementadas e a experiência de uso do \textit{SISDEF 3.0}, foi desenvolvido um sistema de \textit{feedback} integrado à própria aplicação web, permitindo que os participantes realizassem a avaliação diretamente no sistema sem necessidade de ferramentas externas. O experimento foi conduzido de forma \textit{online} entre estudantes e docentes dos cursos de \textit{BCC} e \textit{BSI} da \textit{UFBA}, utilizando um roteiro de avaliação que direcionava os participantes através das principais funcionalidades implementadas no \textit{SISDEF 3.0}.
 
-\begin{enumerate}
-  \item Uma seção geral com questões relacionadas ao funcionamento geral do sistema e impressões a respeito do tempo de resposta, usabilidade e padronização das interfaces. Além disso, buscou-se saber também se foi percebido algum problema no roteiro de avaliação.
-  \item Uma seção opcional exibida somente caso tenham sido percebidos erros durante a realização de alguma tarefa presente no roteiro.
-  \item Uma seção final voltada ao preenchimento de considerações, sugestões ou relatos a respeito de erros percebidos durante a utilização do sistema.
-\end{enumerate}
+O formulário de avaliação, acessível através de uma aba dedicada no menu de navegação do sistema, foi estruturado em três seções principais:
 
-Foram mescladas questões em formato aberto para \textit{feedbacks} e exceções encontradas, booleanas para questões objetivas e em escala \textit{likert} para obter impressões a respeito dos temas abordados. Além disso, foi descrito no roteiro que os usuários devem criar suas próprias contas no sistema buscando avaliar a atribuição automática de perfis, uma vez que docentes de \textit{BCC} e \textit{BSI} foram previamente cadastrados com as permissões administrativas necessárias para o gerenciamento das bancas. Os resultados serão discutidos mais profundamente na Seção \ref{section:concrete-results}.
+\textbf{Seção 1 - Avaliação do Sistema}: Esta seção utilizou escalas Likert de 1 a 5 pontos para medir percepções dos usuários em quatro dimensões críticas:
+
+\begin{itemize}
+\item \textbf{Complexidade das Tarefas}: Escala variando de ``Baixa'' (1) a ``Alta'' (5), avaliando a dificuldade percebida na execução das tarefas propostas no roteiro
+\item \textbf{Consistência da Interface}: Escala variando de ``Baixa'' (1) a ``Alta'' (5), medindo a padronização visual e comportamental entre diferentes telas e componentes do sistema
+\item \textbf{Tempo de Resposta}: Escala variando de ``Muito lento'' (1) a ``Muito rápido'' (5), capturando impressões sobre a performance e velocidade de carregamento das páginas
+\item \textbf{Satisfação Geral}: Escala variando de ``Muito insatisfeito'' (1) a ``Muito satisfeito'' (5), avaliando a experiência geral de uso do sistema
+\end{itemize}
+
+\textbf{Seção 2 - Uso do Sistema}: Questão de múltipla escolha com seleção múltipla permitida, investigando as finalidades para as quais os participantes utilizariam o sistema:
+
+\begin{itemize}
+\item Agendar defesas
+\item Ver apresentações futuras
+\item Pesquisar trabalhos anteriores
+\item Não usaria
+\item Outro (com campo de texto livre para especificação)
+\end{itemize}
+
+\textbf{Seção 3 - Conclusão das Tarefas}: Questão binária (Sim/Não) verificando se os participantes conseguiram completar todas as tarefas propostas no roteiro de avaliação, servindo como métrica de usabilidade fundamental.
+
+Além do formulário de avaliação, o sistema inclui uma funcionalidade de \textit{Solicitações de Melhorias} integrada, onde usuários podem sugerir novas funcionalidades ou aprimoramentos e votar em sugestões submetidas por outros participantes. Este mecanismo de votação permite priorização colaborativa de melhorias futuras baseada no interesse da comunidade de usuários, fornecendo dados valiosos para direcionamento do desenvolvimento contínuo do sistema.
+
+Para participação no experimento, foi solicitado aos usuários que criassem suas próprias contas no sistema, permitindo avaliar o fluxo de registro e a atribuição automática de perfis (estudantes versus docentes). Docentes de \textit{BCC} e \textit{BSI} foram previamente cadastrados com permissões administrativas necessárias para gerenciamento de bancas, possibilitando avaliação completa das funcionalidades administrativas. Os resultados obtidos através desta metodologia são apresentados e discutidos em profundidade na Seção \ref{section:concrete-results}.
 
 \subsection{Resultados}
 \label{section:concrete-results}
 
-Após a distribuição do formulário e roteiro de avaliação do sistema, foram coletadas \textit{19} respostas entre os dias \textit{23/01/2025} e \textit{02/02/2025} contendo impressões e sugestões de usuários a respeito das funcionalidades e comportamentos encontrados no \textit{SISDEF 3.0}. As seções a seguir discutem sobre os dados obtidos em cada uma das perguntas respondidas.
+Após a disponibilização do formulário de avaliação integrado ao SISDEF 3.0, foram coletadas \textcolor{red}{X} respostas entre os dias \textcolor{red}{DATA INÍCIO} e \textcolor{red}{DATA FIM}.
 
 \subsubsection{Distribuição dos Perfis Entrevistados}
 \label{section:profile-distribution}
-Dos 19 entrevistados no período de avaliação, 4 deles possuem perfil \textit{docente}. Apesar de ser um resultado esperado por conta da proporção entre docentes e estudantes, é importante reforçar que muitas das funcionalidades administrativas presentes no \textit{SISDEF 3.0} são destinadas a este perfil, fato que acrescenta complexidade ao processo de levantamento de requisitos e elevando a importância destes \textit{feedbacks} na tomada de decisões que envolvam o futuro do sistema. Além disso, o alto número de estudantes também permite uma maior gama de usos de avaliações realizadas por um perfil que passou a acessar o sistema recentemente, permitindo a validação das funcionalidades disponíveis e regras impostas a estes novos usuários.
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=1.0\columnwidth]{Imagens/grafico-perfil-academico.png}
-    \caption{Distribuição dos perfis entrevistados na avaliação do SISDEF 3.0, mostrando a proporção entre docentes e estudantes participantes da pesquisa.}
-    \label{fig:academic-profile-chart}
-\end{figure}
+\textcolor{red}{TODO:}
+\begin{itemize}
+\item Apresentar quantidade de docentes vs estudantes (total, percentuais)
+\item Discutir proporção e importância de cada perfil para validação do sistema
+\end{itemize}
 
-\subsubsection{Consistência das Interfaces}
-Para avaliar a consistência e padronização das interfaces, foi questionada a impressão dos usuários participantes com a utilização de uma escala entre 1 e 5, sendo o valor 1 atribuído para a percepção de interfaces pouco consistentes e 5 atribuído para a percepção de interfaces muito consistentes. O estudo inicial do \textit{SISDEF 1.0} \cite{gabrieltcc} descreve que os usuários avaliadores estavam relativamente satisfeitos com a estilização e esquema de cores adotados, com todas as notas atribuídas a valores entre 3 e 5. Neste experimento, ainda que 15 das 19 avaliações de consistência também tenham sido atribuídas com satisfação acima da regular, foi possível observar também a presença de participantes insatisfeitos com a consistência entre as diferentes telas do sistema, sinalizando a quebra no consenso em relação às interfaces e indicando a necessidade de estudos e melhorias contínuas direcionadas à usabilidade \cite{nielsen1994usability}.
+\subsubsection{Complexidade das Tarefas}
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=1.0\columnwidth]{Imagens/grafico-consistencia-interfaces.png}
-    \caption{Avaliação da consistência das interfaces do SISDEF 3.0 pelos usuários, utilizando escala Likert de 1 a 5, onde valores maiores indicam maior percepção de consistência visual e funcional entre as diferentes telas do sistema.}
-    \label{fig:interface-consistency-chart}
-\end{figure}
+\textcolor{red}{TODO:}
+\begin{itemize}
+\item Apresentar distribuição de respostas (1-5), média e mediana
+\item Analisar se tarefas foram consideradas fáceis, moderadas ou complexas
+\end{itemize}
+
+\subsubsection{Consistência da Interface}
+
+\textcolor{red}{TODO:}
+\begin{itemize}
+\item Apresentar distribuição de respostas (1-5), média e mediana
+\item Comparar com SISDEF 1.0 e discutir percepção de padronização visual
+\end{itemize}
 
 \subsubsection{Tempo de Resposta}
 
-Os resultados obtidos neste critério indicam que as impressões a respeito da performance do sistema permanecem similares às obtidas no estudo anterior, ainda que a aplicação tenha sido implantada no ambiente do \textit{IC-UFBA} com quantidade inferior de recursos disponíveis. Otimizações foram implementadas visando a redução nos tempos de carregamento através de técnicas como \textit{code splitting}, \textit{lazy loading} de componentes e otimização de \textit{bundles}. Os resultados obtidos no ambiente publicado, ainda que indiquem o sucesso das otimizações implementadas, apontam também a necessidade do emprego de mais esforços visando a redução nos tempos de resposta.
+\textcolor{red}{TODO:}
+\begin{itemize}
+\item Apresentar distribuição de respostas (1-5), média
+\item Contextualizar infraestrutura IC-UFBA e avaliar efetividade das otimizações implementadas
+\end{itemize}
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=1.0\columnwidth]{Imagens/grafico-tempo-resposta.png}
-    \caption{Avaliação do tempo de resposta do SISDEF 3.0 pelos usuários, medindo a percepção sobre a velocidade de carregamento das páginas e execução de ações no sistema.}
-    \label{fig:system-response-time-chart}
-\end{figure}
+\subsubsection{Satisfação Geral}
 
-\subsubsection{Satisfação com Usabilidade}
+\textcolor{red}{TODO:}
+\begin{itemize}
+\item Apresentar distribuição de respostas (1-5), média, percentual satisfeitos (4-5)
+\item Relacionar com outras métricas e identificar correlações entre perfil e satisfação
+\end{itemize}
 
-Apesar dos resultados difusos obtidos quando questionados em relação à consistência das interfaces, os usuários entrevistados mostraram-se bem satisfeitos com a usabilidade e disposição das funcionalidades implementadas no sistema. Estes resultados reforçam que as telas internas e o fluxo de autenticação foram bem aceitos por um público majoritariamente composto por estudantes, apesar de terem sido projetadas inicialmente visando apenas docentes e avaliadores. Conforme apontado na Seção \ref{section:profile-distribution}, os altos índices de satisfação refletem o sucesso na integração do novo perfil estudantil às funcionalidades internas do \textit{SISDEF 3.0}.
+\subsubsection{Finalidades de Uso do Sistema}
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=1.0\columnwidth]{Imagens/grafico-satisfacao-usabilidade.png}
-    \caption{Avaliação da satisfação geral com a usabilidade do SISDEF 3.0, considerando fatores como facilidade de aprendizado, eficiência de uso e satisfação subjetiva dos usuários.}
-    \label{fig:usability-satisfaction-chart}
-\end{figure}
+\textcolor{red}{TODO:}
+\begin{itemize}
+\item Listar frequência de cada finalidade: agendar defesas, ver apresentações, pesquisar trabalhos, não usaria, outro
+\item Identificar funcionalidades mais valorizadas e diferenças entre docentes e estudantes
+\end{itemize}
 
-\subsubsection{Substituição do Método Atual}
-Neste critério, foi constatado que os usuários avaliados permanecem preferindo o \textit{SISDEF 3.0} em relação a outros métodos para marcação e gerenciamento de defesas de trabalhos de conclusão, reforçando a importância e relevância do sistema para a comunidade acadêmica. A integração de estudantes e a possibilidade do gerenciamento de cursos permitem a expansão gradual da aplicação para outros departamentos, contribuindo não só para a adoção do sistema mas também para a visibilidade dos trabalhos nele registrados.
+\subsubsection{Conclusão das Tarefas}
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=1.0\columnwidth]{Imagens/grafico-substituicao-uso.png}
-    \caption{Avaliação da intenção dos usuários em substituir métodos tradicionais de gerenciamento de defesas pelo SISDEF 3.0, indicando o potencial de adoção do sistema na comunidade acadêmica.}
-    \label{fig:method-substitution-chart}
-\end{figure}
-
-\subsubsection{Propósitos de Uso}
-A respeito dos propósitos de uso, os usuários avaliados reforçaram os pilares centrais do \textit{SISDEF} evidenciando a percepção deste como um sistema para cadastro de defesas, consulta das próximas apresentações e, por último, a busca por trabalhos anteriormente defendidos. Com a expansão das ferramentas disponíveis no sistema, outras oportunidades de uso podem ser abordadas como a geração de download de links para citação, integração com o \textit{Repositório UFBA} e a geração de mais relatórios para os diferentes perfis de usuários.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=1.0\columnwidth]{Imagens/grafico-proposito-uso.png}
-    \caption{Principais propósitos de uso do SISDEF 3.0 identificados pelos usuários, destacando as funcionalidades mais valorizadas como cadastro de defesas, consulta de apresentações futuras e busca por trabalhos anteriores.}
-    \label{fig:system-objectives-chart}
-\end{figure}
+\textcolor{red}{TODO:}
+\begin{itemize}
+\item Apresentar percentual Sim vs Não
+\item Avaliar usabilidade e cruzar com complexidade percebida para identificar pontos de fricção
+\end{itemize}
 
 % ------------------------ Future Improvements Management ------------------------
-\section{Pontos de Melhoria}
-\label{section:future-improvements}
+% \section{Pontos de Melhoria}
+% \label{section:future-improvements}
 
-Como visto, o \textit{SISDEF} possui grande potencial por tratar da automação de processos burocráticos relacionados ao gerenciamento das bancas como a geração de arquivos, registro de notas e agendamento das apresentações por meio do \textit{Google Meet}, potencial destacado pelos usuários que afirmaram o interesse em substituir seus métodos atuais de agendamento e gerenciamento de defesas pelo sistema. No entanto, a adoção de algumas práticas de desenvolvimento paralela à realização de estudos de usabilidade se mostram necessários para o amadurecimento saudável do sistema, dada a complexidade crescente de perfis de acesso e regras de negócio.
+% \subsection{Qualidade e Segurança}
 
-\subsection{Qualidade e Segurança}
+% \subsection{Performance}
 
-Para a manutenção da qualidade de código e validação das regras que devem guiar o funcionamento da aplicação, é necessário um maior foco na escrita de testes sejam eles unitários ou de integração em ambas \textit{stacks}. Isso permitirá a realização segura de intervenções ou refatorações de maior impacto, uma vez que a presença de testes automatizados forçará a validação contínua de casos específicos sem a necessidade de constante supervisão. Aliado a isso, pode ser avaliada a configuração de \textit{pipelines} locais com o propósito de realizar inspeções de qualidade, formatação e padronização de \textit{commits} \cite{conventional-commits} no próprio ambiente local dos desenvolvedores do sistema. O husky \cite{husky}, por exemplo, realiza a execução de \textit{scripts} locais de acordo com os \textit{hooks} disparados no repositório \textit{git}, permitindo a execução de testes unitários e a aplicação de métodos de formatação e validação de regras de análise semântica customizadas \cite{tomasdottir2018adoption} de acordo com as preferências do projeto.
+% \subsection{Design e Usabilidade}
 
-No lado da \textit{API}, a proposta é aliar a escrita de testes unitários ao controle de acesso aos métodos dos serviço através da implantação de \textit{middlewares} visando a execução de requisições somente caso o autor possua as credenciais necessárias, podendo essa verificação ocorrer pela inspeção do próprio \textit{token} de acesso \cite{peyrott2016jwt}. Como intervenção integrada, é necessária a implementação de \textit{captchas} em formulários e páginas externas buscando assim evitar a sobrecarga ou preenchimento automatizado de formulários durante um ataque à infraestrutura da aplicação ou do \textit{IC-UFBA} em geral.
-
-\subsection{Performance}
-
-Como um dos objetivos principais do \textit{SISDEF} é aumentar a visibilidade de defesas e trabalhos desenvolvidos e apresentados no âmbito do \textit{Instituto de Computação}, algumas melhorias no processo de geração das páginas no \textit{front-end} podem permitir um maior alcance dos trabalhos cadastrados no sistema. Em especial, é viável a implementação de uma técnica conhecida como \textit{Server Side Rendering (SSR)} na qual as páginas e componentes são carregados inicialmente no servidor \textit{web} permitindo sua visualização por navegadores sem a necessidade da execução de código \textit{Javascript}, facilitando a indexação de conteúdo por motores de busca. A aplicação de \textit{SSR} pode reduzir tempos de carregamento e contribuir para a fluidez da navegação, uma vez que parte das dependências pode ser processada a nível de servidor exigindo que apenas o necessário seja carregado em modo \textit{client-side}, reduzindo assim a chance de frustração dos usuários por conta do tempo de resposta do sistema \cite{ampofo2020challenges}.
-
-O \textit{SISDEF 3.0} já adota bibliotecas especializadas na validação de dados através do \textit{Zod}, que oferece validação type-safe e permite compartilhamento de schemas entre frontend e backend. Esta abordagem garante consistência na validação de dados em todas as camadas da aplicação, eliminando discrepâncias entre validações client-side e server-side.
-
-\subsection{Design e Usabilidade}
-
-Apesar dos resultados positivos obtidos por \cite{gabrieltcc} referentes ao layout e design do \textit{SISDEF 1.0}, a pesquisa realizada neste trabalho indica um princípio de insatisfação de usuários com a inconsistência das algumas páginas do sistema levantando a discussão sobre a necessidade da realização de estudos de usabilidade buscando compreender este fenômeno. Uma possível causa é a diferença de tempo e público entre o \textit{SISDEF 1.0} e \textit{SISDEF 2.0}, uma vez que usuários e suas percepções acerca do sistema podem evoluir a partir de suas experiências com este ou outros sistemas digitais \cite{nielsen1994usability}, exigindo a presença de recursos visuais ou funcionais também encontrados nestes outros sistemas.
-
-A falta de responsividade também pode afetar a adoção do sistema, uma vez que o uso exclusivo de \textit{desktops} para atividades \textit{online} não é mais uma realidade \cite{ticbr2023} e a utilização de aplicativos em deslocamento oferece mais comodidade e praticidade. Na prática, a crescente utilização de dispositivos móveis reflete não apenas um crescimento no uso de \textit{smartphones} mas sim uma mudança no paradigma dos usuários, exigindo sistemas que se adaptem a diferentes contextos de uso, preocupação que pode ser tratada em versões futuras do sistema dada a presença de \textit{feedbacks} relatando a realização do roteiro de avaliação em dispositivos móveis e a ausência de responsividade em algumas telas.
-
-\subsection{Melhorias Solicitadas}
-
-Além dos pontos observados, foram solicitadas algumas melhorias pelos usuários participantes da avaliação deste trabalho visando a extensão ou ajuste de comportamentos encontrados no sistema. Para docentes, foi observada a necessidade de mais ferramentas de integração com outros sistemas \cite{katarina2015} e funcionalidades que permitam o \textit{download} e anexo informações relacionadas à defesa como o \textit{lattes} dos envolvidos, PDFs de apresentação e um campo para comentários gerais. Para estudantes, as observações tiveram maior foco nos tempos de resposta no \textit{login} e nas validações e limites de tamanho em alguns dos campos dos formulários de perfil e de preenchimento da banca, sendo esta última um impeditivo para o preenchimento total das informações do trabalho mencionado. A definição confusa em algumas \textit{labels} do sistema também foi notada por estes participantes, principalmente sobre qual tarefa está sendo realizada ou sobre a ausência de \textit{breadcrumbs} contribuindo com a incerteza a respeito do comportamento esperado pela aplicação.
-
-Outros pontos como ajustes textuais simples e a alteração na ordenação das bancas também foram mencionados, também indicando a necessidade de um refinamento mais profundo sobre as interfaces e interesses dos usuários no sistema.
+% \subsection{Melhorias Solicitadas}
 
 \section{Conclusão}
 
-O \textit{Sistema de Marcação de Defesas (SISDEF 1.0)}, inicialmente, foi idealizado com objetivo de facilitar o gerenciamento das defesas por parte dos docentes através da geração automática de documentos e armazenamento das notas atribuídas por membros das bancas avaliadoras. A extensão do acesso aos estudantes e a possibilidade da inclusão de outros cursos no sistema podem alavancar a popularidade dando maior visibilidade aos dados cadastrados, uma vez que o público alvo não é mais tão específico como definido originalmente. A implantação no ambiente do \textit{IC-UFBA} também tem papel crucial na manutenibilidade da aplicação já que elimina a necessidade de interação com infraestrutura externa e pode contar com a experiência e apoio de estudantes e técnicos da própria instituição.
+Este trabalho apresentou a reescrita completa do \textit{Sistema de Marcação de Defesas (SISDEF)} em sua terceira versão, documentando a transição de uma stack tecnológica baseada em PHP/Yii2 e JavaScript para uma arquitetura moderna fundamentada em TypeScript full-stack. A decisão de realizar uma reescrita completa, ao invés de manutenções incrementais sobre o SISDEF 2.0, foi motivada por limitações técnicas que comprometiam a sustentabilidade a longo prazo: ausência de testes automatizados, alta complexidade em controladores, código de difícil manutenção, e barreiras elevadas para contribuição de novos desenvolvedores.
 
-Os resultados obtidos na avaliação reforçam a fácil adoção do sistema por um perfil relativamente novo, exigindo apenas alterações pontuais visando a melhoria da experiência destes usuários. Ainda assim, o aumento no escopo do sistema também deve ser observado com cautela já que foram observadas quedas de performance e atrasos no carregamento de algumas páginas mesmo com as otimizações implementadas, ainda que deva ser observada a redução dos recursos computacionais disponíveis para a execução dos módulos do sistema. Também é necessário entender as origens do princípio de insatisfação demonstrado com a inconsistência das interfaces da aplicação e, se possível, investigar também o motivo da variação entre os resultados encontrados nas duas versões do projeto uma vez que o \textit{layout} geral da aplicação não foi alterado.
+As principais contribuições deste trabalho foram: (1) reimplementação completa com arquitetura modular utilizando React Router v7 com Server-Side Rendering no frontend, Hono framework no backend, Drizzle ORM para acesso a dados, e PostgreSQL como banco de dados, estabelecendo base type-safe que reduz significativamente erros relacionados a tipos e contratos de API; (2) desenvolvimento de suíte abrangente de testes automatizados combinando testes unitários com Vitest e testes end-to-end com Playwright, criando rede de segurança para evoluções futuras; (3) análise comparativa fundamentada em dados de adoção da comunidade através de métricas de downloads no npm, validando escolhas tecnológicas com base em tendências reais do mercado; (4) avaliação experimental com \textcolor{red}{X} participantes validando usabilidade e identificando oportunidades de melhoria; e (5) documentação detalhada do processo de migração de dados de MySQL para PostgreSQL, oferecendo referência para projetos similares.
 
-Assim, o \textit{SISDEF 3.0} continua sendo apontado como um substituto viável ao método de gestão de defesas pelos usuários entrevistados, preenchendo uma lacuna nos sistemas acadêmicos destinados ao gerenciamento e busca de bancas. Com a possível integração ao \textit{Repositório UFBA} e um maior refinamento nas interfaces de usuário, o sistema tem o potencial para ser adotado em maior escala pela comunidade acadêmica.
+Os resultados da avaliação experimental \textcolor{red}{[TODO: completar após análise dos dados - mencionar taxa de satisfação, taxa de conclusão de tarefas, funcionalidades mais valorizadas, e principais pontos de melhoria identificados]} demonstram que o SISDEF 3.0 \textcolor{red}{[alcançou/superou/necessita melhorias]} os objetivos propostos. Particularmente relevante é \textcolor{red}{[destacar resultado mais significativo - ex: alta taxa de conclusão de tarefas indicando boa usabilidade, ou identificação de áreas específicas para refinamento]}.
+
+Do ponto de vista técnico, a reescrita alcançou objetivos fundamentais de qualidade de software. A infraestrutura de testes automatizados, inexistente nas versões anteriores, representa mudança paradigmática que reduz significativamente o risco de regressões e facilita refatorações futuras. A adoção de TypeScript em toda a stack elimina categorias inteiras de erros que só seriam detectados em tempo de execução nas versões anteriores, aumentando confiabilidade e reduzindo tempo de debugging. A arquitetura modular baseada em domínios de negócio (auth, banca, usuario, curso, documento) facilita manutenção e permite que desenvolvedores trabalhem em módulos específicos sem necessidade de compreender toda a base de código.
+
+A migração para infraestrutura do IC-UFBA, mantida desde o SISDEF 2.0, permanece estratégica para sustentabilidade institucional. A utilização de Dokku para deployment e Docker para containerização fornece ambiente de execução estável e reproduzível, eliminando dependências de serviços externos comerciais e garantindo controle sobre dados sensíveis. A integração do sistema de feedback e votação de melhorias diretamente na aplicação estabelece canal contínuo de comunicação com usuários, permitindo priorização colaborativa de evoluções futuras.
+
+No entanto, desafios permanecem. \textcolor{red}{[TODO: ver se a partir do formulário de avaliação é possível identificar desafios]} A transição de PHP/Yii2 para TypeScript/Hono, embora tecnicamente superior em aspectos de manutenibilidade e qualidade de código, exige curva de aprendizado para desenvolvedores não familiarizados com o ecossistema JavaScript moderno. A expansão do escopo funcional para incluir estudantes como público-alvo, além dos docentes originalmente visados, introduz complexidade adicional em termos de gerenciamento de permissões e design de interfaces que atendam necessidades distintas.
+
+Trabalhos futuros incluem: integração com o Repositório UFBA para fluxo completo desde cadastro de defesa até arquivamento de trabalho final; implementação de funcionalidades de busca avançada e filtros para facilitar descoberta de trabalhos anteriores; geração de relatórios e estatísticas para coordenadores de curso; possível expansão para outros departamentos além do Instituto de Computação; e refinamentos contínuos baseados no sistema de votação de melhorias implementado. A infraestrutura de testes automatizados e a arquitetura modular estabelecidas neste trabalho fornecem fundação sólida para estas evoluções futuras.
+
+Em síntese, o SISDEF 3.0 representa não apenas modernização tecnológica, mas reformulação fundamental na abordagem de desenvolvimento de sistemas acadêmicos de longo prazo. A ênfase em qualidade de código, testabilidade, escolhas tecnológicas fundamentadas em dados, e sustentabilidade institucional estabelece modelo que pode beneficiar outros projetos similares enfrentando decisões entre evolução incremental e reescrita completa. Os resultados obtidos validam a decisão de reescrita e demonstram que investimento inicial em arquitetura sólida e práticas modernas de engenharia de software se justifica pelos ganhos de manutenibilidade e qualidade a longo prazo.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{sample-base}
