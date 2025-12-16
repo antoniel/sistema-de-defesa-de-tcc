@@ -419,12 +419,13 @@ const AuthorInfoSection = () => {
                   <SelectValue placeholder="Selecione o aluno..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <div className="p-2 border-b sticky top-0 bg-background">
+                  <div className="p-2 border-b sticky top-0 bg-background z-10">
                     <Input
                       placeholder="Buscar aluno..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       onKeyDown={(e) => e.stopPropagation()}
+                      className="bg-background"
                     />
                   </div>
                   {studentsQuery.isLoading ? (
