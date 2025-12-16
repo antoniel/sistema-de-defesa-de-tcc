@@ -415,7 +415,7 @@ const AuthorInfoSection = () => {
                   ) : studentsQuery.data && studentsQuery.data.length > 0 ? (
                     studentsQuery.data.map((student) => (
                       <SelectItem key={student.id} value={student.id.toString()}>
-                        {student.nome}
+                        {student.nome} - ({student.email})
                       </SelectItem>
                     ))
                   ) : (

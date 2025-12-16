@@ -489,6 +489,7 @@ export const getStudentsAvailableForBanca = async (
           studentIdsWithBancas.length > 0 ? not(inArray(Users.id, studentIdsWithBancas)) : undefined
         )
       )
+      .orderBy(asc(Users.nome))
 
     return ok(availableStudents)
   } catch (error) {
