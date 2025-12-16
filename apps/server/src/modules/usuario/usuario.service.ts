@@ -27,7 +27,7 @@ export const getAllUsers = async (
 ): Promise<AppResult<SelectUser[], GetAllUsersError>> => {
   const dbInstance = c.get("db")
   try {
-    const allUsers = await dbInstance.select().from(Users).orderBy(desc(Users.role))
+    const allUsers = await dbInstance.select().from(Users).orderBy(asc(Users.nome))
 
     return ok(allUsers)
   } catch (error) {
