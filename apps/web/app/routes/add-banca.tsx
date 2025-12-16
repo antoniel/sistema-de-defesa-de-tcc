@@ -368,6 +368,7 @@ const BasicInfoSection = () => {
 
 const AuthorInfoSection = () => {
   const isUserTeacher = useIsTeacher()
+  const [searchTerm, setSearchTerm] = useState("")
   const {
     register,
     control,
@@ -378,6 +379,19 @@ const AuthorInfoSection = () => {
   // Buscar a lista de professores do servidor
   const { data: teachers, isLoading: isLoadingTeachers, error: teachersError } = useTeachers()
   const studentsQuery = useStudentsAvailableForBanca()
+
+  const filteredStudents = React.useMemo(() => {
+    if (!studentsQuery.data) return []
+    if (!searchTerm) return studentsQuery.data
+
+    const term = searchTerm.toLowerCase()
+    return studentsQuery.data.filter(
+      (student) =>
+        student.nome.toLowerCase().includes(term) ||
+        student.email.toLowerCase().includes(term) ||
+        student.matricula?.toLowerCase().includes(term)
+    )
+  }, [studentsQuery.data, searchTerm])
 
   return (
     <>
@@ -397,6 +411,7 @@ const AuthorInfoSection = () => {
                     field.onChange(student.nome)
                     setValue("matricula", student.matricula)
                     setValue("alunoId", Number(value))
+                    setSearchTerm("")
                   }
                 }}
               >
@@ -404,6 +419,14 @@ const AuthorInfoSection = () => {
                   <SelectValue placeholder="Selecione o aluno..." />
                 </SelectTrigger>
                 <SelectContent>
+                  <div className="p-2 border-b sticky top-0 bg-background">
+                    <Input
+                      placeholder="Buscar aluno..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    />
+                  </div>
                   {studentsQuery.isLoading ? (
                     <SelectItem value="0" disabled>
                       Carregando alunos...
@@ -412,15 +435,15 @@ const AuthorInfoSection = () => {
                     <SelectItem value="0" disabled>
                       Erro ao carregar alunos
                     </SelectItem>
-                  ) : studentsQuery.data && studentsQuery.data.length > 0 ? (
-                    studentsQuery.data.map((student) => (
+                  ) : filteredStudents.length > 0 ? (
+                    filteredStudents.map((student) => (
                       <SelectItem key={student.id} value={student.id.toString()}>
                         {student.nome} - ({student.email})
                       </SelectItem>
                     ))
                   ) : (
                     <SelectItem value="0" disabled>
-                      Nenhum aluno encontrado
+                      {searchTerm ? "Nenhum aluno encontrado para a busca" : "Nenhum aluno encontrado"}
                     </SelectItem>
                   )}
                 </SelectContent>
