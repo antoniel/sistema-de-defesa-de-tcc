@@ -372,133 +372,24 @@ O processo de validação incluiu verificação de integridade referencial, comp
 \subsection{Processo de Migração e Reescrita}
 \label{section:migration_process}
 
-A migração do SISDEF 2.0 para o SISDEF 3.0 não foi uma simples atualização de versões de bibliotecas, mas uma reescrita completa e deliberada que exigiu planejamento para garantir que todas as funcionalidades existentes fossem preservadas enquanto a arquitetura era fundamentalmente reimaginada. O processo foi dividido em duas fases principais: reescrita do backend seguida da migração do frontend, uma abordagem que permitiu validação incremental e minimizou riscos.
+A migração para o SISDEF 3.0 foi uma reescrita completa dividida em duas fases: backend seguido de frontend, permitindo validação incremental.
 
-\subsubsection{Fase 1: Mapeamento e Reescrita do Backend}
+\subsubsection{Reescrita do Backend}
 
-A primeira etapa do processo de migração consistiu em catalogar sistematicamente todos os endpoints da API do SISDEF 2.0 implementados em Yii2/PHP. Este mapeamento foi realizado através de análise dos controllers existentes, identificando cada rota, seus parâmetros, validações, lógica de negócio e respostas esperadas. O resultado foi um inventário completo de aproximadamente 43 endpoints distribuídos entre os módulos de autenticação, gerenciamento de bancas, usuários, cursos, documentos e integração com Google Calendar.
+O processo iniciou com mapeamento dos 43 endpoints existentes no SISDEF 2.0 (Yii2/PHP) para reimplementação em Hono/TypeScript. A nova arquitetura modular separa cada domínio em módulos independentes contendo rotas, services, schemas Zod e testes unitários.
 
-Com este mapeamento em mãos, foi possível planejar a arquitetura modular do novo backend em Hono/TypeScript. A decisão arquitetural fundamental foi a adoção de uma estrutura baseada em módulos, onde cada domínio de negócio (auth, banca, usuario, curso, documento, etc.) possui sua própria pasta contendo todos os artefatos relacionados:
+Principais desafios incluíram migração da autenticação JWT de biblioteca Yii2-específica para implementação nativa Hono, e migração do banco de dados de MySQL para PostgreSQL aproveitando recursos como JSONB. O Drizzle ORM facilitou este processo através de migrations type-safe. Testes unitários Vitest foram implementados simultaneamente à reescrita, garantindo preservação da lógica de negócio.
 
-\begin{verbatim}
-modules/
-|-- auth/
-|   |-- auth.route.ts      # Definição de rotas e validação
-|   |-- auth.service.ts    # Lógica de negócio
-|   |-- auth.schema.ts     # Schemas Zod para validação
-|   |-- auth.middleware.ts # Middlewares específicos
-|   \-- auth.test.ts       # Testes unitários
-|-- banca/
-|   |-- banca.route.ts
-|   |-- banca.service.ts
-|   |-- banca.schema.ts
-|   \-- banca.test.ts
-\-- ...
-\end{verbatim}
+\subsubsection{Migração do Frontend}
 
-Esta organização modular contrasta significativamente com a estrutura do SISDEF 2.0, onde controladores frequentemente acumulavam múltiplas responsabilidades e a lógica de negócio estava entrelaçada com validação de requisições e formatação de respostas. A nova arquitetura separa claramente as preocupações:
+A migração do frontend exigiu reestruturação completa devido à mudança de React Router v5 (roteamento baseado em código) para v7 (filesystem-based routing). A estratégia foi migração incremental página a página, reaproveitando componentes bem estruturados e reimplementando aqueles com separação inadequada de responsabilidades.
 
-\textbf{Rotas (*.route.ts)}: Responsáveis exclusivamente por definir endpoints HTTP, aplicar middlewares de autenticação e autorização, validar entradas através de schemas Zod, e orquestrar chamadas aos services. As rotas não contêm lógica de negócio.
+Mudanças arquiteturais significativas incluíram adoção de shadcn/ui (componentes copiáveis sobre Radix UI + TailwindCSS) oferecendo ownership completo do código e customização irrestrita, e TanStack Query para gerenciamento declarativo de estado do servidor combinado com Hono RPC client para type safety end-to-end.
 
-\textbf{Services (*.service.ts)}: Encapsulam toda a lógica de negócio e interações com o banco de dados. Retornam resultados tipados através do pattern Result<T, E>, permitindo tratamento de erros explícito e type-safe. Services são independentes do framework HTTP, facilitando testes unitários.
+\subsubsection{Validação}
 
-\textbf{Schemas (*.schema.ts)}: Definem contratos de validação usando Zod, uma biblioteca de validação type-safe que permite inferência automática de tipos TypeScript. Schemas são compartilhados entre frontend e backend quando apropriado, garantindo sincronização automática de contratos.
+Suíte de testes end-to-end com Playwright validou fluxos críticos (autenticação, gestão de bancas, geração de PDFs, integração Google Calendar). A combinação de testes unitários (Vitest) e E2E estabeleceu cobertura significativamente superior ao SISDEF 2.0, que não possuía testes automatizados.
 
-Durante a reescrita de cada endpoint, foram implementados simultaneamente os testes unitários correspondentes utilizando Vitest. Esta abordagem test-driven garantiu que a lógica de negócio fosse corretamente preservada durante a migração. Casos de teste cobriram cenários de sucesso, validações de entrada, tratamento de erros, e edge cases identificados durante a análise do código legado.
-
-Um desafio específico encontrado durante esta fase foi a migração do sistema de autenticação. O SISDEF 2.0 utilizava uma biblioteca Yii2-específica para geração e validação de JWTs, enquanto o SISDEF 3.0 implementa JWT utilizando as funções nativas do framework Hono (\texttt{hono/jwt}), oferecendo maior controle e transparência sobre o processo. A lógica de hashing de senhas foi mantida compatível (bcryptjs), permitindo que credenciais existentes continuassem válidas após a migração.
-
-Outro aspecto crítico foi a migração do schema do banco de dados. Embora a estrutura de dados tenha permanecido fundamentalmente similar, a migração de MySQL para PostgreSQL exigiu ajustes em tipos de dados (por exemplo, tratamento de booleanos e timestamps) e aproveitou funcionalidades específicas do PostgreSQL como JSONB para campos semi-estruturados. O Drizzle ORM facilitou este processo através de seu sistema de migrations type-safe, gerando automaticamente SQL a partir de definições TypeScript do schema.
-
-Ao final desta fase, o backend completo estava reimplementado em Hono/TypeScript com paridade funcional em relação ao SISDEF 2.0, mas com arquitetura significativamente mais modular, cobertura de testes unitários, e type safety completo. A API foi validada através de testes de integração que verificaram compatibilidade de contratos com o frontend existente, permitindo uma transição suave para a próxima fase.
-
-\subsubsection{Fase 2: Migração do Frontend}
-
-Com o backend estável e testado, a migração do frontend apresentou desafios de natureza diferente. O SISDEF 2.0 utilizava React Router DOM v5, uma versão antiga que emprega roteamento baseado em código através de componentes <Route>, enquanto o React Router v7 adota roteamento baseado em filesystem, onde a estrutura de pastas determina automaticamente as rotas da aplicação. Esta mudança paradigmática exigiu uma reestruturação completa da organização do código frontend.
-
-A estratégia adotada foi de migração incremental página a página, seguindo um mapeamento sistemático das rotas existentes para a nova estrutura de filesystem. Por exemplo, uma rota anteriormente definida como:
-
-\begin{verbatim}
-<Route path="/banca/:id/edit" component={EditBancaPage} />
-\end{verbatim}
-
-Foi migrada para a estrutura de arquivos:
-
-\begin{verbatim}
-app/routes/banca.$id_.edit.tsx
-\end{verbatim}
-
-Onde a convenção de nomenclatura do React Router v7 mapeia automaticamente \texttt{\$id} como parâmetro dinâmico e \texttt{\_} como separador de segmentos de rota.
-
-Durante este processo, cada página foi avaliada individualmente quanto à possibilidade de reaproveitamento de código. Componentes bem estruturados e com baixo acoplamento puderam ser migrados diretamente com ajustes mínimos, principalmente relacionados a imports e tipagem. No entanto, componentes que violavam princípios de separação de responsabilidades ou que misturavam lógica de apresentação com lógica de negócio foram reimplementados do zero, aproveitando a oportunidade para aplicar melhores práticas.
-
-Uma mudança arquitetural significativa foi a adoção de shadcn/ui ao invés de uma biblioteca de componentes tradicional. O shadcn/ui não é uma biblioteca npm instalável, mas sim uma coleção de componentes copiáveis construídos sobre Radix UI (primitivos acessíveis) e TailwindCSS (utility-first styling). Esta abordagem oferece vantagens substanciais:
-
-\textbf{Ownership completo do código}: Componentes residem diretamente no repositório do projeto (tipicamente em \texttt{app/components/ui/}), permitindo customização irrestrita sem limitações impostas por bibliotecas externas. Isso elimina frustrações comuns ao tentar sobrescrever estilos de bibliotecas opinativas.
-
-\textbf{Design system local e evolutivo}: A capacidade de modificar componentes diretamente facilita a criação e manutenção de um design system consistente e adaptado às necessidades específicas do SISDEF. Temas, variantes de cores e comportamentos podem ser ajustados centralizadamente sem depender de APIs de customização de bibliotecas terceiras.
-
-\textbf{Redução de bundle size e controle de dependências}: Apenas os componentes efetivamente utilizados existem no projeto, e não há overhead de funcionalidades não utilizadas de bibliotecas abrangentes. Ademais, atualizações de dependências (Radix UI, TailwindCSS) podem ser controladas independentemente da biblioteca de componentes.
-
-\textbf{Type safety e developer experience}: Componentes são TypeScript-first com props fortemente tipadas, autocomplete completo, e validação em tempo de desenvolvimento. A integração com TailwindCSS v4 (versão CSS-first) oferece performance aprimorada através de processamento nativo de CSS.
-
-A migração do sistema de gerenciamento de estado também representou uma mudança de paradigma. O SISDEF 2.0 utilizava uma combinação de estado local (useState) e requisições fetch manuais, resultando em código repetitivo para loading states, error handling, e sincronização de dados. O SISDEF 3.0 adota TanStack Query (anteriormente React Query) para gerenciamento declarativo de estado do servidor, combinado com o RPC client do Hono para type safety end-to-end.
-
-Esta combinação elimina classes inteiras de erros relacionados a sincronização cliente-servidor. Por exemplo, uma mutação para criar uma banca no SISDEF 2.0 exigia aproximadamente 40-50 linhas de código boilerplate (loading state, error handling, fetch call, JSON parsing, error response handling, success callback). No SISDEF 3.0, a mesma funcionalidade é expressa em aproximadamente 4 linhas através de um custom hook:
-
-\begin{verbatim}
-const createBancaMutation = useMutation({
-  mutationFn: (data) => apiClient.banca.$post({ json: data }),
-  onSuccess: () => queryClient.invalidateQueries(['bancas']),
-})
-\end{verbatim}
-
-O type safety end-to-end garante que \texttt{data} possui exatamente os campos esperados pelo backend, e que a resposta é corretamente tipada, tudo inferido automaticamente sem necessidade de declarações de tipo manuais.
-
-Desafios específicos encontrados durante a migração do frontend incluíram a adaptação de formulários complexos (particularmente o formulário de criação/edição de bancas com múltiplos steps) para React Hook Form + Zod, a migração de componentes de geração de PDFs para a nova arquitetura mantendo compatibilidade com templates existentes, e a reimplementação de funcionalidades de integração com Google Calendar considerando mudanças nas APIs do Google.
-
-Ao final da fase de migração do frontend, todas as páginas existentes no SISDEF 2.0 haviam sido migradas para React Router v7 com melhorias de arquitetura, type safety completo, e experiência de usuário aprimorada através de loading states mais inteligentes, feedback visual consistente, e performance otimizada através de Server-Side Rendering.
-
-\subsubsection{Validação e Testes End-to-End}
-
-Para garantir que a migração não introduziu regressões, foi desenvolvida uma suíte abrangente de testes end-to-end utilizando Playwright. Estes testes cobrem os fluxos críticos de usuário identificados durante o mapeamento inicial:
-
-\begin{itemize}
-\item Fluxo completo de autenticação (registro, login, logout, reset de senha)
-\item Criação, edição e exclusão de bancas por diferentes perfis de usuário
-\item Gerenciamento de membros avaliadores e registro de notas
-\item Geração de documentos PDF (ata de defesa, declarações)
-\item Funcionalidades administrativas (gerenciamento de cursos, usuários, permissões)
-\item Integração com Google Calendar
-\end{itemize}
-
-Os testes E2E foram executados continuamente durante o processo de migração, servindo como rede de segurança contra regressões. A arquitetura de testes utiliza fixtures compartilhadas para setup de dados de teste e helpers reutilizáveis para ações comuns (login, navegação, assertions), facilitando manutenção e expansão da suíte de testes.
-
-A combinação de testes unitários (Vitest) cobrindo lógica de negócio do backend e testes E2E (Playwright) validando fluxos completos de usuário resultou em uma cobertura de testes significativamente superior ao SISDEF 2.0, que não possuía testes automatizados. Esta infraestrutura de testes não apenas validou a migração, mas estabeleceu fundação sólida para desenvolvimento futuro com confiança.
-
-
-% ------------------------ Usage and Development Metrics ------------------------
-
-\section{Métricas de Utilização e Desenvolvimento}
-\label{section:usage_metrics}
-
-% \subsection{Métricas de Utilização do Sistema}
-
-% \subsubsection{Volume de Dados e Atividade}
-
-% \subsubsection{Padrões de Uso}
-
-% \subsection{Métricas de Desenvolvimento}
-
-% \subsubsection{Atividade de Desenvolvimento}
-
-% \subsubsection{Qualidade e Cobertura de Testes}
-
-% \subsubsection{Esforço de Desenvolvimento e Sustentabilidade}
-
-% \subsubsection{Comparação de Manutenibilidade}
-
-% \subsection{Impacto da Modernização Tecnológica}
 
 % ------------------------ Experimental Evaluation ------------------------
 
