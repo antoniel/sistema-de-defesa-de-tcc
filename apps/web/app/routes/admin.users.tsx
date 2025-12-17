@@ -1,9 +1,4 @@
 import { Header } from "@/components/layout/Header"
-import type { Route } from "./+types/admin.users"
-
-export const meta: Route.MetaFunction = () => [
-  { title: "SISDEF - Gerenciar Usuários" },
-]
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -26,6 +21,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useUser } from "@/services/useUser"
 import { zodResolver } from "@hookform/resolvers/zod"
 import type { SelectUser } from "@tcc/server"
@@ -35,6 +31,9 @@ import { useForm } from "react-hook-form"
 import { Navigate, useNavigate } from "react-router"
 import { match } from "ts-pattern"
 import { z } from "zod"
+import type { Route } from "./+types/admin.users"
+
+export const meta: Route.MetaFunction = () => [{ title: "SISDEF - Gerenciar Usuários" }]
 
 export default function AdminUsersPage() {
   const navigate = useNavigate()
@@ -44,6 +43,26 @@ export default function AdminUsersPage() {
 
   const userQuery = useUser()
   const allUsersQuery = useAllUsers()
+
+  const filteredUsers = React.useMemo(() => {
+    const users = allUsersQuery.data || []
+
+    // Filter by search query
+    return users.filter(
+      (user) =>
+        user.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.matricula.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  }, [allUsersQuery.data, searchQuery])
+
+  const getUsersByRole = React.useCallback(
+    (role?: SelectUser["role"]) => {
+      if (!role) return filteredUsers
+      return filteredUsers.filter((user) => user.role === role)
+    },
+    [filteredUsers]
+  )
 
   // Verifica se o usuário é um administrador
   const isAdmin = userQuery.data?.role === "ADMIN"
@@ -83,14 +102,6 @@ export default function AdminUsersPage() {
     )
   }
 
-  const filteredUsers =
-    allUsersQuery.data?.filter(
-      (user) =>
-        user.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.matricula.toLowerCase().includes(searchQuery.toLowerCase())
-    ) || []
-
   const handleEditUser = (user: UserType) => {
     setEditingUser(user)
     setEditDialogOpen(true)
@@ -120,66 +131,30 @@ export default function AdminUsersPage() {
         </Button>
       </div>
 
-      <div className="border rounded-md overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Matrícula</TableHead>
-              <TableHead>Função</TableHead>
-              <TableHead className="w-[80px]">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredUsers.length > 0 ? (
-              filteredUsers.map((user) => (
-                <TableRow
-                  key={user.id}
-                  onClick={() => navigate(`/users/${user.id}`)}
-                  className="cursor-pointer hover:bg-muted/50"
-                >
-                  <TableCell className="font-medium">{user.nome}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.matricula}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
-                      {match(user.role)
-                        .with("TEACHER", () => "Professor")
-                        .with("STUDENT", () => "Aluno")
-                        .with("ADMIN", () => "Administrador")
-                        .otherwise(() => user.role)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Abrir menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleEditUser(user)}>Editar</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate(`/users/${user.id}`)}>
-                          Ver perfil
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
-                  {searchQuery ? "Nenhum usuário encontrado para esta busca." : "Nenhum usuário cadastrado."}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <Tabs defaultValue="all" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="all">Todos ({filteredUsers.length})</TabsTrigger>
+          <TabsTrigger value="ADMIN">Administrador ({getUsersByRole("ADMIN").length})</TabsTrigger>
+          <TabsTrigger value="TEACHER">Professor ({getUsersByRole("TEACHER").length})</TabsTrigger>
+          <TabsTrigger value="STUDENT">Aluno ({getUsersByRole("STUDENT").length})</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="all" className="mt-6">
+          <UserTable users={filteredUsers} searchQuery={searchQuery} onEditUser={handleEditUser} />
+        </TabsContent>
+
+        <TabsContent value="ADMIN" className="mt-6">
+          <UserTable users={getUsersByRole("ADMIN")} searchQuery={searchQuery} onEditUser={handleEditUser} />
+        </TabsContent>
+
+        <TabsContent value="TEACHER" className="mt-6">
+          <UserTable users={getUsersByRole("TEACHER")} searchQuery={searchQuery} onEditUser={handleEditUser} />
+        </TabsContent>
+
+        <TabsContent value="STUDENT" className="mt-6">
+          <UserTable users={getUsersByRole("STUDENT")} searchQuery={searchQuery} onEditUser={handleEditUser} />
+        </TabsContent>
+      </Tabs>
 
       <EditUserDialog user={editingUser} open={editDialogOpen} onOpenChange={setEditDialogOpen} />
     </div>
@@ -189,6 +164,72 @@ export default function AdminUsersPage() {
 type UserType = Omit<SelectUser, "createdAt" | "updatedAt"> & {
   createdAt: string
   updatedAt: string
+}
+
+function UserTable({
+  users,
+  searchQuery,
+  onEditUser,
+}: {
+  users: UserType[]
+  searchQuery: string
+  onEditUser: (user: UserType) => void
+}) {
+  return (
+    <div className="border rounded-md overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Nome</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Matrícula</TableHead>
+            <TableHead>Função</TableHead>
+            <TableHead className="w-[80px]">Ações</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {users.length > 0 ? (
+            users.map((user) => (
+              <TableRow key={user.id}>
+                <TableCell className="font-medium">{user.nome}</TableCell>
+                <TableCell>{user.email}</TableCell>
+                <TableCell>{user.matricula}</TableCell>
+                <TableCell>
+                  <Badge variant="outline">
+                    {match(user.role)
+                      .with("TEACHER", () => "Professor")
+                      .with("STUDENT", () => "Aluno")
+                      .with("ADMIN", () => "Administrador")
+                      .otherwise(() => user.role)}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <span className="sr-only">Abrir menu</span>
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => onEditUser(user)}>Editar</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={5} className="h-24 text-center">
+                {searchQuery ? "Nenhum usuário encontrado para esta busca." : "Nenhum usuário cadastrado."}
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  )
 }
 
 import { useAllUsers, useUpdateUser } from "@/hooks"

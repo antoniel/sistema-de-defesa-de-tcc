@@ -1,5 +1,6 @@
 import { useUser } from "@/services/useUser"
 import { Navigate, Outlet } from "react-router"
+import { useEffect, useState } from "react"
 import type { Route } from "./+types/admin"
 
 export const meta: Route.MetaFunction = () => [
@@ -7,9 +8,14 @@ export const meta: Route.MetaFunction = () => [
 ]
 
 export default function AdminLayout() {
+  const [isClient, setIsClient] = useState(false)
   const { data: user, isLoading, isError } = useUser()
 
-  if (isLoading) {
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  if (!isClient || isLoading) {
     return <div className="p-8 flex justify-center">Carregando...</div>
   }
   if (isError || !user) {
