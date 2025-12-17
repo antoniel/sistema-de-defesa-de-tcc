@@ -15,8 +15,8 @@ import {
 import { type AppResult, err, ok } from "../../result"
 import { type AppVariables } from "../../types"
 import { getUserById } from "../usuario/usuario.service"
-import { type CreateBancaInput, type UpdateBancaInput } from "./banca.schema"
 import { BancaDAO } from "./banca.dao"
+import { type CreateBancaInput, type UpdateBancaInput } from "./banca.schema"
 
 type GetAllBancasError = { type: "database_error"; error: unknown }
 
@@ -90,12 +90,18 @@ export const getUpcomingBancasVisible = async (
 > => {
   try {
     const dao = new BancaDAO(c.get)
+    const userId = c.get("jwtPayload")?.sub
+    const user = await getUserById(c, Number(userId))
+    const userRole = user.ok ? user.data.role : undefined
+
     const { bancas, total } = await dao.getUpcomingBancas({
       page,
       limit,
       orderBy,
       order,
       searchQuery,
+      userId: userId ? Number(userId) : undefined,
+      userRole,
     })
 
     const totalPages = Math.ceil(total / limit)
@@ -145,12 +151,18 @@ export const getPastBancasVisible = async (
 > => {
   try {
     const dao = new BancaDAO(c.get)
+    const userId = c.get("jwtPayload")?.sub
+    const user = await getUserById(c, Number(userId))
+    const userRole = user.ok ? user.data.role : undefined
+
     const { bancas, total } = await dao.getPastBancas({
       page,
       limit,
       orderBy,
       order,
       searchQuery,
+      userId: userId ? Number(userId) : undefined,
+      userRole,
     })
 
     const totalPages = Math.ceil(total / limit)
@@ -173,6 +185,85 @@ export const getPastBancasVisible = async (
 }
 
 export const getAllBancasVisible = async (
+  c: Context<{ Variables: AppVariables }>,
+  orderBy?: string,
+  order?: "asc" | "desc",
+  page: number = 1,
+  limit: number = 10,
+  searchQuery?: string
+): Promise<
+  AppResult<
+    {
+      bancasWithMembrosPast: InferResultType<
+        "Bancas",
+        { curso: true; orientador: true; membros: { with: { usuario: true } } }
+      >[]
+      bancasWithMembrosUpcoming: InferResultType<
+        "Bancas",
+        { curso: true; orientador: true; membros: { with: { usuario: true } } }
+      >[]
+      meta: {
+        total: number
+        totalPages: number
+        currentPage: number
+        limit: number
+        hasNext: boolean
+        hasPrev: boolean
+      }
+    },
+    GetAllBancasError
+  >
+> => {
+  try {
+    const dao = new BancaDAO(c.get)
+    const userId = c.get("jwtPayload")?.sub
+    const user = await getUserById(c, Number(userId))
+
+    const userRole = user.ok ? user.data.role : undefined
+
+    const [upcomingResult, pastResult] = await Promise.all([
+      dao.getUpcomingBancas({
+        page,
+        limit,
+        orderBy,
+        order,
+        searchQuery,
+        userId: userId ? Number(userId) : undefined,
+        userRole,
+      }),
+      dao.getPastBancas({
+        page,
+        limit,
+        orderBy,
+        order,
+        searchQuery,
+        userId: userId ? Number(userId) : undefined,
+        userRole,
+      }),
+    ])
+
+    const totalBancas = upcomingResult.total + pastResult.total
+    const totalPages = Math.ceil(totalBancas / limit)
+
+    return ok({
+      bancasWithMembrosUpcoming: upcomingResult.bancas,
+      bancasWithMembrosPast: pastResult.bancas,
+      meta: {
+        total: totalBancas,
+        totalPages,
+        currentPage: page,
+        limit,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+      },
+    })
+  } catch (error) {
+    console.error("Error fetching all bancas:", error)
+    return err({ type: "database_error", error })
+  }
+}
+
+export const getAllBancasVisibleOld = async (
   c: Context<{ Variables: AppVariables }>,
   orderBy?: string,
   order?: "asc" | "desc",
@@ -276,9 +367,15 @@ export const getAllBancasVisible = async (
       return asc(Bancas.dataRealizacao)
     }
 
-    let bancasWithMembrosPast: InferResultType<"Bancas", { curso: true; orientador: true; membros: { with: { usuario: true } } }>[]
-    let bancasWithMembrosUpcoming: InferResultType<"Bancas", { curso: true; orientador: true; membros: { with: { usuario: true } } }>[]
-    
+    let bancasWithMembrosPast: InferResultType<
+      "Bancas",
+      { curso: true; orientador: true; membros: { with: { usuario: true } } }
+    >[]
+    let bancasWithMembrosUpcoming: InferResultType<
+      "Bancas",
+      { curso: true; orientador: true; membros: { with: { usuario: true } } }
+    >[]
+
     if (needsJoins) {
       // Use core Drizzle API with explicit joins for sorting by related fields
       // Past defenses
@@ -293,8 +390,8 @@ export const getAllBancasVisible = async (
         .orderBy(getPastOrderClause())
         .limit(limit)
         .offset(offset)
-      
-      // Upcoming defenses  
+
+      // Upcoming defenses
       const bancasResultUpcoming = await dbInstance
         .select({
           banca: Bancas,
@@ -306,9 +403,9 @@ export const getAllBancasVisible = async (
         .orderBy(getUpcomingOrderClause())
         .limit(limit)
         .offset(offset)
-      
+
       // Fetch full data for past defenses
-      const bancaIdsPast = bancasResultPast.map(row => row.banca.id)
+      const bancaIdsPast = bancasResultPast.map((row) => row.banca.id)
       if (bancaIdsPast.length > 0) {
         bancasWithMembrosPast = await dbInstance.query.Bancas.findMany({
           where: inArray(Bancas.id, bancaIdsPast),
@@ -322,16 +419,16 @@ export const getAllBancasVisible = async (
             },
           },
         })
-        
+
         // Sort the results to match the original order from the join query
         const orderMapPast = new Map(bancasResultPast.map((row, index) => [row.banca.id, index]))
         bancasWithMembrosPast.sort((a, b) => (orderMapPast.get(a.id) || 0) - (orderMapPast.get(b.id) || 0))
       } else {
         bancasWithMembrosPast = []
       }
-      
+
       // Fetch full data for upcoming defenses
-      const bancaIdsUpcoming = bancasResultUpcoming.map(row => row.banca.id)
+      const bancaIdsUpcoming = bancasResultUpcoming.map((row) => row.banca.id)
       if (bancaIdsUpcoming.length > 0) {
         bancasWithMembrosUpcoming = await dbInstance.query.Bancas.findMany({
           where: inArray(Bancas.id, bancaIdsUpcoming),
@@ -345,7 +442,7 @@ export const getAllBancasVisible = async (
             },
           },
         })
-        
+
         // Sort the results to match the original order from the join query
         const orderMapUpcoming = new Map(bancasResultUpcoming.map((row, index) => [row.banca.id, index]))
         bancasWithMembrosUpcoming.sort((a, b) => (orderMapUpcoming.get(a.id) || 0) - (orderMapUpcoming.get(b.id) || 0))
@@ -490,14 +587,14 @@ export const createBanca = async (
       usuarioId: bancaData.orientadorId,
       role: "orientador",
     })
-    
+
     // Add the student as aluno
     await dbInstance.insert(usuariosBancas).values({
       bancaId: newBanca.id,
       usuarioId: bancaData.alunoId,
       role: "aluno",
     })
-    
+
     // Add evaluators if provided
     if (bancaData.membros && bancaData.membros.length > 0) {
       // Filter out the orientador from membros to avoid duplication
@@ -509,7 +606,7 @@ export const createBanca = async (
           usuarioId: Number(membro.id),
           role: "avaliador" as const,
         }))
-      
+
       if (avaliadoresData.length > 0) {
         await dbInstance.insert(usuariosBancas).values(avaliadoresData)
       }
@@ -798,15 +895,15 @@ export const setEvaluatorGrade = async (
 
     const isAdmin = currentUserResult.data.role === "ADMIN"
     const isOwnGrade = currentUserId === userId
-    
+
     // Check if current user is the orientador of this banca
     const banca = await dbInstance.query.Bancas.findFirst({
       where: eq(Bancas.id, bancaId),
-      columns: { orientadorId: true }
+      columns: { orientadorId: true },
     })
-    
+
     const isOrientadorDaBanca = banca?.orientadorId === currentUserId
-    
+
     if (!isAdmin && !isOwnGrade && !isOrientadorDaBanca) {
       return err({ type: "unauthorized" })
     }

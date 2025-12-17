@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest"
 import type { InferResultType } from "../../database"
+import { Bancas, Cursos, Users, usuariosBancas } from "../../database/schema"
 import { fakeDeps, getFakeDb } from "../../tests/utils"
 import { BancaDAO } from "./banca.dao"
 import { testClient } from "hono/testing"
@@ -11,6 +12,48 @@ describe("BancaDAO", () => {
 
   beforeEach(async () => {
     db = await getFakeDb()
+
+    // Seed minimal required data for tests
+    await db.insert(Cursos).values({ id: 1, nome: "Ciência da Computação", sigla: "BCC" }).onConflictDoNothing()
+    await db.insert(Users).values([
+      {
+        id: 1,
+        passwordHash: "hash",
+        email: "admin@test.com",
+        nome: "Admin Test",
+        school: "UFBA",
+        academicTitle: "Doutor",
+        matricula: "ADM123",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        role: "ADMIN",
+      },
+      {
+        id: 2,
+        passwordHash: "hash",
+        email: "teacher@test.com",
+        nome: "Professor Test",
+        school: "UFBA",
+        academicTitle: "Doutor",
+        matricula: "PROF123",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        role: "TEACHER",
+      },
+      {
+        id: 3,
+        passwordHash: "hash",
+        email: "student@test.com",
+        nome: "Aluno Test",
+        school: "UFBA",
+        academicTitle: "Bacharel",
+        matricula: "STU123",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        role: "STUDENT",
+      },
+    ]).onConflictDoNothing()
+
     const middleware = fakeDeps(db)
     dao = new BancaDAO((key: string) => {
       if (key === "db") return db
@@ -257,6 +300,151 @@ describe("BancaDAO", () => {
         const sortedUpcomingTitles = [...upcomingTitles].sort()
         expect(upcomingTitles).toEqual(sortedUpcomingTitles)
       }
+    })
+  })
+
+  describe("visibility filtering", () => {
+    it("should only return visible bancas for anonymous users", async () => {
+      const futureDate = new Date()
+      futureDate.setDate(futureDate.getDate() + 30)
+
+      const [invisibleBanca] = await db.insert(Bancas).values({
+        alunoId: 3,
+        orientadorId: 2,
+        cursoId: 1,
+        autor: "Test Author Invisible",
+        matricula: "999999",
+        tituloTrabalho: "Test Invisible Upcoming Banca",
+        resumo: "Test",
+        abstract: "Test",
+        palavrasChave: "test",
+        dataRealizacao: futureDate,
+        modalidade: "local",
+        local: "Test Location",
+        visible: false,
+        turma: "TEST",
+        periodoAcademico: "2025.1"
+      }).returning()
+
+      const result = await dao.getUpcomingBancas({
+        page: 1,
+        limit: 100,
+      })
+
+      expect(result.bancas).toBeDefined()
+      const foundInvisible = result.bancas.find(b => b.id === invisibleBanca.id)
+      expect(foundInvisible).toBeUndefined()
+    })
+
+    it("should return invisible bancas for admin users", async () => {
+      const futureDate = new Date()
+      futureDate.setDate(futureDate.getDate() + 30)
+
+      const [invisibleBanca] = await db.insert(Bancas).values({
+        alunoId: 3,
+        orientadorId: 2,
+        cursoId: 1,
+        autor: "Test Admin Invisible",
+        matricula: "888888",
+        tituloTrabalho: "Test Admin Invisible Banca",
+        resumo: "Test",
+        abstract: "Test",
+        palavrasChave: "test",
+        dataRealizacao: futureDate,
+        modalidade: "local",
+        local: "Test Location",
+        visible: false,
+        turma: "TEST",
+        periodoAcademico: "2025.1"
+      }).returning()
+
+      const result = await dao.getUpcomingBancas({
+        page: 1,
+        limit: 100,
+        userId: 1,
+        userRole: "ADMIN",
+      })
+
+      expect(result.bancas).toBeDefined()
+      const foundInvisible = result.bancas.find(b => b.id === invisibleBanca.id)
+      expect(foundInvisible).toBeDefined()
+      expect(foundInvisible?.visible).toBe(false)
+    })
+
+    it("should return invisible bancas for member users", async () => {
+      const futureDate = new Date()
+      futureDate.setDate(futureDate.getDate() + 30)
+
+      const [invisibleBanca] = await db.insert(Bancas).values({
+        alunoId: 3,
+        orientadorId: 2,
+        cursoId: 1,
+        autor: "Test Member Invisible",
+        matricula: "777777",
+        tituloTrabalho: "Test Member Invisible Banca",
+        resumo: "Test",
+        abstract: "Test",
+        palavrasChave: "test",
+        dataRealizacao: futureDate,
+        modalidade: "local",
+        local: "Test Location",
+        visible: false,
+        turma: "TEST",
+        periodoAcademico: "2025.1"
+      }).returning()
+
+      // Add user as member of the banca
+      await db.insert(usuariosBancas).values({
+        bancaId: invisibleBanca.id,
+        usuarioId: 2,
+        role: "avaliador",
+      })
+
+      const result = await dao.getUpcomingBancas({
+        page: 1,
+        limit: 100,
+        userId: 2,
+        userRole: "TEACHER",
+      })
+
+      expect(result.bancas).toBeDefined()
+      const foundInvisible = result.bancas.find(b => b.id === invisibleBanca.id)
+      expect(foundInvisible).toBeDefined()
+      expect(foundInvisible?.visible).toBe(false)
+    })
+
+    it("should return invisible bancas for orientador in getBancasByOrientador", async () => {
+      const futureDate = new Date()
+      futureDate.setDate(futureDate.getDate() + 30)
+
+      const [invisibleBanca] = await db.insert(Bancas).values({
+        alunoId: 3,
+        orientadorId: 2,
+        cursoId: 1,
+        autor: "Test Author Invisible for Orientador",
+        matricula: "666666",
+        tituloTrabalho: "Test Invisible Banca for Orientador",
+        resumo: "Test",
+        abstract: "Test",
+        palavrasChave: "test",
+        dataRealizacao: futureDate,
+        modalidade: "local",
+        local: "Test Location",
+        visible: false,
+        turma: "TEST",
+        periodoAcademico: "2025.1"
+      }).returning()
+
+      const result = await dao.getBancasByOrientador({
+        orientadorId: 2,
+        page: 1,
+        limit: 100,
+      })
+
+      expect(result.upcoming).toBeDefined()
+      const foundInvisible = result.upcoming.find(b => b.id === invisibleBanca.id)
+      expect(foundInvisible).toBeDefined()
+      expect(foundInvisible?.visible).toBe(false)
     })
   })
 
