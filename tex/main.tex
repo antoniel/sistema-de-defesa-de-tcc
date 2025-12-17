@@ -40,11 +40,22 @@
 
 \begin{document}
 
-\title{SISDEF 3.0: Modernização e Reescrita de um Sistema para Gerenciamento de Defesas de Trabalho de Conclusão de Curso}
+\title{SISDEF 3.0: Modernização e Reengenharia de um Sistema para Gerenciamento de Defesas de Trabalho de Conclusão de Curso}
 
 \author{Antoniel Magalhães de Sousa}
+\email{antoniels@ufba.br}
+\affiliation{%
+  \institution{Universidade Federal da Bahia}
+  \department{Instituto de Computação}
+  \streetaddress{Av. Milton Santos, s/n - Campus de Ondina, PAF 2}
+  \city{Salvador} 
+  \state{Bahia} 
+  \country{Brasil}
+  \postcode{40170-110}
+}
+
 \author{Frederico Araújo Durão}
-\email{{antoniels, fdurao}@ufba.br}
+\email{fdurao@ufba.br}
 \affiliation{%
   \institution{Universidade Federal da Bahia}
   \department{Instituto de Computação}
@@ -81,7 +92,7 @@ Apesar do sucesso funcional destas versões anteriores, ambas apresentavam limit
 
 O presente trabalho descreve a reescrita completa do SISDEF em sua terceira versão (SISDEF 3.0), fundamentada em uma stack tecnológica moderna baseada em TypeScript full-stack: React Router v7 com Server-Side Rendering no frontend, Hono framework no backend, Drizzle ORM para acesso a dados, e PostgreSQL como banco de dados. As principais contribuições deste trabalho são: (1) reimplementação completa do sistema com arquitetura modular e type-safe, reduzindo significativamente a probabilidade de erros relacionados a tipos e contratos de API; (2) desenvolvimento de suíte abrangente de testes automatizados combinando testes unitários (Vitest) e end-to-end (Playwright), estabelecendo rede de segurança para evoluções futuras; (3) análise comparativa fundamentada em dados de adoção da comunidade (npm downloads, Stack Overflow surveys) justificando as escolhas tecnológicas; (4) avaliação experimental com 19 participantes validando usabilidade e identificando oportunidades de melhoria; e (5) documentação detalhada do processo de migração, oferecendo referência para projetos similares que enfrentam decisões entre evolução incremental e reescrita completa.
 
-Este trabalho está estruturado da seguinte forma: a Seção \ref{section:academic-information-systems} apresenta a fundamentação teórica sobre Sistemas de Informação Acadêmicos e trabalhos relacionados. A Seção \ref{section:sisdef_history} descreve o histórico e evolução das versões anteriores do SISDEF, analisando suas contribuições e limitações. A Seção \ref{section:sisdef_v3} detalha a arquitetura e stack tecnológica do SISDEF 3.0, incluindo justificativas baseadas em dados de adoção. A Seção \ref{section:migration_process} documenta o processo de reescrita e migração. A Seção \ref{section:usage_metrics} apresenta métricas de utilização e desenvolvimento. A Seção \ref{section:results} descreve a avaliação experimental conduzida com usuários reais. A Seção \ref{section:future-improvements} discute pontos de melhoria identificados. Finalmente, a Conclusão sintetiza as contribuições e aponta direções futuras.
+Este trabalho está estruturado da seguinte forma: a Seção \ref{section:academic-information-systems} apresenta a fundamentação teórica sobre Sistemas de Informação Acadêmicos. A Seção \ref{section:sisdef_history} descreve o histórico e evolução das versões anteriores do SISDEF. A Seção \ref{section:sisdef_v3} detalha a arquitetura e stack tecnológica do SISDEF 3.0. A Seção \ref{section:migration_process} documenta o processo de reescrita e migração. A Seção \ref{section:usage_metrics} apresenta métricas de utilização e desenvolvimento. A Seção \ref{section:results} descreve a avaliação experimental. Finalmente, a Conclusão sintetiza as contribuições e aponta direções futuras.
 
 % ------------------------ Theoretical Fundamentation ------------------------
 \section{Sistemas de Informação Acadêmicos}
@@ -186,35 +197,104 @@ Para embasar a decisão de migração da stack PHP/Yii2 para TypeScript, foram a
 
 A vantagem numérica do ecossistema JavaScript/TypeScript não representa apenas maior popularidade, mas também implica em maior quantidade de recursos educacionais disponíveis (tutoriais, documentação, respostas em fóruns como Stack Overflow), maior probabilidade de encontrar desenvolvedores familiarizados com a stack, e maior atividade de manutenção e evolução das bibliotecas utilizadas. Para um sistema acadêmico que pode receber contribuições de estudantes e pesquisadores ao longo dos anos, essa característica é particularmente valiosa, pois reduz a barreira de entrada para novos contribuidores.
 
-\subsection{Arquitetura e Stack Tecnológica do SISDEF 3.0}
+\subsection{Arquitetura do SISDEF 3.0}
 
-O SISDEF 3.0 foi reconstruído utilizando uma arquitetura moderna baseada em TypeScript full-stack, priorizando type safety, developer experience e testabilidade. A escolha de cada componente da stack foi criteriosamente avaliada considerando não apenas capacidades técnicas, mas também adoção da comunidade, qualidade da documentação e perspectivas de manutenção a longo prazo.
+O SISDEF 3.0 adota uma arquitetura cliente-servidor moderna fundamentada em princípios de separação de responsabilidades, modularidade e type safety end-to-end. A arquitetura foi projetada considerando requisitos funcionais (gerenciamento de bancas, autenticação de usuários, geração de documentos) e requisitos não-funcionais (manutenibilidade, testabilidade, escalabilidade e developer experience). Esta seção descreve em detalhes os componentes arquiteturais, suas responsabilidades, e os padrões de comunicação entre as camadas.
 
-\subsubsection{Frontend: React Router v7}
+\subsubsection{Visão Geral da Arquitetura}
 
-Para o frontend, foi adotado o React Router v7, framework que representa uma evolução significativa em relação à abordagem tradicional de Single Page Applications (SPAs). O React Router v7 oferece Server-Side Rendering (SSR) nativo, permitindo que páginas sejam renderizadas no servidor antes de serem enviadas ao cliente, melhorando tanto a performance percebida quanto métricas de SEO. A escolha foi motivada por diversos fatores técnicos e pragmáticos:
+O sistema é organizado em três camadas principais que se comunicam através de interfaces bem definidas:
 
-Primeiramente, o React Router v7 oferece uma experiência de desenvolvimento significativamente aprimorada através de convenções sobre configuração, sistema de rotas baseado em arquivos, e type safety completo através de geração automática de tipos para rotas e loaders. A integração nativa com TanStack Query facilita o gerenciamento de estado do servidor, eliminando a necessidade de bibliotecas adicionais para cache e sincronização de dados. O framework também oferece suporte nativo a streaming de SSR, permitindo que partes da interface sejam enviadas ao cliente progressivamente, melhorando a percepção de velocidade.
+\textbf{Camada de Apresentação (Frontend)}: Responsável pela interface do usuário e experiência de interação. Implementada utilizando React Router v7 com Server-Side Rendering (SSR), esta camada gerencia a renderização de componentes visuais, validação de formulários no lado do cliente, navegação entre páginas, e comunicação com a camada de aplicação através de chamadas HTTP type-safe. A arquitetura de componentes segue o padrão de composição do React, com separação clara entre componentes de apresentação (puramente visuais) e componentes contêineres (que gerenciam estado e lógica de negócio).
 
-Em termos de adoção, o React Router é o roteador mais utilizado no ecossistema React, com 22 milhões de downloads semanais no npm. A versão 7, lançada em 22 de novembro de 2024, representa uma convergência com o framework Remix, trazendo padrões modernos de desenvolvimento web que priorizam \textit{progressive enhancement} e experiência do usuário. A ampla adoção significa abundância de recursos educacionais, plugins da comunidade e desenvolvedores familiarizados com a ferramenta.
+\textbf{Camada de Aplicação (Backend)}: Responsável pela lógica de negócio, orquestração de fluxos de trabalho, e exposição de APIs RESTful. Implementada utilizando o framework Hono, esta camada aplica o padrão arquitetural em camadas (layered architecture), onde cada módulo de domínio (auth, banca, usuario, curso, documento) possui sua própria estrutura interna organizada em subcamadas:
 
-\subsubsection{Backend: Hono Framework}
+\begin{itemize}
+\item \textbf{Camada de Roteamento}: Define endpoints HTTP, aplica middlewares de autenticação e autorização, valida entradas através de schemas Zod, e serializa respostas. Esta camada é stateless e delega toda lógica de negócio para a camada de serviços.
 
-Para o backend, foi escolhido o Hono, um framework web minimalista para JavaScript/TypeScript que se destaca por sua simplicidade, performance e portabilidade. O Hono foi projetado seguindo princípios similares ao Express.js, oferecendo uma API familiar e intuitiva, mas com vantagens significativas em termos de type safety e performance:
+\item \textbf{Camada de Serviços}: Encapsula toda a lógica de negócio do domínio. Services são funções puras que recebem dados validados, executam regras de negócio, orquestram operações de múltiplas entidades, e retornam resultados através do pattern Result<T, E> para tratamento explícito de erros. Esta camada é independente do framework HTTP, facilitando testes unitários e potencial reuso em outros contextos (ex: CLI, workers).
 
-O Hono oferece type safety completo através de seu sistema de tipos, permitindo que o TypeScript infira automaticamente os tipos de requisições, respostas e parâmetros de rota. Isso elimina uma classe inteira de erros relacionados a contratos de API, pois inconsistências entre o que o cliente espera e o que o servidor fornece são detectadas em tempo de compilação. A característica mais distintiva do Hono é sua portabilidade: o framework pode ser executado em múltiplos ambientes (Node.js, Deno, Bun, Cloudflare Workers, etc.) sem alterações no código, proporcionando flexibilidade futura para migração de infraestrutura se necessário.
+\item \textbf{Camada de Acesso a Dados}: Responsável pela persistência e recuperação de dados. Implementada através do Drizzle ORM, esta camada traduz operações de domínio em queries SQL type-safe, gerencia transações de banco de dados, e mapeia resultados relacionais para objetos de domínio. O schema do banco de dados é definido em TypeScript, permitindo inferência automática de tipos e validação em tempo de compilação.
+\end{itemize}
 
-A escolha do Hono sobre alternativas mais estabelecidas como Express.js ou frameworks mais opinativos como NestJS foi motivada pelo equilíbrio entre simplicidade e funcionalidade. O Express.js, embora maduro e amplamente utilizado, não oferece type safety nativo, enquanto o NestJS, apesar de sua robustez, introduz complexidade arquitetural que seria excessiva para o escopo do SISDEF. O Hono oferece uma API minimalista e familiar, mas com as vantagens modernas de type safety e performance.
+\textbf{Camada de Persistência (Banco de Dados)}: PostgreSQL 14+ armazenando dados relacionais estruturados. O schema foi projetado seguindo práticas de normalização (3NF), com chaves estrangeiras garantindo integridade referencial, índices otimizando queries frequentes, e constraints assegurando invariantes de negócio em nível de banco de dados.
 
-Para viabilizar a comunicação type-safe entre frontend e backend, o Hono oferece um client RPC (Remote Procedure Call) que permite que o frontend importe tipos diretamente do backend, garantindo sincronização automática de contratos de API. Esta funcionalidade elimina a necessidade de manutenção manual de definições de tipos duplicadas, reduzindo significativamente a probabilidade de erros de integração.
+\subsubsection{Padrões de Comunicação e Segurança de Tipos Ponta a Ponta}
 
-\subsubsection{ORM: Drizzle}
+Uma característica distintiva da arquitetura do SISDEF 3.0 é a segurança de tipos ponta a ponta (\textit{type safety end-to-end}), garantindo que contratos de comunicação entre \textit{frontend} e \textit{backend} sejam verificados estaticamente em tempo de compilação. Isso é viabilizado através do Hono RPC Client, que permite que o \textit{frontend} importe tipos diretamente das definições de rotas do \textit{backend}.
 
-Para a camada de acesso a dados, foi escolhido o Drizzle ORM, uma biblioteca SQL-first que prioriza type safety e developer experience. Diferentemente de ORMs tradicionais como TypeORM ou Prisma, o Drizzle adota uma filosofia de manter-se próximo ao SQL, permitindo que desenvolvedores escrevam queries com controle fino sobre o SQL gerado, mas com type safety completo.
+No \textit{backend}, cada \textit{endpoint} define explicitamente seus esquemas de entrada (\textit{request body}, \textit{query parameters}, \textit{route parameters}) e tipos de saída (\textit{response}). No \textit{frontend}, o cliente RPC infere automaticamente os tipos de entrada e saída, proporcionando autocompletamento completo e validação de tipos.
 
-O Drizzle foi escolhido por suas características distintivas: oferece inferência completa de tipos a partir do schema definido em TypeScript, suporta migrations versionadas através de código TypeScript (permitindo rastreabilidade completa no controle de versão), e gera SQL otimizado e previsível. O ORM é extremamente leve e não introduz overhead significativo de performance, uma preocupação comum com ORMs mais pesados.
+Este padrão elimina classes inteiras de erros relacionados à sincronização de contratos de API. Se o \textit{backend} altera o esquema de um \textit{endpoint} (por exemplo, adicionando campo obrigatório), o TypeScript imediatamente sinaliza erros em todas as chamadas do \textit{frontend} que não fornecem o novo campo, permitindo detecção precoce de inconsistências.
 
-A abordagem SQL-first do Drizzle foi particularmente valiosa durante a migração dos dados do SISDEF 2.0, pois permitiu escrever queries complexas de transformação de dados com controle preciso, ao mesmo tempo que mantinha type safety. O sistema de migrations do Drizzle gera arquivos SQL versionados que podem ser inspecionados e auditados, garantindo transparência sobre as alterações no schema do banco de dados.
+\subsubsection{Organização Modular por Domínios de Negócio}
+
+A camada de aplicação está organizada em módulos correspondentes a domínios de negócio, seguindo princípios de Domain-Driven Design (DDD) adaptados ao contexto do sistema. Cada módulo encapsula toda a lógica relacionada a seu domínio:
+
+\begin{verbatim}
+apps/server/src/modules/
+  auth/             # Autenticação e autorização
+    auth.route.ts
+    auth.service.ts
+    auth.schema.ts
+    auth.middleware.ts
+    auth.test.ts
+  banca/            # Gerenciamento de bancas
+    banca.route.ts
+    banca.service.ts
+    banca.schema.ts
+    banca.test.ts
+  usuario/          # Gerenciamento de usuários
+  curso/            # Gerenciamento de cursos
+  documento/        # Geração de documentos
+\end{verbatim}
+
+Esta organização oferece diversas vantagens arquiteturais:
+
+\textbf{Coesão}: Código relacionado permanece junto, facilitando compreensão e manutenção. Desenvolvedores podem trabalhar em um módulo específico sem necessidade de navegar por toda a base de código.
+
+\textbf{Baixo Acoplamento}: Módulos comunicam-se através de interfaces bem definidas. Mudanças internas em um módulo não afetam outros módulos, desde que contratos públicos sejam preservados.
+
+\textbf{Testabilidade}: Cada módulo pode ser testado isoladamente. Tests unitários validam services sem depender de framework HTTP ou banco de dados real, utilizando mocks quando necessário.
+
+\textbf{Escalabilidade de Equipe}: Múltiplos desenvolvedores podem trabalhar em módulos diferentes simultaneamente com conflitos minimizados em controle de versão.
+
+\subsubsection{Gerenciamento de Estado e Sincronização Cliente-Servidor}
+
+O frontend utiliza TanStack Query para gerenciamento declarativo de estado do servidor, implementando o padrão de cache-first data fetching. Queries e mutations são organizadas em custom hooks por domínio. Este padrão oferece benefícios significativos em relação à abordagem tradicional de fetch manual:
+
+\textbf{Cache Automático}: Dados são cached automaticamente, reduzindo requisições redundantes ao servidor. Cache é invalidado estrategicamente após mutations, garantindo consistência.
+
+\textbf{Loading e Error States}: TanStack Query gerencia automaticamente estados de loading, error e success, eliminando boilerplate e garantindo UX consistente.
+
+\textbf{Refetch Inteligente}: Dados são automaticamente refetchados quando janela recebe foco, garantindo que usuários sempre vejam informações atualizadas.
+
+\textbf{Optimistic Updates}: Mutations podem atualizar cache localmente antes de confirmação do servidor, proporcionando UX responsiva mesmo em conexões lentas.
+
+\subsubsection{Autenticação e Autorização}
+
+O sistema implementa autenticação baseada em JSON Web Tokens (JWT) com fluxo detalhado descrito a seguir:
+
+\textbf{Fluxo de Autenticação}:
+\begin{enumerate}
+\item Usuário submete credenciais (email e senha) através do formulário de login
+\item Backend valida credenciais verificando hash da senha com bcryptjs
+\item Se válidas, backend gera JWT contendo payload mínimo (user\_id, role, email) com expiração de 7 dias
+\item JWT é retornado ao cliente e armazenado em localStorage
+\item Frontend inclui JWT em header Authorization de todas as requisições subsequentes
+\item Backend valida JWT em middleware de autenticação, decodificando e verificando assinatura e expiração
+\item Se válido, dados do usuário são injetados no contexto da requisição para acesso em routes e services
+\end{enumerate}
+
+\textbf{Autorização Baseada em Permissões}: O sistema implementa Role-Based Access Control (RBAC) com três papéis principais:
+
+\begin{itemize}
+\item \textbf{STUDENT}: Pode cadastrar e gerenciar suas próprias bancas, visualizar bancas públicas
+\item \textbf{TEACHER}: Pode gerenciar bancas onde atua como orientador ou avaliador, gerar documentos, visualizar bancas de seus cursos
+\item \textbf{ADMIN}: Acesso completo ao sistema, incluindo gerenciamento de usuários, cursos, e permissões
+\end{itemize}
+
+Permissões são verificadas em nível de rota através de middlewares declarativos e em nível de service para validações mais granulares (ex: verificar se usuário é orientador de banca específica antes de permitir edição).
 
 \subsection{Estratégia de Testes Automatizados}
 
