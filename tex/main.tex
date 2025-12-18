@@ -391,6 +391,124 @@ Mudanças arquiteturais significativas incluíram adoção de shadcn/ui (compone
 Suíte de testes end-to-end com Playwright validou fluxos críticos (autenticação, gestão de bancas, geração de PDFs, integração Google Calendar). A combinação de testes unitários (Vitest) e E2E estabeleceu cobertura significativamente superior ao SISDEF 2.0, que não possuía testes automatizados.
 
 
+% ------------------------ User Interface ------------------------
+
+\subsection{Interface e Principais Funcionalidades}
+\label{section:ui-features}
+
+Esta seção apresenta as principais telas do SISDEF 3.0, destacando as funcionalidades novas implementadas na reescrita e as melhorias de usabilidade em relação às versões anteriores.
+
+\subsubsection{Fluxo de Criação de Bancas Multi-Step}
+
+Uma das principais inovações do SISDEF 3.0 é o formulário de criação de bancas baseado em \textit{multi-step wizard}, que divide o processo complexo de cadastro em cinco etapas sequenciais. Esta abordagem, inexistente nas versões anteriores, melhora significativamente a experiência do usuário ao reduzir a sobrecarga cognitiva de preencher um formulário extenso em uma única tela.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\linewidth]{Imagens/telas/multi-step-criacao-de-banca-1.png}
+  \caption{Primeira etapa do formulário multi-step: Informações Básicas do trabalho, incluindo título, resumo, abstract e checkbox de visibilidade pública.}
+  \label{fig:multi-step-1}
+\end{figure}
+
+A Figura \ref{fig:multi-step-1} mostra a primeira etapa do formulário, onde são coletadas as informações básicas do trabalho: título (em português), resumo, abstract (em inglês), e controle de visibilidade pública. O indicador visual no topo da tela (círculos numerados de 1 a 5) permite ao usuário compreender em qual etapa está e quantas etapas restam, proporcionando sensação de progresso e reduzindo ansiedade em formulários longos.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\linewidth]{Imagens/telas/multi-step-criacao-de-banca-2.png}
+  \caption{Segunda etapa: Informações do Autor, incluindo dados do discente e seleção de orientador e coorientador.}
+  \label{fig:multi-step-2}
+\end{figure}
+
+A segunda etapa (Figura \ref{fig:multi-step-2}) coleta informações do autor do trabalho. Para estudantes cadastrando suas próprias bancas, campos como nome e matrícula são preenchidos automaticamente através de dados da sessão autenticada, exemplificando o princípio de redução de esforço do usuário. A seleção de orientador e coorientador utiliza componentes de autocomplete que facilitam a busca em listas extensas de docentes.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\linewidth]{Imagens/telas/multi-step-criacao-de-banca-3.png}
+  \caption{Terceira etapa: Seleção e Configuração de Avaliadores, permitindo adicionar membros internos e externos à banca.}
+  \label{fig:multi-step-3}
+\end{figure}
+
+A terceira etapa (Figura \ref{fig:multi-step-3}) aborda a composição da banca avaliadora. O sistema permite adicionar múltiplos avaliadores através de interface dinâmica que distingue entre membros internos (já cadastrados no sistema) e externos (que serão convidados via email). Esta funcionalidade reflete uma melhoria substancial em relação ao SISDEF 2.0, que exigia pré-cadastro manual de todos os membros através do módulo administrativo.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\linewidth]{Imagens/telas/multi-step-criacao-de-banca-4.png}
+  \caption{Quarta etapa: Metadados Acadêmicos, incluindo curso, tipo de trabalho, palavras-chave e área de concentração.}
+  \label{fig:multi-step-4}
+\end{figure}
+
+A quarta etapa (Figura \ref{fig:multi-step-4}) coleta metadados acadêmicos essenciais para categorização e descoberta de trabalhos: curso (BCC ou BSI), tipo de trabalho (TCC, Dissertação, Tese), palavras-chave, e área de concentração. A separação destes campos em etapa dedicada evita mistura com informações de natureza distinta (dados pessoais, informações de defesa), contribuindo para clareza do processo.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\linewidth]{Imagens/telas/multi-step-criacao-de-banca-resumo.png}
+  \caption{Quinta etapa: Revisão e Confirmação, exibindo sumário de todas as informações preenchidas antes da submissão final.}
+  \label{fig:multi-step-resumo}
+\end{figure}
+
+A quinta e última etapa (Figura \ref{fig:multi-step-resumo}) apresenta tela de revisão que consolida todas as informações preenchidas nas etapas anteriores. Esta funcionalidade, ausente no SISDEF 2.0, permite ao usuário validar visualmente todos os dados antes da submissão final, reduzindo erros e aumentando confiança no processo. O sistema permite navegação de volta para etapas anteriores caso o usuário identifique necessidade de correção, preservando dados já preenchidos.
+
+\subsubsection{Dashboard e Visualização de Defesas}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\linewidth]{Imagens/telas/tela-inicial-com-bancas-passadas-e-bancas-futuras.png}
+  \caption{Tela inicial do sistema mostrando defesas organizadas cronologicamente entre próximas defesas e defesas anteriores, com funcionalidade de busca e paginação.}
+  \label{fig:dashboard}
+\end{figure}
+
+A tela inicial do sistema (Figura \ref{fig:dashboard}) foi completamente redesenhada no SISDEF 3.0 para oferecer maior densidade de informação sem comprometer legibilidade. As defesas são automaticamente organizadas em duas seções: \textit{Próximas defesas} (ordenadas por data ascendente) e \textit{Defesas anteriores} (ordenadas por data descendente), permitindo aos usuários rapidamente identificar eventos futuros e consultar histórico de trabalhos já apresentados.
+
+Cada entrada na listagem apresenta informações essenciais de forma compacta: data da defesa, título do trabalho, nome do discente, orientador, curso (BCC/BSI), e link para reunião virtual quando aplicável. A tabela suporta ordenação por múltiplas colunas através de clicks nos cabeçalhos, permitindo diferentes visualizações dos mesmos dados (por exemplo, agrupar por orientador ou por curso).
+
+A funcionalidade de busca integrada no topo da tela permite filtrar defesas por múltiplos critérios (título, nome de discente, orientador, ou avaliador), endereçando uma limitação significativa do SISDEF 2.0 onde a busca era restrita a título. O controle de paginação permite configurar número de itens exibidos (10, 25, 50 linhas), otimizando a experiência tanto para usuários que preferem visão geral quanto para aqueles que buscam informações específicas.
+
+\subsubsection{Gerenciamento Administrativo de Usuários}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\linewidth]{Imagens/telas/gerenciamento-de-usuarios.png}
+  \caption{Interface administrativa de gerenciamento de usuários, mostrando listagem completa com filtros por função (Administrador, Professor, Aluno) e busca por nome, email ou matrícula.}
+  \label{fig:user-management}
+\end{figure}
+
+O módulo de gerenciamento de usuários (Figura \ref{fig:user-management}) representa expansão significativa das capacidades administrativas do SISDEF 3.0. A interface permite visualização consolidada de todos os usuários cadastrados no sistema, com filtragem dinâmica por perfil (Todos, Administrador, Professor, Aluno) através de tabs na parte superior.
+
+A listagem exibe informações críticas em formato tabular: nome completo, email institucional, matrícula (quando aplicável), e função atual no sistema. O botão de ações (\texttt{...}) em cada linha permite operações administrativas como alteração de permissões, reset de senha, e desativação de conta. A funcionalidade de busca no topo permite localização rápida de usuários específicos através de nome, email ou matrícula.
+
+Uma inovação importante é o botão \textit{Convites para Professores} no canto superior direito, que permite administradores gerarem links de convite para docentes externos ao sistema. Quando um docente acessa o link de convite, suas informações básicas (nome e email) são pré-preenchidas no formulário de registro, simplificando o processo de onboarding e reduzindo fricção no cadastro de novos membros de banca.
+
+\subsubsection{Detalhamento de Informações de Banca}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\linewidth]{Imagens/telas/tela-de-com-informacao-de-bancas.png}
+  \caption{Tela de detalhes de uma banca específica, consolidando todas as informações cadastradas e permitindo operações contextuais.}
+  \label{fig:banca-details}
+\end{figure}
+
+A tela de detalhes de banca (Figura \ref{fig:banca-details}) apresenta visão consolidada de todas as informações relacionadas a uma defesa específica. O layout foi projetado seguindo princípios de hierarquia visual, com agrupamento lógico de informações relacionadas: dados básicos do trabalho (título, resumo, abstract), informações do autor (nome, matrícula), composição da banca (orientador, coorientador, avaliadores), metadados acadêmicos (curso, tipo, palavras-chave), e informações de agendamento (data, horário, local, link virtual).
+
+Para usuários com permissões apropriadas (orientador da banca, administradores), a tela oferece ações contextuais através de botões no cabeçalho: edição de informações, geração de documentos (formulário de avaliação, declarações), e gerenciamento de notas dos avaliadores. Esta concentração de funcionalidades relacionadas em uma única tela reduz necessidade de navegação entre múltiplas páginas, otimizando eficiência em tarefas administrativas frequentes.
+
+\subsubsection{Perfil e Configurações Pessoais}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\linewidth]{Imagens/telas/tela-de-perfil-do-usuario.png}
+  \caption{Tela de perfil do usuário permitindo visualização e edição de dados pessoais, aumentando autonomia dos usuários.}
+  \label{fig:user-profile}
+\end{figure}
+
+A tela de perfil (Figura \ref{fig:user-profile}) oferece aos usuários capacidade de visualizar e editar seus próprios dados cadastrais sem necessidade de intervenção administrativa. Esta funcionalidade, inexistente no SISDEF 1.0 e limitada no SISDEF 2.0, reduz carga sobre administradores do sistema e aumenta autonomia dos usuários.
+
+O formulário permite atualização de informações como nome completo, email institucional, e matrícula. Para professores, campos adicionais incluem titulação acadêmica e área de atuação, informações utilizadas na geração de documentos oficiais. A validação de dados ocorre tanto no frontend (feedback imediato através de mensagens de erro) quanto no backend (garantindo integridade dos dados persistidos).
+
+\subsubsection{Funcionalidades Administrativas Adicionais}
+
+Além das telas apresentadas, o SISDEF 3.0 inclui módulos administrativos para gerenciamento de cursos e pré-cadastro de docentes. O módulo de gerenciamento de cursos exemplifica a transição do SISDEF 2.0 (lista fixa codificada) para o SISDEF 3.0 (configuração dinâmica através de interface administrativa). Administradores podem adicionar novos cursos através de formulário que coleta nome, sigla, e status ativo/inativo, com listagem em formato tabular permitindo operações de edição e exclusão. Esta flexibilidade permite que o sistema seja facilmente adaptado para outros departamentos da UFBA ou outras instituições sem necessidade de alterações no código-fonte, aumentando substancialmente a reusabilidade da solução.
+
+A funcionalidade de pré-cadastro de docentes, introduzida no SISDEF 2.0 e refinada no SISDEF 3.0, suporta cenários onde membros externos à instituição precisam ser rapidamente integrados como avaliadores de banca. Administradores fornecem nome completo e email do docente, e o sistema automaticamente gera credenciais temporárias e envia email de notificação com instruções de primeiro acesso. Esta funcionalidade é particularmente valiosa em períodos de pico de defesas (final de semestre), quando múltiplas bancas precisam ser formadas rapidamente e a espera por auto-registro de professores externos introduziria delays inaceitáveis no processo.
+
 % ------------------------ Experimental Evaluation ------------------------
 
 \section{Métricas de Utilização da Plataforma}
