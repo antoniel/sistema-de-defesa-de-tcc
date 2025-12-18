@@ -27,7 +27,11 @@ export const useDeleteBanca = () => {
   return useMutation({
     mutationFn: async (id: string) => {
       const res = await apiClient.banca[":id"].$delete({ param: { id } })
-      return rpcReturn(res as any)
+      // DELETE geralmente retorna 204 No Content, não precisa fazer parse do JSON
+      if (!res.ok) {
+        throw new Error("Erro ao excluir banca")
+      }
+      return
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["bancas"] })
