@@ -74,7 +74,23 @@ export default function BancaDetalhesPage() {
 
   const handleDelete = () => {
     if (!id) return
-    deleteBancaMutation.mutate(id)
+    deleteBancaMutation.mutate(id, {
+      onSuccess: () => {
+        toast({
+          title: "Banca excluída com sucesso",
+          description: "A banca foi excluída permanentemente",
+        })
+        navigate("/")
+      },
+      onError: (error: any) => {
+        console.error("Erro ao excluir banca:", error)
+        toast({
+          title: "Erro ao excluir banca",
+          description: error?.message || "Ocorreu um erro ao tentar excluir a banca",
+          variant: "destructive",
+        })
+      },
+    })
   }
 
   if (error || !banca) {
