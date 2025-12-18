@@ -88,6 +88,7 @@ export default function AddBancaPage() {
       periodoAcademico: defaultPeriodoAcademico,
       autor: user?.nome,
       matricula: user?.matricula,
+      alunoId: user?.id,
       cursoId: undefined,
     },
     mode: "onBlur",
@@ -97,6 +98,10 @@ export default function AddBancaPage() {
     if (user) {
       form.setValue("autor", user.nome)
       form.setValue("matricula", user.matricula)
+      // Se for aluno, fixar o alunoId
+      if (user.role === "STUDENT") {
+        form.setValue("alunoId", user.id)
+      }
     }
   }, [user])
 
@@ -137,19 +142,29 @@ export default function AddBancaPage() {
           navigate("/")
         },
         onError: (error: any) => {
+          console.error("Erro ao cadastrar defesa:", error)
+
+          // Tentar extrair mensagem de erro de diferentes estruturas
+          let errorMessage = "Ocorreu um erro ao cadastrar a defesa"
+
           if (error?.message) {
-            toast({
-              title: "Erro ao cadastrar defesa ",
-              description: error.message,
-              variant: "destructive",
-            })
-          } else {
-            toast({
-              title: "Erro ao cadastrar defesa ❌",
-              description: "Ocorreu um erro ao cadastrar a defesa",
-              variant: "destructive",
-            })
+            errorMessage = error.message
+          } else if (error?.error?.issues && Array.isArray(error.error.issues)) {
+            // Erro de validação Zod
+            const issues = error.error.issues.map((issue: any) => {
+              const path = issue.path.join(".")
+              return `${path}: ${issue.message}`
+            }).join(", ")
+            errorMessage = issues
+          } else if (typeof error === "string") {
+            errorMessage = error
           }
+
+          toast({
+            title: "Erro ao cadastrar defesa ❌",
+            description: errorMessage,
+            variant: "destructive",
+          })
         },
       }
     )
@@ -175,7 +190,7 @@ export default function AddBancaPage() {
       case 0:
         return ["tituloTrabalho", "resumo", "abstract"]
       case 1:
-        return ["autor", "matricula", "orientadorId"]
+        return ["autor", "matricula", "orientadorId", "alunoId"]
       case 2:
         return [
           "palavrasChave",
@@ -368,6 +383,8 @@ const BasicInfoSection = () => {
 
 const AuthorInfoSection = () => {
   const isUserTeacher = useIsTeacher()
+  const { data: user } = useUser()
+  const isUserStudent = user?.role === "STUDENT"
   const [searchTerm, setSearchTerm] = useState("")
   const {
     register,
@@ -399,59 +416,87 @@ const AuthorInfoSection = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <Label htmlFor="autor">Aluno</Label>
-          <Controller
-            name="autor"
-            control={control}
-            rules={{ required: "Aluno é obrigatório" }}
-            render={({ field }) => (
-              <Select
-                onValueChange={(value) => {
-                  const student = studentsQuery.data?.find((student) => student.id.toString() === value)
-                  if (student) {
-                    field.onChange(student.nome)
-                    setValue("matricula", student.matricula)
-                    setValue("alunoId", Number(value))
-                    setSearchTerm("")
-                  }
+          {isUserStudent ? (
+            <>
+              <Input
+                id="autor"
+                {...register("autor")}
+                value={user?.nome || ""}
+                disabled
+                className="bg-muted"
+              />
+              <Controller
+                name="alunoId"
+                control={control}
+                rules={{ required: "ID do aluno é obrigatório" }}
+                render={({ field }) => {
+                  // Garantir que o alunoId seja definido quando o usuário for aluno
+                  React.useEffect(() => {
+                    if (user?.id && !field.value) {
+                      field.onChange(user.id)
+                    }
+                  }, [user?.id, field.value])
+
+                  return <input type="hidden" {...field} value={field.value || user?.id || ""} />
                 }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o aluno..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <div className="p-2 border-b sticky top-0 bg-background z-10">
-                    <Input
-                      placeholder="Buscar aluno..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      onKeyDown={(e) => e.stopPropagation()}
-                      className="bg-background"
-                    />
-                  </div>
-                  {studentsQuery.isLoading ? (
-                    <SelectItem value="0" disabled>
-                      Carregando alunos...
-                    </SelectItem>
-                  ) : studentsQuery.error ? (
-                    <SelectItem value="0" disabled>
-                      Erro ao carregar alunos
-                    </SelectItem>
-                  ) : filteredStudents.length > 0 ? (
-                    filteredStudents.map((student) => (
-                      <SelectItem key={student.id} value={student.id.toString()}>
-                        {student.nome} - ({student.email})
+              />
+            </>
+          ) : (
+            <Controller
+              name="autor"
+              control={control}
+              rules={{ required: "Aluno é obrigatório" }}
+              render={({ field }) => (
+                <Select
+                  onValueChange={(value) => {
+                    const student = studentsQuery.data?.find((student) => student.id.toString() === value)
+                    if (student) {
+                      field.onChange(student.nome)
+                      setValue("matricula", student.matricula)
+                      setValue("alunoId", Number(value))
+                      setSearchTerm("")
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o aluno..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <div className="p-2 border-b sticky top-0 bg-background z-10">
+                      <Input
+                        placeholder="Buscar aluno..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        className="bg-background"
+                      />
+                    </div>
+                    {studentsQuery.isLoading ? (
+                      <SelectItem value="0" disabled>
+                        Carregando alunos...
                       </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="0" disabled>
-                      {searchTerm ? "Nenhum aluno encontrado para a busca" : "Nenhum aluno encontrado"}
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            )}
-          />
+                    ) : studentsQuery.error ? (
+                      <SelectItem value="0" disabled>
+                        Erro ao carregar alunos
+                      </SelectItem>
+                    ) : filteredStudents.length > 0 ? (
+                      filteredStudents.map((student) => (
+                        <SelectItem key={student.id} value={student.id.toString()}>
+                          {student.nome} - ({student.email})
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="0" disabled>
+                        {searchTerm ? "Nenhum aluno encontrado para a busca" : "Nenhum aluno encontrado"}
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          )}
           {errors.autor && <p className="text-sm text-red-600 mt-1">{errors.autor.message}</p>}
+          {errors.alunoId && <p className="text-sm text-red-600 mt-1">{errors.alunoId.message}</p>}
         </div>
         <div>
           <Label htmlFor="matricula">Matrícula</Label>
