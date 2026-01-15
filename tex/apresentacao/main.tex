@@ -11,6 +11,7 @@
 \usepackage{amssymb}
 \usepackage{textcomp}
 \usepackage{url}
+\usepackage{tikz}
 
 % ------------------------------------------------
 % Tema e Configurações do Beamer
@@ -40,6 +41,18 @@
 %-------------------------------------------------
 \begin{frame}[plain,noframenumbering]
     \titlepage
+    
+    \begin{tikzpicture}[remember picture,overlay]
+        \node[anchor=south, yshift=1cm] at (current page.south) {
+            \begin{minipage}{\textwidth}
+                \centering
+                \normalsize
+                Orientador: Prof. Frederico Araújo Durão \\
+                Universidade Federal da Bahia \\
+                Janeiro de 2026
+            \end{minipage}
+        };
+    \end{tikzpicture}
 \end{frame}
 
 %-------------------------------------------------
@@ -50,6 +63,7 @@
 \end{frame}
 
 \setlength{\parskip}{1em}
+\setbeamerfont{frametitle}{size=\normalsize}
 
 %=================================================
 \section{Contexto e Problema}
@@ -118,6 +132,12 @@
 \section{Evolução do SISDEF}
 %=================================================
 
+\begin{frame}[plain]
+    \begin{center}
+        \Huge Evolução do SISDEF
+    \end{center}
+\end{frame}
+
 \begin{frame}{SISDEF 1.0 (2022)}
     \textbf{Autor:} Gabriel Goulart Roque Macedo Santana
     
@@ -174,6 +194,12 @@
 \section{Reescrita do Sistema}
 %=================================================
 
+\begin{frame}[plain]
+    \begin{center}
+        \Huge Reescrita do Sistema
+    \end{center}
+\end{frame}
+
 \begin{frame}{Decisão: Reescrita vs Manutenção Incremental}
     \textbf{Análise:}
     \begin{itemize}
@@ -221,213 +247,23 @@
     \vspace{0.5em}
     \textbf{Por que isso importa?}
     \begin{itemize}
+        \item  Comunidade ativa
         \item  Maior pool de desenvolvedores
         \item  Mais recursos educacionais
-        \item  Comunidade ativa
         \item  Baixa barreira de entrada
     \end{itemize}
     
 \end{frame}
 
 %=================================================
-\section{Funcionalidades Principais}
-%=================================================
-
-\begin{frame}{Multi-Step Wizard para Criação de Bancas}
-    \textbf{Problema das versões anteriores:}
-    \begin{itemize}
-        \item Formulário único extenso
-        \item Sobrecarga cognitiva
-        \item Alto índice de erros no preenchimento
-    \end{itemize}
-    
-    \vspace{0.5em}
-    \textbf{Solução - 5 Etapas Sequenciais:}
-    \begin{enumerate}
-        \item Informações Básicas
-        \item Informações do Autor
-        \item Avaliadores da Banca
-        \item Metadados Acadêmicos
-        \item Revisão e Confirmação
-    \end{enumerate}
-    
-    \vspace{0.5em}
-    \textbf{Benefícios UX:}
-    \begin{itemize}
-        \item  Reduz carga cognitiva
-        \item  Indicador visual de progresso
-        \item  Validação por etapa
-    \end{itemize}
-\end{frame}
-
-\begin{frame}{Multi-Step Wizard: Etapa 1 - Informações Básicas}
-    \begin{center}
-        \includegraphics[width=0.9\textwidth]{multi-step-criacao-de-banca-1.png}
-    \end{center}
-    \vspace{0.3em}
-    \small
-    Primeira etapa: título, resumo, abstract e controle de visibilidade pública
-\end{frame}
-
-\begin{frame}{Multi-Step Wizard: Etapa 2 - Informações do Autor}
-    \begin{center}
-        \includegraphics[width=0.9\textwidth]{multi-step-criacao-de-banca-2.png}
-    \end{center}
-    \vspace{0.3em}
-    \small
-    Segunda etapa: dados do discente e seleção de orientador e coorientador
-\end{frame}
-
-\begin{frame}{Multi-Step Wizard: Etapa 3 - Avaliadores}
-    \begin{center}
-        \includegraphics[width=0.9\textwidth]{multi-step-criacao-de-banca-3.png}
-    \end{center}
-    \vspace{0.3em}
-    \small
-    Terceira etapa: seleção de avaliadores internos e externos
-\end{frame}
-
-\begin{frame}{Multi-Step Wizard: Etapa 4 - Metadados Acadêmicos}
-    \begin{center}
-        \includegraphics[width=0.9\textwidth]{multi-step-criacao-de-banca-4.png}
-    \end{center}
-    \vspace{0.3em}
-    \small
-    Quarta etapa: curso, tipo de trabalho, palavras-chave e área de concentração
-\end{frame}
-
-\begin{frame}{Multi-Step Wizard: Etapa 5 - Revisão e Confirmação}
-    \begin{center}
-        \includegraphics[width=0.9\textwidth]{multi-step-criacao-de-banca-resumo.png}
-    \end{center}
-    \vspace{0.3em}
-    \small
-    Quinta etapa: sumário consolidado de todas as informações antes da submissão
-\end{frame}
-
-\begin{frame}{Tela Inicial: Funcionalidades}
-    \textbf{Interface Principal:}
-    \begin{itemize}
-        \item Organização cronológica automática:
-        \begin{itemize}
-            \item \textbf{Próximas defesas} (ordem ascendente)
-            \item \textbf{Defesas anteriores} (ordem descendente)
-        \end{itemize}
-    \end{itemize}
-    
-    \vspace{0.5em}
-    \textbf{Funcionalidades de Busca:}
-    \begin{itemize}
-        \item Filtro por múltiplos critérios (título, discente, orientador, avaliador)
-        \item Paginação configurável (10/25/50 itens)
-        \item Ordenação por múltiplas colunas
-    \end{itemize}
-    
-    \vspace{0.5em}
-    \textbf{Melhoria vs SISDEF 2.0:}
-    \begin{itemize}
-        \item Busca expandida (antes: só por título)
-        \item Performance superior (paginação eficiente)
-    \end{itemize}
-\end{frame}
-
-\begin{frame}{Tela Inicial e Visualização de Defesas}
-    \begin{center}
-        \includegraphics[width=0.95\textwidth]{tela-inicial-com-bancas-passadas-e-bancas-futuras.png}
-    \end{center}
-\end{frame}
-
-
-\begin{frame}{Gerenciamento Administrativo de Usuários}
-    \begin{center}
-        \includegraphics[width=0.95\textwidth]{gerenciamento-de-usuarios.png}
-    \end{center}
-\end{frame}
-\begin{frame}{Gerenciamento de Usuários: Funcionalidades}
-    \textbf{Painel de Usuários:}
-    \begin{itemize}
-        \item Visualização consolidada
-        \item Filtros dinâmicos por perfil (tabs)
-        \item Busca por nome/email/matrícula
-        \item Ações administrativas (alteração de permissões, reset de senha)
-    \end{itemize}
-    
-    \vspace{0.5em}
-    \textbf{Convite de Professores Externos (Inovação):}
-    \begin{itemize}
-        \item Geração de links únicos de convite
-        \item Pré-preenchimento automático de dados
-        \item Email com instruções de primeiro acesso
-        \item \textbf{Impacto}: Formação rápida de bancas com externos
-    \end{itemize}
-\end{frame}
-
-
-\begin{frame}{Geração de Documentos PDF}
-    \textbf{3 Tipos de Documentos (baseados em templates oficiais UFBA):}
-    \begin{enumerate}
-        \item \textbf{Formulário de Avaliação}
-        \begin{itemize}
-            \item Para registro de notas por cada avaliador
-            \item Pré-preenchido com dados da banca
-        \end{itemize}
-        \item \textbf{Declaração de Participação}
-        \begin{itemize}
-            \item Para membros da banca
-            \item Comprovação de atuação como avaliador
-        \end{itemize}
-        \item \textbf{Declaração de Orientação}
-        \begin{itemize}
-            \item Para orientadores
-            \item Comprovação de orientação do trabalho
-        \end{itemize}
-    \end{enumerate}
-    
-    \textbf{Impacto:}
-    \begin{itemize}
-        \item Elimina tarefa altamente repetitiva
-        \item Reduz erros humanos no preenchimento
-        \item Economiza tempo de docentes
-    \end{itemize}
-\end{frame}
-
-\begin{frame}{Detalhamento de Informações de Banca}
-    \begin{center}
-        \includegraphics[width=0.95\textwidth]{tela-de-com-informacao-de-bancas.png}
-    \end{center}
-\end{frame}
-
-\begin{frame}{Detalhes de Banca: Funcionalidades}
-    \textbf{Tela Consolidada:}
-    \begin{itemize}
-        \item Agrupamento lógico de informações:
-        \begin{itemize}
-            \item Dados básicos do trabalho (título, resumo, abstract)
-            \item Informações do autor (nome, matrícula)
-            \item Composição da banca (orientador, coorientador, avaliadores)
-            \item Metadados acadêmicos (curso, tipo, palavras-chave)
-            \item Agendamento (data, horário, local, link virtual)
-        \end{itemize}
-    \end{itemize}
-    
-    \vspace{0.5em}
-    \textbf{Ações Contextuais (para usuários autorizados):}
-    \begin{itemize}
-        \item Edição de informações
-        \item Geração de documentos
-        \item Gerenciamento de notas dos avaliadores
-    \end{itemize}
-\end{frame}
-
-\begin{frame}{Perfil e Configurações Pessoais}
-    \begin{center}
-        \includegraphics[width=0.95\textwidth]{tela-de-perfil-do-usuario.png}
-    \end{center}
-\end{frame}
-
-%=================================================
 \section{Arquitetura e Contribuições Técnicas}
 %=================================================
+
+\begin{frame}[plain]
+    \begin{center}
+        \Huge Arquitetura e Contribuições Técnicas
+    \end{center}
+\end{frame}
 
 \begin{frame}{Arquitetura Modular por Domínio}
     \small
@@ -477,10 +313,10 @@
     \vspace{0.5em}
     \textbf{Impactos:}
     \begin{itemize}
+        \item  \textbf{Elimina classe inteira de erros}
         \item  Contratos validados em compile-time
         \item  Autocompletar completo no frontend
         \item  Refatoração segura
-        \item  \textbf{Elimina classe inteira de erros}
     \end{itemize}
 \end{frame}
 
@@ -502,7 +338,7 @@
         \textbf{Testes Unitários (Vitest):}
         \begin{itemize}
             \item Foco: Lógica de negócio isolada
-            \item Execução rápida (JIT TypeScript)
+            \item Execução rápida
             \item Watch mode inteligente
         \end{itemize}
         
@@ -525,8 +361,204 @@
 \end{frame}
 
 %=================================================
+\section{Funcionalidades Principais}
+%=================================================
+
+\begin{frame}[plain]
+    \begin{center}
+        \Huge Funcionalidades Principais
+    \end{center}
+\end{frame}
+
+
+\begin{frame}{Tela Inicial: Funcionalidades}
+    \textbf{Interface Principal:}
+    \begin{itemize}
+        \item Organização cronológica automática:
+        \begin{itemize}
+            \item \textbf{Próximas defesas} (ordem ascendente)
+            \item \textbf{Defesas anteriores} (ordem descendente)
+        \end{itemize}
+    \end{itemize}
+    
+    \vspace{0.5em}
+    \textbf{Funcionalidades de Busca:}
+    \begin{itemize}
+        \item Filtro por múltiplos critérios (título, discente, orientador, avaliador)
+        \item Paginação configurável (10/25/50 itens)
+        \item Ordenação por múltiplas colunas
+    \end{itemize}
+    
+    \vspace{0.5em}
+    \textbf{Melhoria vs SISDEF 2.0:}
+    \begin{itemize}
+        \item Busca expandida (antes: só por título)
+        \item Performance superior (paginação eficiente)
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Tela Inicial e Visualização de Defesas}
+    \begin{center}
+        \includegraphics[width=0.95\textwidth]{tela-inicial-com-bancas-passadas-e-bancas-futuras.png}
+    \end{center}
+\end{frame}
+
+
+\begin{frame}{Gerenciamento de Usuários: Funcionalidades}
+    \textbf{Painel de Usuários:}
+    \begin{itemize}
+        \item Visualização consolidada
+        \item Filtros dinâmicos por perfil (tabs)
+        \item Busca por nome/email/matrícula
+        \item Ações administrativas (alteração de permissões, reset de senha)
+    \end{itemize}
+    
+    \vspace{0.5em}
+    \textbf{Convite de Professores Externos:}
+    \begin{itemize}
+        \item Geração de links únicos de convite
+        \item Pré-preenchimento automático de dados
+        \item Email com instruções de primeiro acesso
+        \item \textbf{Impacto}: Formação rápida de bancas com externos
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Gerenciamento Administrativo de Usuários}
+    \begin{center}
+        \includegraphics[width=0.95\textwidth]{gerenciamento-de-usuarios.png}
+    \end{center}
+\end{frame}
+
+\begin{frame}{Geração de Documentos PDF}
+    \textbf{3 Tipos de Documentos (baseados em templates oficiais UFBA):}
+    \begin{enumerate}
+        \item \textbf{Formulário de Avaliação}
+        \begin{itemize}
+            \item Para registro de notas por cada avaliador
+            \item Pré-preenchido com dados da banca
+        \end{itemize}
+        \item \textbf{Declaração de Participação}
+        \begin{itemize}
+            \item Para membros da banca
+            \item Comprovação de atuação como avaliador
+        \end{itemize}
+        \item \textbf{Declaração de Orientação}
+        \begin{itemize}
+            \item Para orientadores
+            \item Comprovação de orientação do trabalho
+        \end{itemize}
+    \end{enumerate}
+\end{frame}
+
+
+\begin{frame}{Detalhes de Banca: Funcionalidades}
+    \textbf{Tela Consolidada:}
+    \begin{itemize}
+        \item Agrupamento lógico de informações:
+        \begin{itemize}
+            \item Dados básicos do trabalho (título, resumo, abstract)
+            \item Informações do autor (nome, matrícula)
+            \item Composição da banca (orientador, coorientador, avaliadores)
+            \item Metadados acadêmicos (curso, tipo, palavras-chave)
+            \item Agendamento (data, horário, local, link virtual)
+        \end{itemize}
+    \end{itemize}
+    
+    \vspace{0.5em}
+    \textbf{Ações Contextuais (para usuários autorizados):}
+    \begin{itemize}
+        \item Edição de informações
+        \item Geração de documentos
+        \item Gerenciamento de notas dos avaliadores
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Detalhamento de Informações de Banca}
+    \begin{center}
+        \includegraphics[width=0.95\textwidth]{tela-de-com-informacao-de-bancas.png}
+    \end{center}
+\end{frame}
+\begin{frame}{Perfil e Configurações Pessoais}
+    \begin{center}
+        \includegraphics[width=0.95\textwidth]{tela-de-perfil-do-usuario.png}
+    \end{center}
+\end{frame}
+
+\begin{frame}{Formulário Multi-Etapas para Criação de Bancas}
+    \textbf{Problema das versões anteriores:}
+    \begin{itemize}
+        \item Formulário único extenso
+        \item Sobrecarga cognitiva
+        \item Alto índice de erros no preenchimento
+    \end{itemize}
+    
+    \vspace{0.5em}
+    \textbf{Solução - 5 Etapas Sequenciais:}
+    \begin{enumerate}
+        \item Informações Básicas
+        \item Informações do Autor
+        \item Avaliadores da Banca
+        \item Metadados Acadêmicos
+        \item Revisão e Confirmação
+    \end{enumerate}
+ 
+\end{frame}
+
+\begin{frame}{Formulário Multi-Etapas: Informações Básicas}
+    \begin{center}
+        \includegraphics[width=0.9\textwidth]{multi-step-criacao-de-banca-1.png}
+    \end{center}
+    \vspace{0.3em}
+    \small
+    Primeira etapa: título, resumo, abstract e controle de visibilidade pública
+\end{frame}
+
+\begin{frame}{Formulário Multi-Etapas: Informações do Autor}
+    \begin{center}
+        \includegraphics[width=0.9\textwidth]{multi-step-criacao-de-banca-2.png}
+    \end{center}
+    \vspace{0.3em}
+    \small
+    Segunda etapa: dados do discente e seleção de orientador e coorientador
+\end{frame}
+
+\begin{frame}{Formulário Multi-Etapas: Avaliadores}
+    \begin{center}
+        \includegraphics[width=0.9\textwidth]{multi-step-criacao-de-banca-3.png}
+    \end{center}
+    \vspace{0.3em}
+    \small
+    Terceira etapa: seleção de avaliadores internos e externos
+\end{frame}
+
+\begin{frame}{Formulário Multi-Etapas: Metadados Acadêmicos}
+    \begin{center}
+        \includegraphics[width=0.9\textwidth]{multi-step-criacao-de-banca-4.png}
+    \end{center}
+    \vspace{0.3em}
+    \small
+    Quarta etapa: curso, tipo de trabalho, palavras-chave e área de concentração
+\end{frame}
+
+\begin{frame}{Formulário Multi-Etapas: Revisão e Confirmação}
+    \begin{center}
+        \includegraphics[width=0.9\textwidth]{multi-step-criacao-de-banca-resumo.png}
+    \end{center}
+    \vspace{0.3em}
+    \small
+    Quinta etapa: sumário consolidado de todas as informações antes da submissão
+\end{frame}
+
+%=================================================
 \section{Impacto e Conclusão}
 %=================================================
+
+\begin{frame}[plain]
+    \begin{center}
+        \Huge Impacto e Conclusão
+    \end{center}
+\end{frame}
+
 \begin{frame}{Foco em Qualidade de Software}
     \begin{itemize}
         \item \textbf{Manutenibilidade}: Código limpo, modular
@@ -539,8 +571,8 @@
     \textbf{Não foi apenas modernização tecnológica:}
     \begin{itemize}
         \item Foi \textbf{reengenharia arquitetural} focada em sustentabilidade
-        \item Decisões baseadas em \textbf{dados}, não preferências pessoais
         \item Investimento em \textbf{qualidade} para ganhos de longo prazo
+        \item Decisões baseadas em \textbf{dados}
     \end{itemize}
 \end{frame}
 \begin{frame}{Antes vs Depois}
@@ -587,15 +619,6 @@
     \end{itemize}
 \end{frame}
 
-\begin{frame}{Mensagem Central}
-    \textbf{Modelo para Sistemas Acadêmicos:}
-    \begin{itemize}
-        \item Decisão entre evolução incremental vs reescrita completa
-        \item Investimento em arquitetura sólida se justifica
-        \item Práticas modernas de engenharia de software
-        \item Ganhos de manutenibilidade a longo prazo
-    \end{itemize}
-\end{frame}
 
 \begin{frame}{Perguntas e Comentários}
     \begin{center}
