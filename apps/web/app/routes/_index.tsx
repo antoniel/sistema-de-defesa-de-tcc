@@ -14,12 +14,23 @@ import { useEffect, useState } from "react"
 import { href, useNavigate } from "react-router"
 import { match } from "ts-pattern"
 
-import { useMyDefesas, usePastBancasDefesa, useUpcomingBancasDefesa } from "@/hooks"
+import { useBancasQueParticipei, useMyDefesas, usePastBancasDefesa, useUpcomingBancasDefesa } from "@/hooks"
 import type { Route } from "./+types/_index"
 
 export const meta: Route.MetaFunction = () => [{ title: "SISDEF" }]
 
 type BancasDefesa = ReturnType<typeof useUpcomingBancasDefesa>["data"] & {}
+
+// Tipo mínimo para renderizar tabela (sem membros)
+type BancaTableItem = {
+  id: number
+  dataRealizacao: string | Date
+  tituloTrabalho: string
+  autor: string
+  local: string | null
+  orientador: { nome: string }
+  curso: { sigla: string }
+}
 
 export default function Home() {
   const navigate = useNavigate()
@@ -67,9 +78,14 @@ export default function Home() {
               Defesas
             </TabsTrigger>
             {isTeacherOrAdmin && (
-              <TabsTrigger value="my-defesas" data-testid="my-defesas-tab">
-                Minhas defesas
-              </TabsTrigger>
+              <>
+                <TabsTrigger value="my-defesas" data-testid="my-defesas-tab">
+                  Minhas defesas
+                </TabsTrigger>
+                <TabsTrigger value="my-participations" data-testid="my-participations-tab">
+                  Participações
+                </TabsTrigger>
+              </>
             )}
           </TabsList>
           <div className="flex items-center gap-2 whitespace-nowrap">
@@ -100,13 +116,22 @@ export default function Home() {
           rowsPerPage={rowsPerPage}
         />
         {isTeacherOrAdmin && (
-          <MyDefensesTab
-            searchQuery={searchQuery}
-            sortField={sortField}
-            sortOrder={sortOrder}
-            onSort={handleSort}
-            rowsPerPage={rowsPerPage}
-          />
+          <>
+            <MyDefensesTab
+              searchQuery={searchQuery}
+              sortField={sortField}
+              sortOrder={sortOrder}
+              onSort={handleSort}
+              rowsPerPage={rowsPerPage}
+            />
+            <MyParticipationsTab
+              searchQuery={searchQuery}
+              sortField={sortField}
+              sortOrder={sortOrder}
+              onSort={handleSort}
+              rowsPerPage={rowsPerPage}
+            />
+          </>
         )}
       </Tabs>
     </div>
@@ -439,6 +464,94 @@ function MyDefensesTab(props: MyDefensesTabProps) {
   )
 }
 
+interface MyParticipationsTabProps {
+  searchQuery: string
+  sortField: string
+  sortOrder: "asc" | "desc"
+  onSort: (field: string) => void
+  rowsPerPage: number
+}
+
+function MyParticipationsTab(props: MyParticipationsTabProps) {
+  const participationsQuery = useBancasQueParticipei(props.searchQuery)
+
+  if (participationsQuery.isLoading) {
+    return (
+      <TabsContent value="my-participations">
+        <div className="border rounded-md p-4">
+          <Skeleton className="h-8 w-full mb-2" />
+          <Skeleton className="h-12 w-full mb-2" />
+          <Skeleton className="h-12 w-full mb-2" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+      </TabsContent>
+    )
+  }
+
+  if (participationsQuery.isError) {
+    return (
+      <TabsContent value="my-participations">
+        <div className="text-red-600 p-4">
+          Erro ao carregar bancas que participei: {participationsQuery.error?.message || "Erro desconhecido"}
+        </div>
+      </TabsContent>
+    )
+  }
+
+  const upcomingData = participationsQuery.data?.upcoming || []
+  const pastData = participationsQuery.data?.past || []
+  const total = participationsQuery.data?.total || 0
+
+  return (
+    <TabsContent value="my-participations">
+      <div className="space-y-4">
+        {upcomingData.length > 0 && (
+          <div>
+            <div className="border rounded-md">
+              <div className="p-4 border-b">
+                <h3 className="text-lg font-semibold">Próximas defesas</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <HomeTable
+                  data={upcomingData}
+                  searchQuery={props.searchQuery}
+                  sortField={props.sortField}
+                  sortOrder={props.sortOrder}
+                  onSort={props.onSort}
+                  rowsPerPage={props.rowsPerPage}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+        <div>
+          <div className="border rounded-md">
+            <div className="p-4 border-b">
+              <h3 className="text-lg font-semibold">Defesas anteriores</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <HomeTable
+                data={pastData}
+                searchQuery={props.searchQuery}
+                sortField={props.sortField}
+                sortOrder={props.sortOrder}
+                onSort={props.onSort}
+                rowsPerPage={props.rowsPerPage}
+              />
+            </div>
+          </div>
+          <div className="flex items-center px-4 pt-2">
+            <div className="text-sm text-muted-foreground">
+              Total: {total} banca{total !== 1 ? "s" : ""}
+              {props.searchQuery && ` para "${props.searchQuery}"`}
+            </div>
+          </div>
+        </div>
+      </div>
+    </TabsContent>
+  )
+}
+
 const columns = [
   { key: "dataRealizacao", header: "Data", minWidth: "100px", sortable: true },
   { key: "tituloTrabalho", header: "Título do Trabalho", minWidth: "350px", sortable: true },
@@ -449,7 +562,7 @@ const columns = [
 ] as const
 
 function HomeTable(props: {
-  data: BancasDefesa["data"]
+  data: BancaTableItem[]
   searchQuery: string
   sortField: string
   sortOrder: "asc" | "desc"
@@ -543,7 +656,7 @@ function HomeTable(props: {
 }
 
 function TableWithInfo(props: {
-  data: BancasDefesa["data"]
+  data: BancaTableItem[]
   searchQuery: string
   sortField: string
   sortOrder: "asc" | "desc"

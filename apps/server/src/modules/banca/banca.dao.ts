@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, ilike, inArray, lt, or, type SQL } from "drizzle-orm"
+import { and, asc, desc, eq, gte, ilike, inArray, lt, ne, or, type SQL } from "drizzle-orm"
 import type { Context } from "hono"
 import type { InferResultType } from "../../database"
 import { Bancas, Cursos, Users, usuariosBancas } from "../../database/schema"
@@ -59,10 +59,7 @@ export class BancaDAO {
   private buildSearchConditionMainTable(searchQuery?: string): SQL | undefined {
     if (!searchQuery) return undefined
 
-    return or(
-      ilike(Bancas.tituloTrabalho, `%${searchQuery}%`),
-      ilike(Bancas.autor, `%${searchQuery}%`)
-    )
+    return or(ilike(Bancas.tituloTrabalho, `%${searchQuery}%`), ilike(Bancas.autor, `%${searchQuery}%`))
   }
 
   /**
@@ -173,7 +170,7 @@ export class BancaDAO {
 
     // Apply date filters
     if (dateFilter?.past) {
-      whereConditionWithJoins = whereConditionWithJoins 
+      whereConditionWithJoins = whereConditionWithJoins
         ? and(whereConditionWithJoins, lt(Bancas.dataRealizacao, new Date()))!
         : lt(Bancas.dataRealizacao, new Date())
       whereConditionMainTable = whereConditionMainTable
@@ -213,7 +210,7 @@ export class BancaDAO {
         .offset(offset)
 
       // Now fetch the full data with relations for the found bancas
-      const bancaIds = bancasResult.map(row => row.banca.id)
+      const bancaIds = bancasResult.map((row) => row.banca.id)
       if (bancaIds.length === 0) return []
 
       const bancasWithRelations = await dbInstance.query.Bancas.findMany({
@@ -258,7 +255,9 @@ export class BancaDAO {
    * Get upcoming bancas (future defenses)
    * If userId and userRole provided, includes invisible bancas where user is a member
    */
-  async getUpcomingBancas(options: BancaQueryOptions & { userId?: number; userRole?: "ADMIN" | "TEACHER" | "STUDENT" }): Promise<{
+  async getUpcomingBancas(
+    options: BancaQueryOptions & { userId?: number; userRole?: "ADMIN" | "TEACHER" | "STUDENT" }
+  ): Promise<{
     bancas: InferResultType<"Bancas", { curso: true; orientador: true; membros: { with: { usuario: true } } }>[]
     total: number
   }> {
@@ -268,10 +267,7 @@ export class BancaDAO {
     if (options.userRole === "ADMIN") {
       const filters = { ...options }
       const bancas = await this.getBancasWithRelations(filters, { upcoming: true })
-      const whereCondition = and(
-        this.buildWhereConditionWithJoins(filters),
-        gte(Bancas.dataRealizacao, new Date())
-      )
+      const whereCondition = and(this.buildWhereConditionWithJoins(filters), gte(Bancas.dataRealizacao, new Date()))
       const totalResult = await dbInstance
         .select({ count: Bancas.id })
         .from(Bancas)
@@ -295,17 +291,12 @@ export class BancaDAO {
       if (userBancaIds.length > 0) {
         const invisibleFilters = { ...options, visible: false }
         const invisibleBancas = await this.getBancasWithRelations(invisibleFilters, { upcoming: true })
-        const userInvisibleBancas = invisibleBancas.filter(b =>
-          userBancaIds.some(ub => ub.bancaId === b.id)
-        )
+        const userInvisibleBancas = invisibleBancas.filter((b) => userBancaIds.some((ub) => ub.bancaId === b.id))
         bancas = [...bancas, ...userInvisibleBancas]
       }
     }
 
-    const whereCondition = and(
-      this.buildWhereConditionWithJoins(filters),
-      gte(Bancas.dataRealizacao, new Date())
-    )
+    const whereCondition = and(this.buildWhereConditionWithJoins(filters), gte(Bancas.dataRealizacao, new Date()))
     const totalResult = await dbInstance
       .select({ count: Bancas.id })
       .from(Bancas)
@@ -320,7 +311,9 @@ export class BancaDAO {
    * Get past bancas (completed defenses)
    * If userId and userRole provided, includes invisible bancas where user is a member
    */
-  async getPastBancas(options: BancaQueryOptions & { userId?: number; userRole?: "ADMIN" | "TEACHER" | "STUDENT" }): Promise<{
+  async getPastBancas(
+    options: BancaQueryOptions & { userId?: number; userRole?: "ADMIN" | "TEACHER" | "STUDENT" }
+  ): Promise<{
     bancas: InferResultType<"Bancas", { curso: true; orientador: true; membros: { with: { usuario: true } } }>[]
     total: number
   }> {
@@ -330,10 +323,7 @@ export class BancaDAO {
     if (options.userRole === "ADMIN") {
       const filters = { ...options }
       const bancas = await this.getBancasWithRelations(filters, { past: true })
-      const whereCondition = and(
-        this.buildWhereConditionWithJoins(filters),
-        lt(Bancas.dataRealizacao, new Date())
-      )
+      const whereCondition = and(this.buildWhereConditionWithJoins(filters), lt(Bancas.dataRealizacao, new Date()))
       const totalResult = await dbInstance
         .select({ count: Bancas.id })
         .from(Bancas)
@@ -357,17 +347,12 @@ export class BancaDAO {
       if (userBancaIds.length > 0) {
         const invisibleFilters = { ...options, visible: false }
         const invisibleBancas = await this.getBancasWithRelations(invisibleFilters, { past: true })
-        const userInvisibleBancas = invisibleBancas.filter(b =>
-          userBancaIds.some(ub => ub.bancaId === b.id)
-        )
+        const userInvisibleBancas = invisibleBancas.filter((b) => userBancaIds.some((ub) => ub.bancaId === b.id))
         bancas = [...bancas, ...userInvisibleBancas]
       }
     }
 
-    const whereCondition = and(
-      this.buildWhereConditionWithJoins(filters),
-      lt(Bancas.dataRealizacao, new Date())
-    )
+    const whereCondition = and(this.buildWhereConditionWithJoins(filters), lt(Bancas.dataRealizacao, new Date()))
     const totalResult = await dbInstance
       .select({ count: Bancas.id })
       .from(Bancas)
@@ -387,17 +372,76 @@ export class BancaDAO {
     total: number
   }> {
     const filters = { ...options }
-    
+
     const [pastBancas, upcomingBancas, total] = await Promise.all([
       this.getBancasWithRelations(options, { past: true }),
       this.getBancasWithRelations(options, { upcoming: true }),
-      this.getTotalCount(filters)
+      this.getTotalCount(filters),
     ])
 
     return {
       past: pastBancas,
       upcoming: upcomingBancas,
-      total
+      total,
+    }
+  }
+
+  /**
+   * Get bancas where user is a member (avaliador) but not orientador
+   * Simplified: query usuariosBancas, join with Bancas + relations, then split past/upcoming
+   */
+  async getBancasByMember(options: BancaQueryOptions & { userId: number }): Promise<{
+    past: InferResultType<"Bancas", { curso: true; orientador: true }>[]
+    upcoming: InferResultType<"Bancas", { curso: true; orientador: true }>[]
+    total: number
+  }> {
+    const dbInstance = this.db("db")
+    const now = new Date()
+
+    // Single query: get all bancas where user is avaliador (not orientador)
+    const bancaIds = await dbInstance
+      .select({ bancaId: usuariosBancas.bancaId })
+      .from(usuariosBancas)
+      .innerJoin(Bancas, eq(usuariosBancas.bancaId, Bancas.id))
+      .where(
+        and(
+          eq(usuariosBancas.usuarioId, options.userId),
+          eq(usuariosBancas.role, "avaliador"),
+          ne(Bancas.orientadorId, options.userId)
+        )
+      )
+
+    if (bancaIds.length === 0) {
+      return { past: [], upcoming: [], total: 0 }
+    }
+
+    const ids = bancaIds.map((b) => b.bancaId)
+
+    // Build search condition
+    let whereCondition: SQL | undefined = inArray(Bancas.id, ids)
+    const searchCondition = this.buildSearchConditionMainTable(options.searchQuery)
+    if (searchCondition) {
+      whereCondition = and(whereCondition, searchCondition)!
+    }
+
+    // Fetch all matching bancas with only needed relations (no membros)
+    const allBancas = await dbInstance.query.Bancas.findMany({
+      where: whereCondition,
+      orderBy: desc(Bancas.dataRealizacao),
+      with: {
+        orientador: true,
+        curso: true,
+      },
+    })
+
+    // Split past/upcoming in memory
+    const past = allBancas.filter((b) => b.dataRealizacao < now)
+    const upcoming = allBancas.filter((b) => b.dataRealizacao >= now).reverse() // ascending order
+
+    return {
+      past,
+      upcoming,
+      total: allBancas.length,
     }
   }
 }
