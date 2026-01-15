@@ -76,6 +76,24 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
       meta: result.data.meta,
     })
   })
+  .get("/my-participations", checkRole(["TEACHER", "ADMIN"]), async (c) => {
+    const userId = c.get("jwtPayload")?.sub
+    if (!userId) {
+      throw new AppError(400, "ID do usuário não fornecido")
+    }
+
+    const searchQuery = c.req.query("searchQuery")
+
+    const result = await service.getBancasByMember(c, Number(userId), searchQuery)
+
+    if (!result.ok) {
+      throw match(result.error)
+        .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar bancas que participei"))
+        .exhaustive()
+    }
+
+    return c.json(result.data)
+  })
   .get("/upcoming", async (c) => {
     const orderBy = c.req.query("orderBy")
     const order = c.req.query("order") as "asc" | "desc" | undefined
