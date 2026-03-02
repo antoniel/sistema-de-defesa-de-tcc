@@ -1,11 +1,5 @@
 import { Header } from "@/components/layout/Header"
-import type { Route } from "./+types/admin.users"
-
-export const meta: Route.MetaFunction = () => [
-  { title: "SISDEF - Gerenciar Usuários" },
-]
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,6 +10,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -36,7 +32,6 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useUser } from "@/services/useUser"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -47,6 +42,9 @@ import { useForm } from "react-hook-form"
 import { Navigate, useNavigate } from "react-router"
 import { match } from "ts-pattern"
 import { z } from "zod"
+import type { Route } from "./+types/admin.users"
+
+export const meta: Route.MetaFunction = () => [{ title: "SISDEF - Gerenciar Usuários" }]
 
 export default function AdminUsersPage() {
   const navigate = useNavigate()
@@ -66,14 +64,17 @@ export default function AdminUsersPage() {
       (user) =>
         user.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.matricula.toLowerCase().includes(searchQuery.toLowerCase())
+        user.matricula.toLowerCase().includes(searchQuery.toLowerCase()),
     )
   }, [allUsersQuery.data, searchQuery])
 
-  const getUsersByRole = React.useCallback((role?: SelectUser['role']) => {
-    if (!role) return filteredUsers
-    return filteredUsers.filter(user => user.role === role)
-  }, [filteredUsers])
+  const getUsersByRole = React.useCallback(
+    (role?: SelectUser["role"]) => {
+      if (!role) return filteredUsers
+      return filteredUsers.filter((user) => user.role === role)
+    },
+    [filteredUsers],
+  )
 
   // Verifica se o usuário é um administrador
   const isAdmin = userQuery.data?.role === "ADMIN"
@@ -149,9 +150,9 @@ export default function AdminUsersPage() {
       <Tabs defaultValue="all" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="all">Todos ({filteredUsers.length})</TabsTrigger>
-          <TabsTrigger value="ADMIN">Administrador ({getUsersByRole('ADMIN').length})</TabsTrigger>
-          <TabsTrigger value="TEACHER">Professor ({getUsersByRole('TEACHER').length})</TabsTrigger>
-          <TabsTrigger value="STUDENT">Aluno ({getUsersByRole('STUDENT').length})</TabsTrigger>
+          <TabsTrigger value="ADMIN">Administrador ({getUsersByRole("ADMIN").length})</TabsTrigger>
+          <TabsTrigger value="TEACHER">Professor ({getUsersByRole("TEACHER").length})</TabsTrigger>
+          <TabsTrigger value="STUDENT">Aluno ({getUsersByRole("STUDENT").length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="mt-6">
@@ -168,7 +169,6 @@ export default function AdminUsersPage() {
           <UserTable
             users={getUsersByRole("ADMIN")}
             searchQuery={searchQuery}
-            currentUserId={userQuery.data?.id}
             onEditUser={handleEditUser}
             onDeleteUser={handleDeleteUser}
           />
@@ -178,7 +178,6 @@ export default function AdminUsersPage() {
           <UserTable
             users={getUsersByRole("TEACHER")}
             searchQuery={searchQuery}
-            currentUserId={userQuery.data?.id}
             onEditUser={handleEditUser}
             onDeleteUser={handleDeleteUser}
           />
@@ -188,7 +187,6 @@ export default function AdminUsersPage() {
           <UserTable
             users={getUsersByRole("STUDENT")}
             searchQuery={searchQuery}
-            currentUserId={userQuery.data?.id}
             onEditUser={handleEditUser}
             onDeleteUser={handleDeleteUser}
           />
@@ -196,7 +194,11 @@ export default function AdminUsersPage() {
       </Tabs>
 
       <EditUserDialog user={editingUser} open={editDialogOpen} onOpenChange={setEditDialogOpen} />
-      <DeleteUserDialog user={userToDelete} open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)} />
+      <DeleteUserDialog
+        user={userToDelete}
+        open={!!userToDelete}
+        onOpenChange={(open) => !open && setUserToDelete(null)}
+      />
     </div>
   )
 }
@@ -210,8 +212,8 @@ function UserTable({
   users,
   searchQuery,
   currentUserId,
-  onEditUser,
   onDeleteUser,
+  onEditUser,
 }: {
   users: UserType[]
   searchQuery: string
@@ -340,7 +342,7 @@ function EditUserDialog({
         onSuccess: () => {
           onOpenChange(false)
         },
-      }
+      },
     )
   }
 
@@ -478,14 +480,18 @@ function DeleteUserDialog({
         onError: (error: Error & { status?: number }) => {
           if (error.status === 400) setShowAssociations(true)
         },
-      }
+      },
     )
   }
 
   if (!user) return null
 
   const associations = associationsQuery.data
-  const hasAssociations = associations && (associations.bancasAsOrientador.length > 0 || associations.bancasAsAluno.length > 0 || associations.membrosEmBancas.length > 0)
+  const hasAssociations =
+    associations &&
+    (associations.bancasAsOrientador.length > 0 ||
+      associations.bancasAsAluno.length > 0 ||
+      associations.membrosEmBancas.length > 0)
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -510,7 +516,9 @@ function DeleteUserDialog({
                   <ul className="mt-2 list-inside space-y-2 text-sm">
                     {associations.bancasAsOrientador.length > 0 && (
                       <li>
-                        <span className="font-medium">Orientador em {associations.bancasAsOrientador.length} banca(s):</span>
+                        <span className="font-medium">
+                          Orientador em {associations.bancasAsOrientador.length} banca(s):
+                        </span>
                         <ul className="ml-4 mt-1 list-disc">
                           {associations.bancasAsOrientador.map((b) => (
                             <li key={b.id}>
@@ -556,7 +564,8 @@ function DeleteUserDialog({
                 <AlertTitle className="font-semibold">Atenção: exclusão em cascata</AlertTitle>
                 <AlertDescription>
                   <p className="font-medium">
-                    Ao clicar em &quot;Excluir mesmo assim&quot;, todas as bancas onde este usuário é orientador ou aluno serão removidas permanentemente.
+                    Ao clicar em &quot;Excluir mesmo assim&quot;, todas as bancas onde este usuário é orientador ou
+                    aluno serão removidas permanentemente.
                   </p>
                   <p className="mt-2">
                     As participações como avaliador ou coorientador serão apenas desvinculadas (as bancas permanecem).
