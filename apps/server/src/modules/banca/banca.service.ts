@@ -62,6 +62,8 @@ type SetBancaGradeError = { type: "banca_not_found" } | { type: "database_error"
 
 type GetBancasByOrientadorError = { type: "database_error"; error: unknown }
 
+type GetBancasByMemberError = { type: "database_error"; error: unknown }
+
 export const getUpcomingBancasVisible = async (
   c: Context<{ Variables: AppVariables }>,
   orderBy?: string,
@@ -1035,6 +1037,36 @@ export const getBancasByOrientador = async (
     })
   } catch (error) {
     console.error("Error fetching bancas by orientador:", error)
+    return err({ type: "database_error", error })
+  }
+}
+
+export const getBancasByMember = async (
+  c: Context<{ Variables: AppVariables }>,
+  userId: number,
+  searchQuery?: string
+): Promise<
+  AppResult<
+    {
+      past: InferResultType<"Bancas", { curso: true; orientador: true }>[]
+      upcoming: InferResultType<"Bancas", { curso: true; orientador: true }>[]
+      total: number
+    },
+    GetBancasByMemberError
+  >
+> => {
+  try {
+    const dao = new BancaDAO(c.get)
+    const result = await dao.getBancasByMember({
+      userId,
+      page: 1,
+      limit: 1000, // No pagination needed - lists are typically small
+      searchQuery,
+    })
+
+    return ok(result)
+  } catch (error) {
+    console.error("Error fetching bancas by member:", error)
     return err({ type: "database_error", error })
   }
 }
