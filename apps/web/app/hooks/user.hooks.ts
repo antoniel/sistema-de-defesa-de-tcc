@@ -87,3 +87,60 @@ export const useStudentsAvailableForBanca = () => {
     },
   })
 }
+
+export type UserAssociations = {
+  bancasAsOrientador: { id: number; tituloTrabalho: string; autor: string }[]
+  bancasAsAluno: { id: number; tituloTrabalho: string; autor: string }[]
+  membrosEmBancas: { bancaId: number; tituloTrabalho: string; role: string }[]
+}
+
+export const useUserAssociations = (userId: number | null) => {
+  return useQuery({
+    queryKey: ["users", "associations", userId],
+    queryFn: async () => {
+      if (!userId) throw new Error("User ID required")
+      const res = await apiClient.usuario[":id"].associations.$get({
+        param: { id: userId.toString() },
+      })
+      return rpcReturn(res) as Promise<UserAssociations>
+    },
+    enabled: !!userId,
+  })
+}
+
+export const useDeleteUser = () => {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+
+  return useMutation({
+    mutationFn: async ({ id, cascade }: { id: number; cascade?: boolean }) => {
+      const res = await apiClient.usuario[":id"].$delete({
+        param: { id: id.toString() },
+        query: { cascade: cascade ? "true" : "false" },
+      })
+      if (!res.ok) {
+        const data = (await res.json()) as { message?: string }
+        const message = data?.message ?? "Erro ao excluir usuário"
+        const error = new Error(message) as Error & { status?: number }
+        error.status = res.status
+        throw error
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users", "all"] })
+      toast({
+        title: "Usuário excluído",
+        description: "O usuário foi removido do sistema com sucesso",
+      })
+    },
+    onError: (error: Error & { status?: number }) => {
+      if (error.status === 400) return
+      const isNotFound = error.status === 404
+      toast({
+        title: isNotFound ? "Usuário não encontrado" : "Erro ao excluir usuário",
+        description: error.message,
+        variant: "destructive",
+      })
+    },
+  })
+}

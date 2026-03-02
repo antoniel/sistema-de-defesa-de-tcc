@@ -2,9 +2,16 @@ import { eq } from "drizzle-orm"
 import { testClient } from "hono/testing"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { app } from "../.."
-import { Users } from "../../database/schema"
+import { Bancas, Cursos, Users, usuariosBancas } from "../../database/schema"
 import { fakeDeps, getFakeDb } from "../../tests/utils"
-import { TEST_ADMIN, TEST_STUDENT, TEST_TEACHER, createTestUserWithPasswordHash, createLoginHelper } from "@tcc/tests"
+import {
+  TEST_ADMIN,
+  TEST_STUDENT,
+  TEST_TEACHER,
+  createLoginHelper,
+  createTestUserWithPasswordHash,
+  getTestBancaData,
+} from "@tcc/tests"
 
 describe("Usuario Routes", async () => {
   const db = await getFakeDb()
@@ -265,5 +272,147 @@ describe("Usuario Routes - Authorization", async () => {
     // Verify the role was NOT changed in the database
     const userAfter = await db.select().from(Users).where(eq(Users.id, userBefore[0].id)).limit(1)
     expect(userAfter[0].role).toBe("STUDENT") // Should remain unchanged
+  })
+})
+
+describe("Admin Delete User [USR-001, USR-002, USR-003, USR-004]", async () => {
+  const db = await getFakeDb()
+  const client = testClient(app(fakeDeps(db)))
+
+  let adminToken: string
+  let teacherToken: string
+
+  beforeEach(async () => {
+    const adminUser = await createTestUserWithPasswordHash(TEST_ADMIN)
+    const teacherUser = await createTestUserWithPasswordHash({
+      ...TEST_TEACHER,
+      email: "teacher@example.com",
+    })
+    const studentUser = await createTestUserWithPasswordHash({
+      ...TEST_STUDENT,
+      email: "student@example.com",
+    })
+    await db.insert(Users).values([adminUser, teacherUser, studentUser])
+
+    const loginUser = createLoginHelper(client)
+    adminToken = await loginUser(TEST_ADMIN)
+    teacherToken = await loginUser({ ...TEST_TEACHER, email: "teacher@example.com" })
+  })
+
+  afterEach(async () => {
+    await db.delete(usuariosBancas)
+    await db.delete(Bancas)
+    await db.delete(Cursos)
+    await db.delete(Users)
+  })
+
+  it("[USR-001] Admin successfully deletes a user with no references", async () => {
+    const [userToDelete] = await db
+      .select()
+      .from(Users)
+      .where(eq(Users.email, "student@example.com"))
+      .limit(1)
+    expect(userToDelete).toBeDefined()
+
+    const res = await client.usuario[":id"].$delete(
+      { param: { id: userToDelete.id.toString() }, query: {} },
+      { headers: { Authorization: `Bearer ${adminToken}` } }
+    )
+
+    expect(res.status).toBe(204)
+
+    const userAfter = await db.select().from(Users).where(eq(Users.id, userToDelete.id)).limit(1)
+    expect(userAfter).toHaveLength(0)
+  })
+
+  it("[USR-002] Admin delete of user with banca references returns 400", async () => {
+    const [teacher] = await db.select().from(Users).where(eq(Users.email, "teacher@example.com")).limit(1)
+    const [student] = await db.select().from(Users).where(eq(Users.email, "student@example.com")).limit(1)
+    const [curso] = await db.insert(Cursos).values({ nome: "BCC", sigla: "BCC" }).returning()
+    await db
+      .insert(Bancas)
+      .values(
+        getTestBancaData(curso.id, teacher.id, student.id)
+
+      )
+
+    const res = await client.usuario[":id"].$delete(
+      { param: { id: teacher.id.toString() }, query: {} },
+      { headers: { Authorization: `Bearer ${adminToken}` } }
+    )
+
+    expect(res.status).toBe(400)
+    const data = await res.json()
+    expect((data as { message?: string }).message).toContain("Usuário referenciado")
+
+    const userAfter = await db.select().from(Users).where(eq(Users.id, teacher.id)).limit(1)
+    expect(userAfter).toHaveLength(1)
+  })
+
+  it("[USR-003] Delete fails when user not found", async () => {
+    const res = await client.usuario[":id"].$delete(
+      { param: { id: "99999" }, query: {} },
+      { headers: { Authorization: `Bearer ${adminToken}` } }
+    )
+
+    expect(res.status).toBe(404)
+    const data = await res.json()
+    expect((data as { message?: string }).message).toContain("não encontrado")
+
+    const userCount = await db.select().from(Users)
+    expect(userCount.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it("[USR-004] Non-admin cannot delete users", async () => {
+    const [userToDelete] = await db
+      .select()
+      .from(Users)
+      .where(eq(Users.email, "student@example.com"))
+      .limit(1)
+
+    const res = await client.usuario[":id"].$delete(
+      { param: { id: userToDelete.id.toString() }, query: {} },
+      { headers: { Authorization: `Bearer ${teacherToken}` } }
+    )
+
+    expect(res.status).toBe(403)
+
+    const userAfter = await db.select().from(Users).where(eq(Users.id, userToDelete.id)).limit(1)
+    expect(userAfter).toHaveLength(1)
+  })
+
+  it("Admin can fetch user associations", async () => {
+    const [teacher] = await db.select().from(Users).where(eq(Users.email, "teacher@example.com")).limit(1)
+    const res = await client.usuario[":id"].associations.$get(
+      { param: { id: teacher.id.toString() } },
+      { headers: { Authorization: `Bearer ${adminToken}` } }
+    )
+    expect(res.status).toBe(200)
+    const data = (await res.json()) as { bancasAsOrientador: unknown[]; bancasAsAluno: unknown[]; membrosEmBancas: unknown[] }
+    expect(data).toHaveProperty("bancasAsOrientador")
+    expect(data).toHaveProperty("bancasAsAluno")
+    expect(data).toHaveProperty("membrosEmBancas")
+  })
+
+  it("Admin can cascade delete user with banca references", async () => {
+    const [teacher] = await db.select().from(Users).where(eq(Users.email, "teacher@example.com")).limit(1)
+    const [student] = await db.select().from(Users).where(eq(Users.email, "student@example.com")).limit(1)
+    const [curso] = await db.insert(Cursos).values({ nome: "CascadeTest", sigla: "CT" }).returning()
+    const [banca] = await db
+      .insert(Bancas)
+      .values(getTestBancaData(curso.id, teacher.id, student.id))
+      .returning()
+
+    const res = await client.usuario[":id"].$delete(
+      { param: { id: teacher.id.toString() }, query: { cascade: "true" } },
+      { headers: { Authorization: `Bearer ${adminToken}` } }
+    )
+    expect(res.status).toBe(204)
+
+    const userAfter = await db.select().from(Users).where(eq(Users.id, teacher.id)).limit(1)
+    expect(userAfter).toHaveLength(0)
+
+    const bancaAfter = await db.select().from(Bancas).where(eq(Bancas.id, banca.id)).limit(1)
+    expect(bancaAfter).toHaveLength(0)
   })
 })

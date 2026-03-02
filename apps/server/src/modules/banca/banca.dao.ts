@@ -263,30 +263,19 @@ export class BancaDAO {
   }> {
     const dbInstance = this.db("db")
 
-    // If admin, show all bancas
-    if (options.userRole === "ADMIN") {
-      const filters = { ...options }
-      const bancas = await this.getBancasWithRelations(filters, { upcoming: true })
-      const whereCondition = and(this.buildWhereConditionWithJoins(filters), gte(Bancas.dataRealizacao, new Date()))
-      const totalResult = await dbInstance
-        .select({ count: Bancas.id })
-        .from(Bancas)
-        .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
-        .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
-        .where(whereCondition)
-      return { bancas, total: totalResult.length }
-    }
-
-    // Get visible bancas
     const filters = { ...options, visible: true }
     let bancas = await this.getBancasWithRelations(filters, { upcoming: true })
 
-    // If userId provided, also get user's invisible bancas
-    if (options.userId) {
+    if (options.userId && options.userRole !== "ADMIN") {
       const userBancaIds = await dbInstance
         .select({ bancaId: usuariosBancas.bancaId })
         .from(usuariosBancas)
-        .where(eq(usuariosBancas.usuarioId, options.userId))
+        .where(
+          and(
+            eq(usuariosBancas.usuarioId, options.userId),
+            ne(usuariosBancas.role, "aluno")
+          )
+        )
 
       if (userBancaIds.length > 0) {
         const invisibleFilters = { ...options, visible: false }
@@ -319,30 +308,19 @@ export class BancaDAO {
   }> {
     const dbInstance = this.db("db")
 
-    // If admin, show all bancas
-    if (options.userRole === "ADMIN") {
-      const filters = { ...options }
-      const bancas = await this.getBancasWithRelations(filters, { past: true })
-      const whereCondition = and(this.buildWhereConditionWithJoins(filters), lt(Bancas.dataRealizacao, new Date()))
-      const totalResult = await dbInstance
-        .select({ count: Bancas.id })
-        .from(Bancas)
-        .leftJoin(Users, eq(Bancas.orientadorId, Users.id))
-        .leftJoin(Cursos, eq(Bancas.cursoId, Cursos.id))
-        .where(whereCondition)
-      return { bancas, total: totalResult.length }
-    }
-
-    // Get visible bancas
     const filters = { ...options, visible: true }
     let bancas = await this.getBancasWithRelations(filters, { past: true })
 
-    // If userId provided, also get user's invisible bancas
-    if (options.userId) {
+    if (options.userId && options.userRole !== "ADMIN") {
       const userBancaIds = await dbInstance
         .select({ bancaId: usuariosBancas.bancaId })
         .from(usuariosBancas)
-        .where(eq(usuariosBancas.usuarioId, options.userId))
+        .where(
+          and(
+            eq(usuariosBancas.usuarioId, options.userId),
+            ne(usuariosBancas.role, "aluno")
+          )
+        )
 
       if (userBancaIds.length > 0) {
         const invisibleFilters = { ...options, visible: false }
