@@ -394,6 +394,91 @@ describe("Admin Delete User [USR-001, USR-002, USR-003, USR-004]", async () => {
     expect(data).toHaveProperty("membrosEmBancas")
   })
 
+  describe("[USR-006, USR-007, USR-009] Admin View User Detail", () => {
+    it("[USR-006] Admin sees user associations (orientador and membro)", async () => {
+      const [teacher] = await db.select().from(Users).where(eq(Users.email, "teacher@example.com")).limit(1)
+      const [student] = await db.select().from(Users).where(eq(Users.email, "student@example.com")).limit(1)
+      const [curso] = await db.insert(Cursos).values({ nome: "BCC", sigla: "BCC" }).returning()
+      const [bancaAsOrientador] = await db
+        .insert(Bancas)
+        .values(getTestBancaData(curso.id, teacher.id, student.id, { tituloTrabalho: "TCC Orientador", autor: "Aluno A" }))
+        .returning()
+      const otherTeacherData = await createTestUserWithPasswordHash({
+        ...TEST_TEACHER,
+        email: "other@example.com",
+        matricula: "444",
+      })
+      const otherStudentData = await createTestUserWithPasswordHash({
+        ...TEST_STUDENT,
+        email: "otherstudent@example.com",
+        matricula: "555",
+      })
+      await db.insert(Users).values([otherTeacherData, otherStudentData])
+      const [otherTeacher] = await db.select().from(Users).where(eq(Users.email, "other@example.com")).limit(1)
+      const [otherStudent] = await db.select().from(Users).where(eq(Users.email, "otherstudent@example.com")).limit(1)
+      const [bancaAsMembro] = await db
+        .insert(Bancas)
+        .values(getTestBancaData(curso.id, otherTeacher.id, otherStudent.id, { tituloTrabalho: "TCC Membro", autor: "Aluno B" }))
+        .returning()
+      await db.insert(usuariosBancas).values({
+        usuarioId: teacher.id,
+        bancaId: bancaAsMembro.id,
+        role: "avaliador",
+      })
+
+      const res = await client.usuario[":id"].associations.$get(
+        { param: { id: teacher.id.toString() } },
+        { headers: { Authorization: `Bearer ${adminToken}` } }
+      )
+
+      expect(res.status).toBe(200)
+      const data = (await res.json()) as {
+        bancasAsOrientador: { id: number; tituloTrabalho: string; autor: string }[]
+        bancasAsAluno: { id: number; tituloTrabalho: string; autor: string }[]
+        membrosEmBancas: { bancaId: number; tituloTrabalho: string; role: string }[]
+      }
+      expect(data.bancasAsOrientador).toHaveLength(1)
+      expect(data.bancasAsOrientador[0].tituloTrabalho).toBe("TCC Orientador")
+      expect(data.bancasAsAluno).toHaveLength(0)
+      expect(data.membrosEmBancas).toHaveLength(1)
+      expect(data.membrosEmBancas[0].tituloTrabalho).toBe("TCC Membro")
+      expect(data.membrosEmBancas[0].role).toBe("avaliador")
+    })
+
+    it("[USR-007] Admin sees empty associations when user has none", async () => {
+      const [newUser] = await db
+        .insert(Users)
+        .values(await createTestUserWithPasswordHash({ ...TEST_STUDENT, email: "newuser@example.com", matricula: "666" }))
+        .returning()
+
+      const res = await client.usuario[":id"].associations.$get(
+        { param: { id: newUser.id.toString() } },
+        { headers: { Authorization: `Bearer ${adminToken}` } }
+      )
+
+      expect(res.status).toBe(200)
+      const data = (await res.json()) as {
+        bancasAsOrientador: unknown[]
+        bancasAsAluno: unknown[]
+        membrosEmBancas: unknown[]
+      }
+      expect(data.bancasAsOrientador).toHaveLength(0)
+      expect(data.bancasAsAluno).toHaveLength(0)
+      expect(data.membrosEmBancas).toHaveLength(0)
+    })
+
+    it("[USR-009] Non-admin cannot access user associations", async () => {
+      const [teacher] = await db.select().from(Users).where(eq(Users.email, "teacher@example.com")).limit(1)
+
+      const res = await client.usuario[":id"].associations.$get(
+        { param: { id: teacher.id.toString() } },
+        { headers: { Authorization: `Bearer ${teacherToken}` } }
+      )
+
+      expect(res.status).toBe(403)
+    })
+  })
+
   it("Admin can cascade delete user with banca references", async () => {
     const [teacher] = await db.select().from(Users).where(eq(Users.email, "teacher@example.com")).limit(1)
     const [student] = await db.select().from(Users).where(eq(Users.email, "student@example.com")).limit(1)

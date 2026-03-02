@@ -36,13 +36,13 @@ export default defineConfig({
   webServer: [
     {
       command: "cd ../../apps/server && npm run dev:test",
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: true,
       port: 9000,
       timeout: 120 * 1000,
     },
     {
       command: "npm run dev",
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: true,
       port: 5173,
       timeout: 120 * 1000,
     },

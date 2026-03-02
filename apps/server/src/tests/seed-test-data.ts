@@ -32,10 +32,11 @@ export const seedTestData = async (db: Database) => {
     console.log("✅ Cursos seeded")
 
     // Seed Users
+    const adminPasswordHash = "$2b$10$Tc0O8gfKK5QQNCEOaZzQ2uFaekULT0N3mWxaZ/aVp0q29zNBYN79S"
     const usersData: InsertUser[] = [
       {
         id: 1,
-        passwordHash: "$2y$13$wT/lWjkyz31VlxSPLAH/f.HK6eU04r5f3GYxLGuag6Afw1M.IxrVW",
+        passwordHash: adminPasswordHash,
         email: "admin@test.com",
         nome: "Admin Test",
         school: "UFBA",
@@ -47,7 +48,7 @@ export const seedTestData = async (db: Database) => {
       },
       {
         id: 2,
-        passwordHash: "$2y$13$wT/lWjkyz31VlxSPLAH/f.HK6eU04r5f3GYxLGuag6Afw1M.IxrVW",
+        passwordHash: adminPasswordHash,
         email: "teacher@test.com",
         nome: "Professor Test",
         school: "UFBA",
@@ -59,7 +60,7 @@ export const seedTestData = async (db: Database) => {
       },
       {
         id: 3,
-        passwordHash: "$2y$13$wT/lWjkyz31VlxSPLAH/f.HK6eU04r5f3GYxLGuag6Afw1M.IxrVW",
+        passwordHash: adminPasswordHash,
         email: "student@test.com",
         nome: "Aluno Test",
         school: "UFBA",
@@ -71,7 +72,7 @@ export const seedTestData = async (db: Database) => {
       },
       {
         id: 4,
-        passwordHash: "$2y$13$wT/lWjkyz31VlxSPLAH/f.HK6eU04r5f3GYxLGuag6Afw1M.IxrVW",
+        passwordHash: adminPasswordHash,
         email: "teacher2@test.com",
         nome: "Professor Test 2",
         school: "UFBA",
