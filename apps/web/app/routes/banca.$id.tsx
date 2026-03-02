@@ -18,7 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
 import { useUser } from "@/services/useUser"
-import { ArrowLeft, Calendar, Check, ChevronDown, Clock, Copy, MapPin, School, User } from "lucide-react"
+import { ArrowLeft, Calendar, Check, ChevronDown, Clock, Copy, Mail, MapPin, School, User } from "lucide-react"
 import { useState } from "react"
 import { useNavigate, useParams } from "react-router"
 import type { Route } from "./+types/banca.$id"
@@ -58,6 +58,7 @@ export default function BancaDetalhesPage() {
   const banca = bancaQuery.data
   const user = userQuery.data
   const orientador = banca?.membros?.find((m) => m.role === "orientador")?.usuario
+  const aluno = banca?.membros?.find((m) => m.role === "aluno")?.usuario
 
   const isAdmin = user?.role === "ADMIN"
   const isOrientador = !!user?.id && user?.id === orientador?.id
@@ -180,12 +181,21 @@ export default function BancaDetalhesPage() {
                   )}
                 </button>
               </div>
-              <div className="flex items-center mt-2 text-muted-foreground">
-                <User className="h-4 w-4 mr-1" />
-                <span className="mr-4">{banca.autor}</span>
-
-                <School className="h-4 w-4 mr-1" />
-                <span>{banca.curso?.nome}</span>
+              <div className="flex flex-col gap-1 mt-2 text-muted-foreground">
+                <div className="flex items-center flex-wrap gap-x-4 gap-y-1">
+                  <div className="flex items-center">
+                    <User className="h-4 w-4 mr-1 shrink-0" />
+                    <span>{banca.autor}</span>
+                  </div>
+                  {aluno?.email && (
+                    <div className="flex items-center">
+                      <Mail className="h-4 w-4 mr-1 shrink-0" />
+                      <span>{aluno.email}</span>
+                    </div>
+                  )}
+                  <School className="h-4 w-4 shrink-0" />
+                  <span>{banca.curso?.nome}</span>
+                </div>
               </div>
             </div>
             {user && (
