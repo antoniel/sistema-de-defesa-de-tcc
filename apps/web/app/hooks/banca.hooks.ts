@@ -212,6 +212,24 @@ export const useMyDefesas = (
   })
 }
 
+export const useBancasQueParticipei = (searchQuery?: string) => {
+  const userQuery = useUser()
+
+  return useQuery({
+    queryKey: ["user", userQuery.data?.id, "my-participations", searchQuery],
+    queryFn: async () => {
+      const params = new URLSearchParams()
+      if (searchQuery) params.set("searchQuery", searchQuery)
+
+      const res = await apiClient.banca["my-participations"].$get({
+        query: Object.fromEntries(params),
+      })
+      return rpcReturn(res)
+    },
+    enabled: !!userQuery.data && (userQuery.data.role === "TEACHER" || userQuery.data.role === "ADMIN"),
+  })
+}
+
 export const useAssignGradeMutation = () => {
   const queryClient = useQueryClient()
   const { toast } = useToast()

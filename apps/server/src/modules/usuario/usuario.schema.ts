@@ -17,6 +17,10 @@ export const idParamSchema = z.object({
   param: z.object({ id: z.coerce.number() }),
 })
 
+export const deleteUserQuerySchema = z.object({
+  cascade: z.enum(["true", "false"]).optional(),
+})
+
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, "Senha atual é obrigatória"),
   newPassword: z.string().min(8, "Nova senha deve ter pelo menos 8 caracteres"),

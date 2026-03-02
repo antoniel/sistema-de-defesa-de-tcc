@@ -1,5 +1,9 @@
 # Rationale da Apresentação - SISDEF 3.0
 
+### Agenda
+
+Uma tabela mostrando qual a ideia e tals
+
 ## 1. Sistemas de Informação e Resolução de Problemas
 
 ### 1.1 O Papel dos Sistemas de Informação
@@ -52,6 +56,8 @@
 
 ### 2.1 SISDEF 1.0 (2022)
 
+**Autor:** Gabriel Goulart Roque Macedo Santana
+
 **Funcionalidades:**
 
 - Cadastro de bancas por docentes
@@ -67,6 +73,8 @@
 - Apenas 1 tipo de documento
 
 ### 2.2 SISDEF 2.0 (2023)
+
+**Autores:** João Pedro Brito Silva, Frederico Araújo Durão
 
 **Melhorias:**
 
@@ -86,6 +94,11 @@
 - ❌ Erros só detectados em runtime/produção
 - ❌ Barreira alta para novos desenvolvedores
 - ❌ Performance frontend comprometida
+- ❌ Falta de SSR (Server Side Rendering)
+- ❌ Ausência de responsividade mobile
+- ❌ Sem pipelines de CI/CD
+- ❌ Validação de dados insuficiente
+- ❌ Inconsistência de interfaces (feedback dos usuários)
 
 ---
 
@@ -409,12 +422,12 @@ modules/
 ```typescript
 // Backend define tipos
 app.post("/bancas", zValidator("json", bancaSchema), (c) => {
-  return c.json({ id: 1, titulo: "..." });
-});
+  return c.json({ id: 1, titulo: "..." })
+})
 
 // Frontend importa tipos automaticamente
-const client = hc<AppType>("/api");
-const response = await client.bancas.$post({ json: dados });
+const client = hc<AppType>("/api")
+const response = await client.bancas.$post({ json: dados })
 //    ^ TypeScript sabe exatamente o formato esperado
 ```
 
@@ -448,9 +461,9 @@ const response = await client.bancas.$post({ json: dados });
 ```typescript
 // Exemplo: Testa service de autenticação
 test("deve gerar JWT válido", () => {
-  const token = generateJWT({ userId: 1, role: "STUDENT" });
-  expect(decodeJWT(token)).toMatchObject({ userId: 1 });
-});
+  const token = generateJWT({ userId: 1, role: "STUDENT" })
+  expect(decodeJWT(token)).toMatchObject({ userId: 1 })
+})
 ```
 
 **Características:**

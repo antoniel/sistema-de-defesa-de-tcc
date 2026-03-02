@@ -3,7 +3,20 @@ import crypto from "crypto"
 import { and, asc, desc, eq, inArray, not, or } from "drizzle-orm"
 import { type Context } from "hono"
 import { z } from "zod"
-import { Bancas, resetPasswords, type SelectUser, Users, usuariosBancas } from "../../database/schema"
+import {
+  Bancas,
+  bancasDocumentos,
+  feedbackSubmissions,
+  featureRequestVotes,
+  featureRequests,
+  invites,
+  resetPasswords,
+  sessions,
+  teacherInvitations,
+  type SelectUser,
+  Users,
+  usuariosBancas,
+} from "../../database/schema"
 import { type AppResult, err, ok } from "../../result"
 import { createPasswordResetEmail, sendEmail } from "../../services/email.service"
 import { type AppVariables } from "../../types"
@@ -20,6 +33,14 @@ type DeleteUserError =
   | { type: "database_error"; error: unknown }
 type UpdateUserRoleError = { type: "user_not_found" } | { type: "database_error"; error: unknown }
 type GetUserBancasError = { type: "user_not_found" } | { type: "database_error"; error: unknown }
+
+export type UserAssociations = {
+  bancasAsOrientador: { id: number; tituloTrabalho: string; autor: string }[]
+  bancasAsAluno: { id: number; tituloTrabalho: string; autor: string }[]
+  membrosEmBancas: { bancaId: number; tituloTrabalho: string; role: string }[]
+}
+
+type GetUserAssociationsError = { type: "user_not_found" } | { type: "database_error"; error: unknown }
 
 type GetAllUsersError = { type: "database_error"; error: unknown }
 export const getAllUsers = async (
@@ -181,9 +202,56 @@ export const updateUser = async (
   }
 }
 
-export const deleteUser = async (
+export const getUserAssociations = async (
   c: Context<{ Variables: AppVariables }>,
   id: number
+): Promise<AppResult<UserAssociations, GetUserAssociationsError>> => {
+  const dbInstance = c.get("db")
+  try {
+    const userCheck = await dbInstance.select({ id: Users.id }).from(Users).where(eq(Users.id, id)).limit(1)
+    if (userCheck.length === 0) {
+      return err({ type: "user_not_found" })
+    }
+
+    const [bancasAsOrientador, bancasAsAluno, membrosEmBancas] = await Promise.all([
+      dbInstance
+        .select({ id: Bancas.id, tituloTrabalho: Bancas.tituloTrabalho, autor: Bancas.autor })
+        .from(Bancas)
+        .where(eq(Bancas.orientadorId, id)),
+      dbInstance
+        .select({ id: Bancas.id, tituloTrabalho: Bancas.tituloTrabalho, autor: Bancas.autor })
+        .from(Bancas)
+        .where(eq(Bancas.alunoId, id)),
+      dbInstance
+        .select({
+          bancaId: usuariosBancas.bancaId,
+          tituloTrabalho: Bancas.tituloTrabalho,
+          role: usuariosBancas.role,
+        })
+        .from(usuariosBancas)
+        .innerJoin(Bancas, eq(usuariosBancas.bancaId, Bancas.id))
+        .where(eq(usuariosBancas.usuarioId, id)),
+    ])
+
+    return ok({
+      bancasAsOrientador,
+      bancasAsAluno,
+      membrosEmBancas: membrosEmBancas.map((m) => ({
+        bancaId: m.bancaId,
+        tituloTrabalho: m.tituloTrabalho,
+        role: m.role,
+      })),
+    })
+  } catch (error) {
+    console.error(`Error fetching associations for user ID ${id}:`, error)
+    return err({ type: "database_error", error })
+  }
+}
+
+export const deleteUser = async (
+  c: Context<{ Variables: AppVariables }>,
+  id: number,
+  cascade = false
 ): Promise<AppResult<void, DeleteUserError>> => {
   const dbInstance = c.get("db")
   try {
@@ -192,13 +260,44 @@ export const deleteUser = async (
       return err({ type: "user_not_found" })
     }
 
+    if (cascade) {
+      const bancaIdsToDelete = await dbInstance
+        .select({ id: Bancas.id })
+        .from(Bancas)
+        .where(or(eq(Bancas.orientadorId, id), eq(Bancas.alunoId, id)))
+
+      const bancaIds = bancaIdsToDelete.map((b) => b.id)
+
+      if (bancaIds.length > 0) {
+        await dbInstance.delete(bancasDocumentos).where(inArray(bancasDocumentos.bancaId, bancaIds))
+        await dbInstance.delete(invites).where(inArray(invites.bancaId, bancaIds))
+        await dbInstance.delete(usuariosBancas).where(inArray(usuariosBancas.bancaId, bancaIds))
+        await dbInstance.delete(Bancas).where(inArray(Bancas.id, bancaIds))
+      }
+
+      await dbInstance.delete(usuariosBancas).where(eq(usuariosBancas.usuarioId, id))
+      await dbInstance.delete(invites).where(eq(invites.userId, id))
+      await dbInstance.delete(resetPasswords).where(eq(resetPasswords.userId, id))
+      await dbInstance.delete(sessions).where(eq(sessions.userId, id))
+      await dbInstance.delete(featureRequestVotes).where(eq(featureRequestVotes.userId, id))
+      await dbInstance.delete(featureRequests).where(eq(featureRequests.userId, id))
+      await dbInstance.delete(feedbackSubmissions).where(eq(feedbackSubmissions.userId, id))
+      await dbInstance.delete(teacherInvitations).where(
+        or(eq(teacherInvitations.userId, id), eq(teacherInvitations.invitedBy, id))
+      )
+    }
+
     await dbInstance.delete(Users).where(eq(Users.id, id))
 
     return ok(undefined)
   } catch (error) {
     console.error(`Error deleting user with ID ${id}:`, error)
 
-    if (error instanceof Error && error.message.includes("FOREIGN KEY constraint failed")) {
+    const isFkError =
+      error instanceof Error &&
+      (error.message.includes("FOREIGN KEY constraint failed") ||
+        error.message.includes("violates foreign key constraint"))
+    if (isFkError) {
       return err({ type: "user_referenced_elsewhere" })
     }
     return err({ type: "database_error", error })
