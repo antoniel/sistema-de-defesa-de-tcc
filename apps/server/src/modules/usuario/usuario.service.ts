@@ -3,17 +3,18 @@ import crypto from "crypto"
 import { and, asc, desc, eq, inArray, not, or } from "drizzle-orm"
 import { type Context } from "hono"
 import { z } from "zod"
+import type { InferResultType } from "../../database"
 import {
   Bancas,
   bancasDocumentos,
-  feedbackSubmissions,
-  featureRequestVotes,
   featureRequests,
+  featureRequestVotes,
+  feedbackSubmissions,
   invites,
   resetPasswords,
+  type SelectUser,
   sessions,
   teacherInvitations,
-  type SelectUser,
   Users,
   usuariosBancas,
 } from "../../database/schema"
@@ -44,7 +45,7 @@ type GetUserAssociationsError = { type: "user_not_found" } | { type: "database_e
 
 type GetAllUsersError = { type: "database_error"; error: unknown }
 export const getAllUsers = async (
-  c: Context<{ Variables: AppVariables }>
+  c: Context<{ Variables: AppVariables }>,
 ): Promise<AppResult<SelectUser[], GetAllUsersError>> => {
   const dbInstance = c.get("db")
   try {
@@ -59,7 +60,7 @@ export const getAllUsers = async (
 
 type GetTeachersError = { type: "database_error"; error: unknown }
 export const getTeachers = async (
-  c: Context<{ Variables: AppVariables }>
+  c: Context<{ Variables: AppVariables }>,
 ): Promise<AppResult<SelectUser[], GetTeachersError>> => {
   const dbInstance = c.get("db")
   try {
@@ -83,7 +84,7 @@ type CreateUserError =
   | { type: "database_error"; error: unknown }
 export const createUser = async (
   c: Context<{ Variables: AppVariables }>,
-  userData: z.infer<typeof createUserSchema>
+  userData: z.infer<typeof createUserSchema>,
 ): Promise<AppResult<SelectUser, CreateUserError>> => {
   const dbInstance = c.get("db")
 
@@ -141,7 +142,7 @@ export const createUser = async (
 
 export const getUserById = async (
   c: Context<{ Variables: AppVariables }>,
-  id: number
+  id: number,
 ): Promise<AppResult<Omit<SelectUser, "passwordHash" | "createdAt">, GetUserByIdError>> => {
   const dbInstance = c.get("db")
   try {
@@ -163,7 +164,7 @@ type UpdateUserInput = z.infer<typeof updateUserSchema.shape.body>
 export const updateUser = async (
   c: Context<{ Variables: AppVariables }>,
   id: number,
-  updateData: UpdateUserInput
+  updateData: UpdateUserInput,
 ): Promise<AppResult<SelectUser, UpdateUserError>> => {
   const dbInstance = c.get("db")
   const { nome, school, academicTitle, role } = updateData
@@ -204,7 +205,7 @@ export const updateUser = async (
 
 export const getUserAssociations = async (
   c: Context<{ Variables: AppVariables }>,
-  id: number
+  id: number,
 ): Promise<AppResult<UserAssociations, GetUserAssociationsError>> => {
   const dbInstance = c.get("db")
   try {
@@ -251,7 +252,7 @@ export const getUserAssociations = async (
 export const deleteUser = async (
   c: Context<{ Variables: AppVariables }>,
   id: number,
-  cascade = false
+  cascade = false,
 ): Promise<AppResult<void, DeleteUserError>> => {
   const dbInstance = c.get("db")
   try {
@@ -282,9 +283,9 @@ export const deleteUser = async (
       await dbInstance.delete(featureRequestVotes).where(eq(featureRequestVotes.userId, id))
       await dbInstance.delete(featureRequests).where(eq(featureRequests.userId, id))
       await dbInstance.delete(feedbackSubmissions).where(eq(feedbackSubmissions.userId, id))
-      await dbInstance.delete(teacherInvitations).where(
-        or(eq(teacherInvitations.userId, id), eq(teacherInvitations.invitedBy, id))
-      )
+      await dbInstance
+        .delete(teacherInvitations)
+        .where(or(eq(teacherInvitations.userId, id), eq(teacherInvitations.invitedBy, id)))
     }
 
     await dbInstance.delete(Users).where(eq(Users.id, id))
@@ -307,7 +308,7 @@ export const deleteUser = async (
 export const updateUserRole = async (
   c: Context<{ Variables: AppVariables }>,
   id: number,
-  newRole: "STUDENT" | "TEACHER" | "ADMIN"
+  newRole: "STUDENT" | "TEACHER" | "ADMIN",
 ): Promise<AppResult<{ id: number; role: string }, UpdateUserRoleError>> => {
   const dbInstance = c.get("db")
   try {
@@ -345,7 +346,7 @@ export const changeUserPassword = async (
   c: Context<{ Variables: AppVariables }>,
   userId: number,
   currentPassword: string,
-  newPassword: string
+  newPassword: string,
 ): Promise<AppResult<void, ChangePasswordServiceError>> => {
   const dbInstance = c.get("db")
 
@@ -391,20 +392,74 @@ export const changeUserPassword = async (
   }
 }
 
+type UserBancaWithRole = InferResultType<"Bancas", { curso: true; membros: { with: { usuario: true } } }> & {
+  userRole: "orientador" | "coorientador" | "aluno" | "avaliador"
+}
+
 export const getUserBancas = async (
   c: Context<{ Variables: AppVariables }>,
-  id: number
-): Promise<AppResult<any[], GetUserBancasError>> => {
+  id: number,
+): Promise<AppResult<UserBancaWithRole[], GetUserBancasError>> => {
   const dbInstance = c.get("db")
   try {
+    // Check if user exists
     const userCheck = await dbInstance.select({ id: Users.id }).from(Users).where(eq(Users.id, id)).limit(1)
     if (userCheck.length === 0) {
       return err({ type: "user_not_found" })
     }
 
-    const relatedBancas = await dbInstance.select().from(Bancas)
+    // Get current viewer's role (admin or not)
+    let isAdmin = false
+    const payload = c.get("jwtPayload")
+    if (payload) {
+      const viewerResult = await getUserById(c, Number(payload.sub))
+      if (viewerResult.ok) {
+        isAdmin = viewerResult.data.role === "ADMIN"
+      }
+    }
 
-    return ok(relatedBancas)
+    // Get all bancas where user participated, with their role
+    const userBancasRelations = await dbInstance
+      .select({
+        bancaId: usuariosBancas.bancaId,
+        userRole: usuariosBancas.role,
+      })
+      .from(usuariosBancas)
+      .where(eq(usuariosBancas.usuarioId, id))
+
+    if (userBancasRelations.length === 0) {
+      return ok([])
+    }
+
+    const bancaIds = userBancasRelations.map((r) => r.bancaId)
+    const roleMap = new Map(userBancasRelations.map((r) => [r.bancaId, r.userRole]))
+
+    // Build visibility filter: admins see all, non-admins see only visible
+    const whereConditions = isAdmin
+      ? inArray(Bancas.id, bancaIds)
+      : and(inArray(Bancas.id, bancaIds), eq(Bancas.visible, true))
+
+    // Fetch bancas with relationships
+    const bancas = await dbInstance.query.Bancas.findMany({
+      where: whereConditions,
+      with: {
+        curso: true,
+        membros: {
+          with: {
+            usuario: true,
+          },
+        },
+      },
+      orderBy: desc(Bancas.dataRealizacao),
+    })
+
+    // Add user's role to each banca
+    const bancasWithRole: UserBancaWithRole[] = bancas.map((banca) => ({
+      ...banca,
+      userRole: roleMap.get(banca.id) as "orientador" | "coorientador" | "aluno" | "avaliador",
+    }))
+
+    return ok(bancasWithRole)
   } catch (error) {
     console.error(`Error fetching bancas for user ID ${id}:`, error)
     return err({ type: "database_error", error })
@@ -413,7 +468,7 @@ export const getUserBancas = async (
 
 type GetStudentsError = { type: "database_error"; error: unknown }
 export const getStudents = async (
-  c: Context<{ Variables: AppVariables }>
+  c: Context<{ Variables: AppVariables }>,
 ): Promise<
   AppResult<Pick<SelectUser, "id" | "nome" | "matricula" | "academicTitle" | "email">[], GetStudentsError>
 > => {
@@ -446,7 +501,7 @@ type RequestPasswordResetError =
 
 export const requestPasswordReset = async (
   c: Context<{ Variables: AppVariables }>,
-  email: string
+  email: string,
 ): Promise<AppResult<void, RequestPasswordResetError>> => {
   const dbInstance = c.get("db")
 
@@ -507,7 +562,7 @@ type ResetPasswordError =
 export const resetPassword = async (
   c: Context<{ Variables: AppVariables }>,
   token: string,
-  newPassword: string
+  newPassword: string,
 ): Promise<AppResult<void, ResetPasswordError>> => {
   const dbInstance = c.get("db")
 
@@ -567,7 +622,7 @@ export const resetPassword = async (
 
 type GetStudentsAvailableForBancaError = { type: "database_error"; error: unknown }
 export const getStudentsAvailableForBanca = async (
-  c: Context<{ Variables: AppVariables }>
+  c: Context<{ Variables: AppVariables }>,
 ): Promise<AppResult<SelectUser[], GetStudentsAvailableForBancaError>> => {
   const dbInstance = c.get("db")
   try {
@@ -585,8 +640,8 @@ export const getStudentsAvailableForBanca = async (
       .where(
         and(
           eq(Users.role, "STUDENT"),
-          studentIdsWithBancas.length > 0 ? not(inArray(Users.id, studentIdsWithBancas)) : undefined
-        )
+          studentIdsWithBancas.length > 0 ? not(inArray(Users.id, studentIdsWithBancas)) : undefined,
+        ),
       )
       .orderBy(asc(Users.nome))
 
