@@ -126,24 +126,42 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
       return c.json(result.data)
     }
   )
-  .delete("/:id", checkRole(["ADMIN"]), zValidator("param", schema.idParamSchema.shape.param), async (c) => {
-    const { id } = c.req.valid("param")
-    const result = await service.deleteUser(c, id)
-    if (!result.ok) {
-      throw match(result.error)
-        .with({ type: "database_error" }, () => new AppError(500, "Erro ao deletar usuário"))
-        .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))
-        .with({ type: "user_referenced_elsewhere" }, () => new AppError(400, "Usuário referenciado em outro lugar"))
-        .exhaustive()
+  .delete(
+    "/:id",
+    checkRole(["ADMIN"]),
+    zValidator("param", schema.idParamSchema.shape.param),
+    zValidator("query", schema.deleteUserQuerySchema),
+    async (c) => {
+      const { id } = c.req.valid("param")
+      const { cascade } = c.req.valid("query")
+      const result = await service.deleteUser(c, id, cascade === "true")
+      if (!result.ok) {
+        throw match(result.error)
+          .with({ type: "database_error" }, () => new AppError(500, "Erro ao deletar usuário"))
+          .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))
+          .with({ type: "user_referenced_elsewhere" }, () => new AppError(400, "Usuário referenciado em outro lugar"))
+          .exhaustive()
+      }
+      return c.body(null, 204)
     }
-    return c.body(null, 204)
-  })
+  )
   .get("/:id/bancas", zValidator("param", schema.idParamSchema.shape.param), async (c) => {
     const { id } = c.req.valid("param")
     const result = await service.getUserBancas(c, id)
     if (!result.ok) {
       throw match(result.error)
         .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar bancas"))
+        .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))
+        .exhaustive()
+    }
+    return c.json(result.data)
+  })
+  .get("/:id/associations", checkRole(["ADMIN"]), zValidator("param", schema.idParamSchema.shape.param), async (c) => {
+    const { id } = c.req.valid("param")
+    const result = await service.getUserAssociations(c, id)
+    if (!result.ok) {
+      throw match(result.error)
+        .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar associações"))
         .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))
         .exhaustive()
     }

@@ -336,7 +336,7 @@ describe("BancaDAO", () => {
       expect(foundInvisible).toBeUndefined()
     })
 
-    it("should return invisible bancas for admin users", async () => {
+    it("should not return invisible bancas for admin users in list", async () => {
       const futureDate = new Date()
       futureDate.setDate(futureDate.getDate() + 30)
 
@@ -367,8 +367,7 @@ describe("BancaDAO", () => {
 
       expect(result.bancas).toBeDefined()
       const foundInvisible = result.bancas.find(b => b.id === invisibleBanca.id)
-      expect(foundInvisible).toBeDefined()
-      expect(foundInvisible?.visible).toBe(false)
+      expect(foundInvisible).toBeUndefined()
     })
 
     it("should return invisible bancas for member users", async () => {
