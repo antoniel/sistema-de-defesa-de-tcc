@@ -108,6 +108,36 @@ export const useUserAssociations = (userId: number | null) => {
   })
 }
 
+// Hook to fetch a user by ID
+export const useUserById = (id: string | undefined) => {
+  return useQuery({
+    queryKey: ["user", id],
+    queryFn: async () => {
+      if (!id) throw new Error("User ID não fornecido")
+      const res = await apiClient.usuario[":id"].$get({
+        param: { id },
+      })
+      return rpcReturn(res)
+    },
+    enabled: !!id,
+  })
+}
+
+// Hook to fetch bancas for a user
+export const useUserBancas = (userId: string | undefined) => {
+  return useQuery({
+    queryKey: ["user", userId, "bancas"],
+    queryFn: async () => {
+      if (!userId) throw new Error("User ID não fornecido")
+      const res = await apiClient.usuario[":id"].bancas.$get({
+        param: { id: userId },
+      })
+      return rpcReturn(res)
+    },
+    enabled: !!userId,
+  })
+}
+
 export const useDeleteUser = () => {
   const queryClient = useQueryClient()
   const { toast } = useToast()
