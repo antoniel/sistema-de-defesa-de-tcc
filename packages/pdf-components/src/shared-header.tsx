@@ -12,7 +12,7 @@ export function SharedDocumentHeader({ curso }: SharedDocumentHeaderProps) {
     <View style={sharedStyles.header}>
       <Text style={sharedStyles.headerLine}>Universidade Federal da Bahia</Text>
       <Text style={sharedStyles.headerLine}>Departamento de Ciência da Computação</Text>
-      <Text style={sharedStyles.headerLine}>Bacharelado em Sistemas de Informação</Text>
+      <Text style={sharedStyles.headerLine}>Bacharelado em {curso.nome}</Text>
       <Text style={sharedStyles.headerSubline}>Campus Universitário de Ondina</Text>
       <Text style={sharedStyles.cep}>CEP: 40170-115 - Salvador - BA</Text>
     </View>

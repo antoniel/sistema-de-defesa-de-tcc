@@ -117,7 +117,7 @@ export default function AddBancaPage() {
     const { hora, avaliador1Id, avaliador2Id, avaliador3Id, ...dataWithoutExtraFields } = data
 
     const membros = [{ id: Number(avaliador1Id) }, { id: Number(avaliador2Id) }, { id: Number(avaliador3Id) }].filter(
-      (membro) => !!membro.id
+      (membro) => !!membro.id,
     )
 
     const submissionData: SubmissionPayload = {
@@ -151,10 +151,12 @@ export default function AddBancaPage() {
             errorMessage = error.message
           } else if (error?.error?.issues && Array.isArray(error.error.issues)) {
             // Erro de validação Zod
-            const issues = error.error.issues.map((issue: any) => {
-              const path = issue.path.join(".")
-              return `${path}: ${issue.message}`
-            }).join(", ")
+            const issues = error.error.issues
+              .map((issue: any) => {
+                const path = issue.path.join(".")
+                return `${path}: ${issue.message}`
+              })
+              .join(", ")
             errorMessage = issues
           } else if (typeof error === "string") {
             errorMessage = error
@@ -166,7 +168,7 @@ export default function AddBancaPage() {
             variant: "destructive",
           })
         },
-      }
+      },
     )
   }
 
@@ -406,7 +408,7 @@ const AuthorInfoSection = () => {
       (student) =>
         student.nome.toLowerCase().includes(term) ||
         student.email.toLowerCase().includes(term) ||
-        student.matricula?.toLowerCase().includes(term)
+        student.matricula?.toLowerCase().includes(term),
     )
   }, [studentsQuery.data, searchTerm])
 
@@ -418,13 +420,7 @@ const AuthorInfoSection = () => {
           <Label htmlFor="autor">Aluno</Label>
           {isUserStudent ? (
             <>
-              <Input
-                id="autor"
-                {...register("autor")}
-                value={user?.nome || ""}
-                disabled
-                className="bg-muted"
-              />
+              <Input id="autor" {...register("autor")} value={user?.nome || ""} disabled className="bg-muted" />
               <Controller
                 name="alunoId"
                 control={control}
@@ -563,7 +559,7 @@ const WorkAndDefenseSection = () => {
 
   const handleYearSemesterFormat = (
     e: React.ChangeEvent<HTMLInputElement>,
-    fieldName: "periodoAcademico" | "turma"
+    fieldName: "periodoAcademico" | "turma",
   ) => {
     setValue(fieldName, e.target.value)
   }
@@ -601,8 +597,8 @@ const WorkAndDefenseSection = () => {
               render={({ field }) => (
                 <Input
                   id="turma"
-                  placeholder="Ex: 010101"
-                  defaultValue={"010101"}
+                  placeholder="Ex: GICC0002 PROJETO FINAL DE CURSO II"
+                  defaultValue={"GICC0002 PROJETO FINAL DE CURSO II"}
                   value={field.value || ""}
                   onChange={(e) => {
                     field.onChange(e)
