@@ -3,6 +3,7 @@ export interface DocumentInfo {
   tituloTrabalho: string
   dataRealizacao: string | Date
   periodoAcademico: string
+  turma?: string
   curso: {
     nome: string
   }
