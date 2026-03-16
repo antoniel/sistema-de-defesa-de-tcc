@@ -34,9 +34,11 @@ export function FormularioAvaliacaoPDF({ bancaInfo }: FormularioAvaliacaoPDFProp
           <Text style={styles.headerLine}>Universidade Federal da Bahia</Text>
           <Text style={styles.headerLine}>Departamento de Ciência da Computação</Text>
           <Text style={styles.headerLine}>Bacharelado em {curso}</Text>
-          <Text style={styles.headerLine}>GICC - TCC BACHARELADO {curso.toUpperCase()}</Text>
           <Text style={styles.headerLine}>
-            {bancaInfo.turma ?? "2U"} DATA: {defenseDate} - SEMESTRE: {bancaInfo.periodoAcademico}
+            {bancaInfo.turma ?? ""} - TCC BACHARELADO {curso.toUpperCase()}
+          </Text>
+          <Text style={styles.headerLine}>
+            TURMA: {bancaInfo.turma ?? ""} DATA: {defenseDate} - SEMESTRE: {bancaInfo.periodoAcademico}
           </Text>
         </View>
 
