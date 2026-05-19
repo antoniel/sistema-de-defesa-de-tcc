@@ -89,6 +89,22 @@ describe("Rotas de Banca", async () => {
       expect(data.tituloTrabalho).toBe(newBancaData.tituloTrabalho)
     })
 
+    it("cria banca pública por padrão quando 'visible' não é informado", async () => {
+      const student = await createTestStudent()
+      const [studentUser] = await db.insert(Users).values(student).returning()
+      const newBancaData = createTestBancaInput(cursoId, teacherId, studentUser.id)
+      delete (newBancaData as any).visible
+
+      const res = await client.banca.$post(
+        { json: newBancaData as CreateBancaInput },
+        { headers: { Authorization: `Bearer ${teacherToken}` } }
+      )
+
+      expect(res.status).toBe(201)
+      const data = await res.json()
+      expect(data.visible).toBe(true)
+    })
+
     it("não permite criar uma banca para um aluno que já possui uma no mesmo curso", async () => {
       const newBancaData: CreateBancaInput = {
         tituloTrabalho: "Segunda Banca de TCC",

@@ -83,7 +83,7 @@ export default function AddBancaPage() {
 
   const form = useForm<BancaFormData>({
     defaultValues: {
-      visible: false,
+      visible: true,
       modalidade: "local",
       periodoAcademico: defaultPeriodoAcademico,
       autor: user?.nome,
