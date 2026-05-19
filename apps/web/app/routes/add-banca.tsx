@@ -340,7 +340,7 @@ const BasicInfoSection = () => {
           <Controller
             name="visible"
             control={control}
-            defaultValue={false}
+            defaultValue={true}
             render={({ field }) => (
               <div className="flex items-center space-x-2 pt-6">
                 <Checkbox id="visible" checked={field.value} onCheckedChange={field.onChange} ref={field.ref} />
