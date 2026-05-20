@@ -89,27 +89,26 @@ export default function AddBancaPage() {
   const currentSemester = currentMonth > 6 ? "2" : "1"
   const defaultPeriodoAcademico = `${currentYear}.${currentSemester}`
 
+  const isStudent = user?.role === "STUDENT"
+
   const form = useForm<BancaFormData>({
     defaultValues: {
       visible: true,
       modalidade: "local",
       periodoAcademico: defaultPeriodoAcademico,
-      autor: user?.nome,
-      matricula: user?.matricula,
-      alunoId: user?.id,
+      autor: isStudent ? user?.nome : undefined,
+      matricula: isStudent ? user?.matricula : undefined,
+      alunoId: isStudent ? user?.id : undefined,
       cursoId: undefined,
     },
     mode: "onBlur",
   })
 
   React.useEffect(() => {
-    if (user) {
+    if (user?.role === "STUDENT") {
       form.setValue("autor", user.nome)
       form.setValue("matricula", user.matricula)
-      // Se for aluno, fixar o alunoId
-      if (user.role === "STUDENT") {
-        form.setValue("alunoId", user.id)
-      }
+      form.setValue("alunoId", user.id)
     }
   }, [user])
 
@@ -490,6 +489,7 @@ const AuthorInfoSection = () => {
   const { data: user } = useUser()
   const isUserStudent = user?.role === "STUDENT"
   const [searchTerm, setSearchTerm] = useState("")
+  const [orientadorSearchTerm, setOrientadorSearchTerm] = useState("")
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
   const [studentSelectOpen, setStudentSelectOpen] = useState(false)
   const {
@@ -533,6 +533,17 @@ const AuthorInfoSection = () => {
         student.matricula?.toLowerCase().includes(term),
     )
   }, [studentsList, searchTerm])
+
+  const filteredTeachers = React.useMemo(() => {
+    if (!teachers) return []
+    if (!orientadorSearchTerm) return teachers
+    const term = orientadorSearchTerm.toLowerCase()
+    return teachers.filter(
+      (teacher) =>
+        teacher.nome.toLowerCase().includes(term) ||
+        teacher.email?.toLowerCase().includes(term),
+    )
+  }, [teachers, orientadorSearchTerm])
 
   return (
     <>
@@ -656,11 +667,26 @@ const AuthorInfoSection = () => {
             control={control}
             rules={{ required: "Orientador é obrigatório" }}
             render={({ field }) => (
-              <Select onValueChange={field.onChange}>
+              <Select
+                onValueChange={(value) => {
+                  field.onChange(value)
+                  setOrientadorSearchTerm("")
+                }}
+                value={field.value ? String(field.value) : undefined}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o orientador..." />
                 </SelectTrigger>
                 <SelectContent>
+                  <div className="p-2 border-b sticky top-0 bg-background z-10">
+                    <Input
+                      placeholder="Buscar orientador..."
+                      value={orientadorSearchTerm}
+                      onChange={(e) => setOrientadorSearchTerm(e.target.value)}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      className="bg-background"
+                    />
+                  </div>
                   {isLoadingTeachers ? (
                     <SelectItem value="0" disabled>
                       Carregando professores...
@@ -669,15 +695,15 @@ const AuthorInfoSection = () => {
                     <SelectItem value="0" disabled>
                       Erro ao carregar professores
                     </SelectItem>
-                  ) : teachers && teachers.length > 0 ? (
-                    teachers.map((teacher) => (
+                  ) : filteredTeachers.length > 0 ? (
+                    filteredTeachers.map((teacher) => (
                       <SelectItem key={teacher.id} value={teacher.id.toString()}>
                         {teacher.nome}
                       </SelectItem>
                     ))
                   ) : (
                     <SelectItem value="0" disabled>
-                      Nenhum professor encontrado
+                      {orientadorSearchTerm ? "Nenhum professor encontrado para a busca" : "Nenhum professor encontrado"}
                     </SelectItem>
                   )}
                 </SelectContent>
