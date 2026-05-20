@@ -4,6 +4,7 @@ import { err, ok, type AppResult } from "../result"
 import {
   createCalendarInviteEmail,
   createPasswordResetEmail as createPasswordResetEmailTemplate,
+  createStudentInvitationEmail as createStudentInvitationEmailTemplate,
   createTeacherInvitationEmail as createTeacherInvitationEmailTemplate,
   type CalendarInviteEmailProps,
 } from "../templates/email"
@@ -36,32 +37,42 @@ export const sendEmail = async (input: SendEmailInput): Promise<AppResult<void, 
     })
 
     if (env.NODE_ENV === "development") {
-      console.log("No SMTP config found. Using test account for development.")
-      const testAccount = await nodemailer.createTestAccount()
-
-      const devTransporter = nodemailer.createTransport({
-        host: "smtp.ethereal.email",
-        port: 587,
-        secure: false,
-        auth: {
-          user: testAccount.user,
-          pass: testAccount.pass,
-        },
-      })
-
-      const info = await devTransporter.sendMail({
-        from: input.from || '"Sistema Banca" <noreply@sistema-banca.com>',
-        to: input.to,
-        cc: input.cc,
-        subject: input.subject,
-        html: input.html,
-        attachments: input.attachments,
-      })
-
-      console.log("Message sent: %s", info.messageId)
-      console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info))
-
-      return ok(undefined)
+      // Try Ethereal test account, but fall back to a no-network JSON transport
+      // if the api.nodemailer.com lookup is unreachable (offline dev / firewall).
+      try {
+        const testAccount = await nodemailer.createTestAccount()
+        const devTransporter = nodemailer.createTransport({
+          host: "smtp.ethereal.email",
+          port: 587,
+          secure: false,
+          auth: { user: testAccount.user, pass: testAccount.pass },
+        })
+        const info = await devTransporter.sendMail({
+          from: input.from || '"Sistema Banca" <noreply@sistema-banca.com>',
+          to: input.to,
+          cc: input.cc,
+          subject: input.subject,
+          html: input.html,
+          attachments: input.attachments,
+        })
+        console.log("Message sent: %s", info.messageId)
+        console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info))
+        return ok(undefined)
+      } catch (etherealErr) {
+        console.warn("Ethereal unavailable, logging email to console instead:", (etherealErr as Error).message)
+        const jsonTransporter = nodemailer.createTransport({ jsonTransport: true })
+        const info = await jsonTransporter.sendMail({
+          from: input.from || '"Sistema Banca" <noreply@sistema-banca.com>',
+          to: input.to,
+          cc: input.cc,
+          subject: input.subject,
+          html: input.html,
+          attachments: input.attachments,
+        })
+        console.log("\n📧 [DEV EMAIL]", input.subject, "→", input.to)
+        console.log(info.message)
+        return ok(undefined)
+      }
     }
 
     // Production email sending
@@ -84,6 +95,10 @@ export const sendEmail = async (input: SendEmailInput): Promise<AppResult<void, 
 
 export const createTeacherInvitationEmail = (nome: string, invitationUrl: string): string => {
   return createTeacherInvitationEmailTemplate({ nome, invitationUrl })
+}
+
+export const createStudentInvitationEmail = (nome: string, invitationUrl: string): string => {
+  return createStudentInvitationEmailTemplate({ nome, invitationUrl })
 }
 
 export const createPasswordResetEmail = (nome: string, resetUrl: string): string => {

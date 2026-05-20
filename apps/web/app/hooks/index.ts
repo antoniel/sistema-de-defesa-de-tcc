@@ -3,6 +3,7 @@ export * from "./banca.hooks"
 export * from "./user.hooks"
 export * from "./cursos.hooks"
 export * from "./teacher-invitation.hooks"
+export * from "./student-invitation.hooks"
 export * from "./documento.hooks"
 export * from "./calendar.hooks"
 

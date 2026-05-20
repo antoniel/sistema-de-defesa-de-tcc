@@ -120,6 +120,26 @@ export const teacherInvitations = pgTable("teacher_invitation", {
 export type InsertTeacherInvitation = typeof teacherInvitations.$inferInsert
 export type SelectTeacherInvitation = typeof teacherInvitations.$inferSelect
 
+export const studentInvitations = pgTable("student_invitation", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  nome: text("nome").notNull(),
+  matricula: text("matricula").notNull(),
+  invitationHash: text("invitation_hash").unique().notNull(),
+  status: text("status").default("pending").notNull(), // pending, used
+  createdAt: timestamp("created_at")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+  invitedBy: integer("invited_by")
+    .notNull()
+    .references(() => Users.id), // Teacher/Admin who sent the invitation
+  userId: integer("user_id")
+    .notNull()
+    .references(() => Users.id), // Stub Users row created with the invitation
+})
+export type InsertStudentInvitation = typeof studentInvitations.$inferInsert
+export type SelectStudentInvitation = typeof studentInvitations.$inferSelect
+
 export const sessions = pgTable("session", {
   id: text("id").primaryKey(), // Aumentado tamanho
   userId: integer("user_id").references(() => Users.id), // Associar sessão a usuário

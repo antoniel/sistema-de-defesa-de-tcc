@@ -14,6 +14,7 @@ import {
   resetPasswords,
   type SelectUser,
   sessions,
+  studentInvitations,
   teacherInvitations,
   Users,
   usuariosBancas,
@@ -96,12 +97,56 @@ export const createUser = async (
       .limit(1)
 
     if (existingUser.length > 0) {
-      const isEmailDuplicate = await dbInstance
-        .select({ id: Users.id })
-        .from(Users)
-        .where(eq(Users.email, userData.email))
+      // Resilience: if the email belongs to a stub created by a pending student
+      // invitation, claim it — update the stub with the real password & data and
+      // mark the invitation as used. Avoids "duplicate_email" friction for users
+      // who sign up directly instead of clicking the invite link.
+      const [pendingInvite] = await dbInstance
+        .select({ id: studentInvitations.id, userId: studentInvitations.userId })
+        .from(studentInvitations)
+        .where(
+          and(
+            eq(studentInvitations.email, userData.email),
+            eq(studentInvitations.status, "pending"),
+            eq(studentInvitations.userId, existingUser[0].id),
+          ),
+        )
         .limit(1)
-      return err({ type: isEmailDuplicate.length > 0 ? "duplicate_email" : "duplicate_username" })
+
+      if (pendingInvite) {
+        let passwordHash: string
+        try {
+          passwordHash = await bcrypt.hash(userData.password, 10)
+        } catch (hashError) {
+          return err({ type: "hashing_error", error: hashError })
+        }
+        const now = new Date()
+        const [claimed] = await dbInstance
+          .update(Users)
+          .set({
+            nome: userData.nome.trim(),
+            matricula: userData.matricula.trim(),
+            school: userData.school,
+            academicTitle: userData.academicTitle.trim(),
+            passwordHash,
+            updatedAt: now,
+          })
+          .where(eq(Users.id, pendingInvite.userId))
+          .returning()
+
+        if (!claimed) {
+          return err({ type: "database_error", error: "Failed to claim invitation stub" })
+        }
+
+        await dbInstance
+          .update(studentInvitations)
+          .set({ status: "used" })
+          .where(eq(studentInvitations.id, pendingInvite.id))
+
+        return ok(claimed)
+      }
+
+      return err({ type: "duplicate_email" })
     }
 
     let passwordHash: string | undefined = undefined
@@ -621,9 +666,11 @@ export const resetPassword = async (
 }
 
 type GetStudentsAvailableForBancaError = { type: "database_error"; error: unknown }
+export type StudentAvailableForBanca = SelectUser & { invitationPending: boolean }
+
 export const getStudentsAvailableForBanca = async (
   c: Context<{ Variables: AppVariables }>,
-): Promise<AppResult<SelectUser[], GetStudentsAvailableForBancaError>> => {
+): Promise<AppResult<StudentAvailableForBanca[], GetStudentsAvailableForBancaError>> => {
   const dbInstance = c.get("db")
   try {
     const studentsWithBancas = await dbInstance
@@ -645,7 +692,15 @@ export const getStudentsAvailableForBanca = async (
       )
       .orderBy(asc(Users.nome))
 
-    return ok(availableStudents)
+    const pendingInvites = await dbInstance
+      .select({ userId: studentInvitations.userId })
+      .from(studentInvitations)
+      .where(eq(studentInvitations.status, "pending"))
+    const pendingIds = new Set(pendingInvites.map((p) => p.userId))
+
+    return ok(
+      availableStudents.map((s) => ({ ...s, invitationPending: pendingIds.has(s.id) })),
+    )
   } catch (error) {
     console.error("Error fetching students available for banca:", error)
     return err({ type: "database_error", error })
