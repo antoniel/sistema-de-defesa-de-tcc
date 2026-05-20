@@ -2,6 +2,14 @@ import { KeywordsList } from "@/components/banca/KeywordsList"
 import { Header } from "@/components/layout/Header"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Form } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -55,7 +63,7 @@ const DEV_SEED_DATA: Partial<BancaFormData> = {
   // avaliador3Id: 3, // Commented out to test partial banca scenario
 }
 
-import { useAddBancaMutation, useStudentsAvailableForBanca, useTeachers } from "@/hooks"
+import { useAddBancaMutation, useCreateStudentInvitation, useStudentsAvailableForBanca, useTeachers } from "@/hooks"
 
 const FORM_STEPS = [
   { id: 0, name: "Informações Básicas" },
@@ -383,34 +391,148 @@ const BasicInfoSection = () => {
   )
 }
 
+const InviteStudentDialog = ({
+  open,
+  onOpenChange,
+  onInvited,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onInvited: (student: { id: number; nome: string; matricula: string }) => void
+}) => {
+  const inviteMutation = useCreateStudentInvitation()
+  const [email, setEmail] = useState("")
+  const [nome, setNome] = useState("")
+  const [matricula, setMatricula] = useState("")
+
+  const reset = () => {
+    setEmail("")
+    setNome("")
+    setMatricula("")
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    inviteMutation.mutate(
+      { email, nome, matricula },
+      {
+        onSuccess: (res) => {
+          onInvited({ id: res.data.userId, nome, matricula })
+          reset()
+          onOpenChange(false)
+        },
+      },
+    )
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) reset()
+        onOpenChange(o)
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Convidar novo aluno</DialogTitle>
+          <DialogDescription>
+            O aluno receberá um email para definir senha e completar o cadastro. Você já pode usá-lo nesta banca.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="invite-student-nome">Nome</Label>
+            <Input
+              id="invite-student-nome"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              required
+              autoFocus
+            />
+          </div>
+          <div>
+            <Label htmlFor="invite-student-email">Email</Label>
+            <Input
+              id="invite-student-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="invite-student-matricula">Matrícula</Label>
+            <Input
+              id="invite-student-matricula"
+              value={matricula}
+              onChange={(e) => setMatricula(e.target.value)}
+              required
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={inviteMutation.isPending}>
+              {inviteMutation.isPending ? "Enviando..." : "Enviar convite"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 const AuthorInfoSection = () => {
   const isUserTeacher = useIsTeacher()
   const { data: user } = useUser()
   const isUserStudent = user?.role === "STUDENT"
   const [searchTerm, setSearchTerm] = useState("")
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
+  const [studentSelectOpen, setStudentSelectOpen] = useState(false)
   const {
     register,
     control,
     setValue,
+    watch,
     formState: { errors },
   } = useFormContext<BancaFormData>()
+  const alunoIdValue = watch("alunoId")
+  const autorValue = watch("autor")
+  const matriculaValue = watch("matricula")
 
   // Buscar a lista de professores do servidor
   const { data: teachers, isLoading: isLoadingTeachers, error: teachersError } = useTeachers()
   const studentsQuery = useStudentsAvailableForBanca()
 
-  const filteredStudents = React.useMemo(() => {
-    if (!studentsQuery.data) return []
-    if (!searchTerm) return studentsQuery.data
+  const studentsList = React.useMemo(() => {
+    const list = studentsQuery.data ?? []
+    if (!alunoIdValue || list.some((s) => s.id === Number(alunoIdValue))) return list
+    // Show optimistic entry for the just-invited student before the cache refetch completes.
+    return [
+      ...list,
+      {
+        id: Number(alunoIdValue),
+        nome: autorValue || "",
+        email: "",
+        matricula: matriculaValue || "",
+        invitationPending: true,
+      } as (typeof list)[number],
+    ]
+  }, [studentsQuery.data, alunoIdValue, autorValue, matriculaValue])
 
+  const filteredStudents = React.useMemo(() => {
+    if (!searchTerm) return studentsList
     const term = searchTerm.toLowerCase()
-    return studentsQuery.data.filter(
+    return studentsList.filter(
       (student) =>
         student.nome.toLowerCase().includes(term) ||
         student.email.toLowerCase().includes(term) ||
         student.matricula?.toLowerCase().includes(term),
     )
-  }, [studentsQuery.data, searchTerm])
+  }, [studentsList, searchTerm])
 
   return (
     <>
@@ -444,6 +566,8 @@ const AuthorInfoSection = () => {
               rules={{ required: "Aluno é obrigatório" }}
               render={({ field }) => (
                 <Select
+                  open={studentSelectOpen}
+                  onOpenChange={setStudentSelectOpen}
                   onValueChange={(value) => {
                     const student = studentsQuery.data?.find((student) => student.id.toString() === value)
                     if (student) {
@@ -453,6 +577,7 @@ const AuthorInfoSection = () => {
                       setSearchTerm("")
                     }
                   }}
+                  value={alunoIdValue ? String(alunoIdValue) : undefined}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o aluno..." />
@@ -467,6 +592,16 @@ const AuthorInfoSection = () => {
                         className="bg-background"
                       />
                     </div>
+                    <button
+                      type="button"
+                      className="relative flex w-full cursor-pointer items-center rounded-sm py-1.5 pl-2 pr-8 text-sm font-medium text-primary outline-none hover:bg-accent hover:text-accent-foreground"
+                      onClick={() => {
+                        setStudentSelectOpen(false)
+                        setInviteDialogOpen(true)
+                      }}
+                    >
+                      + Convidar novo aluno
+                    </button>
                     {studentsQuery.isLoading ? (
                       <SelectItem value="0" disabled>
                         Carregando alunos...
@@ -478,7 +613,16 @@ const AuthorInfoSection = () => {
                     ) : filteredStudents.length > 0 ? (
                       filteredStudents.map((student) => (
                         <SelectItem key={student.id} value={student.id.toString()}>
-                          {student.nome} - ({student.email})
+                          <span className="flex items-center gap-2">
+                            <span>
+                              {student.nome} - ({student.email})
+                            </span>
+                            {student.invitationPending && (
+                              <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                                Convite pendente
+                              </span>
+                            )}
+                          </span>
                         </SelectItem>
                       ))
                     ) : (
@@ -543,6 +687,15 @@ const AuthorInfoSection = () => {
           {errors.orientadorId && <p className="text-sm text-red-600 mt-1">{errors.orientadorId.message}</p>}
         </div>
       </div>
+      <InviteStudentDialog
+        open={inviteDialogOpen}
+        onOpenChange={setInviteDialogOpen}
+        onInvited={(student) => {
+          setValue("autor", student.nome)
+          setValue("matricula", student.matricula)
+          setValue("alunoId", student.id)
+        }}
+      />
     </>
   )
 }

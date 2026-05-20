@@ -14,6 +14,7 @@ import { documentoRoutes } from "./modules/documento/documento.route"
 import { feedbackRoutes } from "./modules/feedback/feedback.route"
 import { featureRequestRoutes } from "./modules/feature-request/feature-request.route"
 import { usuarioRoutes } from "./modules/usuario/usuario.route"
+import studentInvitationRoutes from "./modules/student-invitation/student-invitation.route"
 import teacherInvitationRoutes from "./modules/teacher-invitation/teacher-invitation.route"
 import { type AppVariables } from "./types"
 
@@ -34,6 +35,7 @@ export const app = (depsMiddleware: MiddlewareHandler<{ Variables: AppVariables 
     .route("/feature-request", featureRequestRoutes)
     .route("/usuario", usuarioRoutes)
     .route("/teacher-invitation", teacherInvitationRoutes)
+    .route("/student-invitation", studentInvitationRoutes)
     .notFound((c) => {
       return c.json({ message: "Not Found", ok: false }, 404)
     })

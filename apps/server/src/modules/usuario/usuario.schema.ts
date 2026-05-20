@@ -4,6 +4,8 @@ import { Users } from "../../database"
 export const createUserSchema = createInsertSchema(Users)
   .omit({
     passwordHash: true,
+    createdAt: true,
+    updatedAt: true,
   })
   .extend({
     password: z.string().min(8),
