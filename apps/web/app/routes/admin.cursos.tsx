@@ -34,7 +34,7 @@ import {
 import { useUser } from "@/services/useUser"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { ArrowLeft, Pencil, Plus, Trash2 } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { Link, Navigate } from "react-router"
 import { z } from "zod"
@@ -76,29 +76,23 @@ function CursoFormDialog(props: CursoFormDialogProps) {
   const form = useForm<CursoFormValues>({
     resolver: zodResolver(cursoFormSchema),
     defaultValues: {
-      nome: props.curso?.nome ?? "",
-      sigla: props.curso?.sigla ?? "",
-      coordenadorId: props.curso?.coordenadorId ? String(props.curso.coordenadorId) : "none",
+      nome: "",
+      sigla: "",
+      coordenadorId: "none",
     },
   })
 
+  useEffect(() => {
+    if (!props.open) return
+
+    form.reset({
+      nome: props.curso?.nome ?? "",
+      sigla: props.curso?.sigla ?? "",
+      coordenadorId: props.curso?.coordenadorId ? String(props.curso.coordenadorId) : "none",
+    })
+  }, [props.open, props.curso, form])
+
   function handleOpenChange(open: boolean) {
-    if (open && props.curso) {
-      form.reset({
-        nome: props.curso.nome,
-        sigla: props.curso.sigla,
-        coordenadorId: props.curso.coordenadorId ? String(props.curso.coordenadorId) : "none",
-      })
-    }
-
-    if (open && !props.curso) {
-      form.reset({
-        nome: "",
-        sigla: "",
-        coordenadorId: "none",
-      })
-    }
-
     props.onOpenChange(open)
   }
 
@@ -145,7 +139,7 @@ function CursoFormDialog(props: CursoFormDialogProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...form} key={props.curso?.id ?? "new"}>
+        <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <FormField
               control={form.control}
@@ -254,6 +248,13 @@ export default function AdminCursosPage() {
 
   const cursos = (cursosQuery.data ?? []) as CursoRecord[]
 
+  function handleDialogOpenChange(open: boolean) {
+    setDialogOpen(open)
+    if (!open) {
+      setEditingCurso(undefined)
+    }
+  }
+
   function handleCreateClick() {
     setEditingCurso(undefined)
     setDialogOpen(true)
@@ -341,7 +342,7 @@ export default function AdminCursosPage() {
         </Table>
       </div>
 
-      <CursoFormDialog open={dialogOpen} onOpenChange={setDialogOpen} curso={editingCurso} />
+      <CursoFormDialog open={dialogOpen} onOpenChange={handleDialogOpenChange} curso={editingCurso} />
 
       <AlertDialog open={cursoToDelete !== null} onOpenChange={(open) => !open && setCursoToDelete(null)}>
         <AlertDialogContent>
