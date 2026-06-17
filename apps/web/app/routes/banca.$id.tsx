@@ -64,7 +64,7 @@ export default function BancaDetalhesPage() {
   const isOrientador = !!user?.id && user?.id === orientador?.id
   const canEdit = isAdmin || isOrientador
 
-  const isLoading = bancaQuery.isLoading || userQuery.isLoading
+  const isLoading = bancaQuery.isLoading || userQuery.isLoading || !userQuery.isAuthReady
   const error = bancaQuery.error || userQuery.error
 
   const membrosBanca = banca?.membros
@@ -116,11 +116,15 @@ export default function BancaDetalhesPage() {
   const coorientador = getMembroPorPapel("coorientador")
   const avaliadores = membrosBanca?.filter((membro) => membro.role === "avaliador") || []
 
+  if (!user) {
+    return null
+  }
+
   return (
     <div className="container mx-auto p-4 md:p-8">
       <Header className="mb-6" />
 
-      <BancaNavigation id={id} user={user!} currentPage="detalhes">
+      <BancaNavigation id={id} user={user} currentPage="detalhes">
         <div className="flex items-center justify-end gap-4">
           {canEdit && (
             <>

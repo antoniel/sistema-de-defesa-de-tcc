@@ -5,8 +5,16 @@ import apiClient from "./apiClient"
 import { getAuthToken, removeAuthToken } from "./authService"
 
 export type AppUser = Awaited<ReturnType<typeof useUser>>["data"]
+
 export const useUser = () => {
   const queryClient = useQueryClient()
+  const [isMounted, setIsMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  const hasToken = isMounted && !!getAuthToken()
 
   const query = useQuery({
     queryKey: useUser.queryKey(),
@@ -21,16 +29,25 @@ export const useUser = () => {
         throw error
       }
     },
-    enabled: !!getAuthToken(),
+    enabled: hasToken,
     refetchOnWindowFocus: false,
   })
+
   React.useEffect(() => {
     if (query.isError) {
       removeAuthToken()
       useUser.setData(queryClient, null)
     }
-  }, [query.isError])
-  return query
+  }, [query.isError, queryClient])
+
+  const isLoading = !isMounted || (hasToken && query.isLoading)
+  const isAuthReady = isMounted && (!hasToken || query.isFetched)
+
+  return {
+    ...query,
+    isLoading,
+    isAuthReady,
+  }
 }
 useUser.queryKey = () => ["user"]
 useUser.setData = (

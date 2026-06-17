@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useAssignGradeMutation, useBanca, useDocumentAvaliadores } from "@/hooks"
+import { useAssignGradeMutation, useBanca } from "@/hooks"
 import { useToast } from "@/hooks/use-toast"
 import { useUser } from "@/services/useUser"
 import { ArrowLeft, BarChart3, Info, Save, User } from "lucide-react"
@@ -45,7 +45,7 @@ export default function BancaAvaliacoesPage() {
   const isMembroBanca = banca?.membros?.some((m) => m.usuario.id === user?.id)
   const hasAccess = isAdmin || isTeacher || isMembroBanca
 
-  const isLoading = bancaQuery.isLoading || userQuery.isLoading
+  const isLoading = bancaQuery.isLoading || userQuery.isLoading || !userQuery.isAuthReady
   const error = bancaQuery.error || userQuery.error
 
   React.useEffect(() => {
@@ -91,18 +91,24 @@ export default function BancaAvaliacoesPage() {
     return <ErrorMessage error={error} />
   }
 
+  if (!user) {
+    return null
+  }
+
+  const membrosAvaliaveis = banca.membros?.filter((m) => m.role !== "aluno") ?? []
+
   return (
     <div className="container mx-auto p-4 md:p-8">
       <Header className="mb-6" />
 
-      <BancaNavigation id={id} user={user!} currentPage="avaliacoes" />
+      <BancaNavigation id={id} user={user} currentPage="avaliacoes" />
 
       <div className="bg-card shadow-md rounded-lg overflow-hidden">
         <BancaHeader banca={banca} />
 
         <div className="p-6 space-y-6">
           <AvaliacoesMembros
-            bancaId={id}
+            membros={membrosAvaliaveis}
             avaliacoes={avaliacoes}
             handleAvaliacaoChange={handleAvaliacaoChange}
             handleSaveUserGrade={handleSaveUserGrade}
@@ -258,83 +264,101 @@ function NormasDialog() {
   )
 }
 
+const getRoleLabel = (role: string) => {
+  switch (role) {
+    case "orientador":
+      return "Orientador"
+    case "coorientador":
+      return "Coorientador"
+    case "avaliador":
+      return "Avaliador"
+    default:
+      return role
+  }
+}
+
 const AvaliacoesMembros = (props: {
-  bancaId: string
+  membros: NonNullable<ReturnType<typeof useBanca>["data"]>["membros"]
   avaliacoes: AvaliacaoMembro[]
   handleAvaliacaoChange: (membroId: number, field: keyof AvaliacaoMembro, value: string | boolean) => void
   handleSaveUserGrade: (membroId: number, nota: string) => void
-  user: any
+  user: NonNullable<ReturnType<typeof useUser>["data"]>
   isAdmin: boolean
   isAssigningGrade: boolean
 }) => {
-  const membrosAvaliadores = useDocumentAvaliadores(Number(props.bancaId)) || []
+  const orientador = props.membros?.find((m) => m.role === "orientador")?.usuario
+
   return (
     <div>
       <h2 className="text-xl font-semibold mb-4">Avaliações dos Membros da Banca</h2>
-      <div className="grid gap-4">
-        {membrosAvaliadores.map((membro) => {
-          const avaliacao = props.avaliacoes.find((av) => av.membroId === membro.id)
-          if (!avaliacao) return null
+      {props.membros.length === 0 ? (
+        <p className="text-muted-foreground">Nenhum membro da banca cadastrado para avaliação.</p>
+      ) : (
+        <div className="grid gap-4">
+          {props.membros.map((membro) => {
+            const avaliacao = props.avaliacoes.find((av) => av.membroId === membro.id) ?? {
+              membroId: membro.id,
+              nota: membro.nota || "",
+            }
+            const isCurrentUserMembro = props.user.id === membro.usuario.id
+            const isOrientadorDaBanca = !!orientador?.id && props.user.id === orientador.id
+            const canEdit = props.isAdmin || isCurrentUserMembro || isOrientadorDaBanca
 
-          const isCurrentUserMembro = props.user?.id === membro.usuario.id
-          const orientador = membrosAvaliadores?.find((m) => m.role === "orientador")?.usuario
-          const isOrientadorDaBanca = !!props.user?.id && props.user?.id === orientador?.id
-          const canEdit = props.isAdmin || isCurrentUserMembro || isOrientadorDaBanca
+            return (
+              <Card key={membro.id} className={!canEdit ? "bg-muted/30" : ""}>
+                <CardContent className="space-y-4 p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="w-full">
+                      <CardTitle className="flex items-center gap-2">
+                        <User className="h-5 w-5" />
+                        {membro.usuario.nome}
+                      </CardTitle>
+                      <CardDescription
+                        className="flex items-start gap-2 line-clamp-2 w-3/4"
+                        title={membro.usuario.academicTitle}
+                      >
+                        {getRoleLabel(membro.role)}
+                        {membro.usuario.academicTitle && ` • ${membro.usuario.academicTitle}`}
+                      </CardDescription>
+                    </div>
 
-          return (
-            <Card key={membro.id} className={!canEdit ? "bg-muted/30" : ""}>
-              <CardContent className="space-y-4 p-6">
-                <div className="flex items-center justify-between">
-                  <div className="w-full">
-                    <CardTitle className="flex items-center gap-2">
-                      <User className="h-5 w-5" />
-                      {membro.usuario.nome}
-                    </CardTitle>
-                    <CardDescription
-                      className="flex items-start gap-2 line-clamp-2 w-3/4"
-                      title={membro.usuario.academicTitle}
-                    >
-                      Avaliador
-                      {membro.usuario.academicTitle && ` • ${membro.usuario.academicTitle}`}
-                    </CardDescription>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor={`nota-${membro.id}`}>Nota:</Label>
+                      {canEdit ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            id={`nota-${membro.id}`}
+                            type="number"
+                            min="0"
+                            max="10"
+                            step="0.1"
+                            value={avaliacao.nota}
+                            onChange={(e) => props.handleAvaliacaoChange(membro.id, "nota", e.target.value)}
+                            placeholder="Ex: 8.5"
+                            disabled={props.isAssigningGrade}
+                            className="w-28"
+                          />
+                          <Button
+                            size="sm"
+                            onClick={() => props.handleSaveUserGrade(membro.id, avaliacao.nota)}
+                            disabled={!avaliacao.nota || props.isAssigningGrade}
+                            className="flex items-center gap-1"
+                          >
+                            <Save className="h-3 w-3" />
+                            {props.isAssigningGrade ? "Salvando..." : "Salvar"}
+                          </Button>
+                        </div>
+                      ) : (
+                        <p className="text-sm">{avaliacao.nota || "N/A"}</p>
+                      )}
+                    </div>
                   </div>
-
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor={`nota-${membro.id}`}>Nota:</Label>
-                    {canEdit ? (
-                      <div className="flex items-center gap-2">
-                        <Input
-                          id={`nota-${membro.id}`}
-                          type="number"
-                          min="0"
-                          max="10"
-                          step="0.1"
-                          value={avaliacao.nota}
-                          onChange={(e) => props.handleAvaliacaoChange(membro.id, "nota", e.target.value)}
-                          placeholder="Ex: 8.5"
-                          disabled={props.isAssigningGrade}
-                          className="w-28"
-                        />
-                        <Button
-                          size="sm"
-                          onClick={() => props.handleSaveUserGrade(membro.id, avaliacao.nota)}
-                          disabled={!avaliacao.nota || props.isAssigningGrade}
-                          className="flex items-center gap-1"
-                        >
-                          <Save className="h-3 w-3" />
-                          {props.isAssigningGrade ? "Salvando..." : "Salvar"}
-                        </Button>
-                      </div>
-                    ) : (
-                      <p className="text-sm">{avaliacao.nota || "N/A"}</p>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )
-        })}
-      </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

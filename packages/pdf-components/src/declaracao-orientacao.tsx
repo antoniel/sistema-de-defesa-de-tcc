@@ -12,7 +12,7 @@ interface DeclaracaoOrientacaoPDFProps {
 
 export function DeclaracaoOrientacaoPDF({ bancaInfo, orientadorId }: DeclaracaoOrientacaoPDFProps) {
   const { curso, membros } = bancaInfo
-  const nomeCoordenador = curso.nomeCoordenador?.trim() || "Nome do Coordenador"
+  const nomeCoordenador = curso.coordenador?.nome?.trim() || "Nome do Coordenador"
   const orientador = membros.find(
     (m) => m.id === orientadorId && (m.role === "orientador" || m.role === "coorientador")
   )

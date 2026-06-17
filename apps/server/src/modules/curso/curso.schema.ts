@@ -4,8 +4,21 @@ export const cursoIdParamSchema = z.object({
   id: z.coerce.number(),
 })
 
-export const updateCursoCoordenadorSchema = z.object({
-  nomeCoordenador: z.string().min(1, "Nome do coordenador é obrigatório"),
+export const createCursoSchema = z.object({
+  nome: z.string().min(1, "Nome do curso é obrigatório"),
+  sigla: z.string().min(1, "Sigla é obrigatória").max(20, "Sigla muito longa"),
+  coordenadorId: z.number().int().positive().nullable().optional(),
 })
 
-export type UpdateCursoCoordenadorInput = z.infer<typeof updateCursoCoordenadorSchema>
+export const updateCursoSchema = z
+  .object({
+    nome: z.string().min(1, "Nome do curso é obrigatório").optional(),
+    sigla: z.string().min(1, "Sigla é obrigatória").max(20, "Sigla muito longa").optional(),
+    coordenadorId: z.number().int().positive().nullable().optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "Informe ao menos um campo para atualizar",
+  })
+
+export type CreateCursoInput = z.infer<typeof createCursoSchema>
+export type UpdateCursoInput = z.infer<typeof updateCursoSchema>

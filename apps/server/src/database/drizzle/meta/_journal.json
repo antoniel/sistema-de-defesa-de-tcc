@@ -85,6 +85,13 @@
       "when": 1781724906795,
       "tag": "0011_chemical_starfox",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1781725000000,
+      "tag": "0012_curso_coordenador_user",
+      "breakpoints": true
     }
   ]
 }

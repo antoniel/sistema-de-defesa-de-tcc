@@ -13,7 +13,7 @@ interface DeclaracaoParticipacaoPDFProps {
 export function DeclaracaoParticipacaoPDF({ bancaInfo, membroId }: DeclaracaoParticipacaoPDFProps) {
   const { curso, membros } = bancaInfo
   const membro = membros.find((m) => m.id === membroId)
-  const nomeCoordenador = curso.nomeCoordenador?.trim() || "Nome do Coordenador"
+  const nomeCoordenador = curso.coordenador?.nome?.trim() || "Nome do Coordenador"
 
   const defenseDate = new Date(bancaInfo.dataRealizacao).toLocaleDateString("pt-BR", {
     day: "2-digit",

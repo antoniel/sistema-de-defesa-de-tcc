@@ -9,7 +9,11 @@ export type BancaInfoForDocument = InferResultType<
   "Bancas",
   {
     orientador: true
-    curso: true
+    curso: {
+      with: {
+        coordenador: true
+      }
+    }
     membros: {
       with: {
         usuario: true
@@ -36,7 +40,11 @@ export const getBancaInfoForDocument = async (
     const bancaInfo = await dbInstance.query.Bancas.findFirst({
       with: {
         orientador: true,
-        curso: true,
+        curso: {
+          with: {
+            coordenador: true,
+          },
+        },
         membros: {
           with: {
             usuario: true,
