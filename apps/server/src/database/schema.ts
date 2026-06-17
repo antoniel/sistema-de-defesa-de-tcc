@@ -22,7 +22,7 @@ export const Cursos = pgTable("cursos", {
   id: serial("id").primaryKey(),
   nome: text("nome").notNull(),
   sigla: text("sigla").notNull().unique(), // Ex: 'BCC', 'ENGCOMP'
-  // Adicionar outros campos como coordenacao, disciplina principal, etc., se necessário
+  nomeCoordenador: text("nome_coordenador"),
 })
 export type InsertCurso = typeof Cursos.$inferInsert
 export type SelectCurso = typeof Cursos.$inferSelect

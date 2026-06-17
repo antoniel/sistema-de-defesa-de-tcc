@@ -141,6 +141,9 @@ export default function AdminUsersIndexPage() {
           <UserPlus className="h-4 w-4 mr-2" />
           Convites para Professores
         </Button>
+        <Button onClick={() => navigate("/admin/cursos")} variant="outline">
+          Coordenadores de Curso
+        </Button>
       </div>
 
       <Tabs defaultValue="all" className="w-full">

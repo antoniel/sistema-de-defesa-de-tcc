@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils"
 import { removeAuthToken } from "@/services/authService"
 import { useUser } from "@/services/useUser"
 import { useQueryClient } from "@tanstack/react-query"
-import { ChevronDown, LogOut, Menu, MessageSquare, User, Users, X } from "lucide-react"
+import { ChevronDown, GraduationCap, LogOut, Menu, MessageSquare, User, Users, X } from "lucide-react"
 import { useState } from "react"
 import { Link } from "react-router"
 import { match } from "ts-pattern"
@@ -205,6 +205,16 @@ function RightSideButtons(props: RightSideButtonsProps) {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link
+                    to="/admin/cursos"
+                    className="flex w-full items-center focus:bg-accent focus:text-accent-foreground"
+                    onClick={() => (document.activeElement as HTMLElement)?.blur?.()}
+                  >
+                    <GraduationCap className="mr-2 h-4 w-4" aria-hidden="true" />
+                    Coordenadores de Curso
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link
                     to="/admin/users"
                     className="flex w-full items-center focus:bg-accent focus:text-accent-foreground"
                     onClick={() => (document.activeElement as HTMLElement)?.blur?.()}
@@ -303,6 +313,12 @@ function MobileRightSideButtons(props: MobileRightSideButtonsProps) {
 
         {user.role === "ADMIN" && (
           <>
+            <Button variant="ghost" className="w-full justify-start" asChild>
+              <Link to="/admin/cursos" onClick={props.onClose} className="flex items-center">
+                <GraduationCap className="mr-2 h-4 w-4" aria-hidden="true" />
+                Coordenadores de Curso
+              </Link>
+            </Button>
             <Button variant="ghost" className="w-full justify-start" asChild>
               <Link to="/admin/users" onClick={props.onClose} className="flex items-center">
                 <Users className="mr-2 h-4 w-4" aria-hidden="true" />

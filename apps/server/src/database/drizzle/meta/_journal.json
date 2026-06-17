@@ -78,6 +78,13 @@
       "when": 1779239144400,
       "tag": "0010_true_speedball",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1781724906795,
+      "tag": "0011_chemical_starfox",
+      "breakpoints": true
     }
   ]
 }
