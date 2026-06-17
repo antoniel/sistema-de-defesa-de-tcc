@@ -4,6 +4,7 @@ import { SharedDocumentHeader } from "./shared-document"
 
 export const DeclaracaoParticipacaoPDF = ({ bancaInfo, membroId }: { bancaInfo: DocumentInfo; membroId: number }) => {
   const { curso, membros } = bancaInfo
+  const nomeCoordenador = curso.nomeCoordenador?.trim() || "Nome do Coordenador"
 
   const membro = membros.find((m) => m.id === membroId)
   const defenseDate = new Date(bancaInfo.dataRealizacao).toLocaleDateString("pt-BR", {
@@ -67,7 +68,7 @@ export const DeclaracaoParticipacaoPDF = ({ bancaInfo, membroId }: { bancaInfo: 
         {/* Assinatura */}
         <View style={styles.signature}>
           <View style={styles.signatureLine} />
-          <Text style={styles.signatureName}>Nome do Coordenador</Text>
+          <Text style={styles.signatureName}>{nomeCoordenador}</Text>
           <Text style={styles.signatureTitle}>
             Coordenador do Curso de {curso.nome}
             {"\n"}

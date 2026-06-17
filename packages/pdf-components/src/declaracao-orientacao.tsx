@@ -12,6 +12,7 @@ interface DeclaracaoOrientacaoPDFProps {
 
 export function DeclaracaoOrientacaoPDF({ bancaInfo, orientadorId }: DeclaracaoOrientacaoPDFProps) {
   const { curso, membros } = bancaInfo
+  const nomeCoordenador = curso.nomeCoordenador?.trim() || "Nome do Coordenador"
   const orientador = membros.find(
     (m) => m.id === orientadorId && (m.role === "orientador" || m.role === "coorientador")
   )
@@ -64,7 +65,7 @@ export function DeclaracaoOrientacaoPDF({ bancaInfo, orientadorId }: DeclaracaoO
         <Text style={sharedStyles.location}>Salvador, {currentDate}.</Text>
         <View style={sharedStyles.signature}>
           <View style={sharedStyles.signatureLine} />
-          <Text style={sharedStyles.signatureName}>Nome do Coordenador</Text>
+          <Text style={sharedStyles.signatureName}>{nomeCoordenador}</Text>
           <Text style={sharedStyles.signatureTitle}>
             Coordenador do Curso de {curso.nome}
             {"\n"}UFBA

@@ -13,6 +13,7 @@ interface DeclaracaoParticipacaoPDFProps {
 export function DeclaracaoParticipacaoPDF({ bancaInfo, membroId }: DeclaracaoParticipacaoPDFProps) {
   const { curso, membros } = bancaInfo
   const membro = membros.find((m) => m.id === membroId)
+  const nomeCoordenador = curso.nomeCoordenador?.trim() || "Nome do Coordenador"
 
   const defenseDate = new Date(bancaInfo.dataRealizacao).toLocaleDateString("pt-BR", {
     day: "2-digit",
@@ -66,7 +67,7 @@ export function DeclaracaoParticipacaoPDF({ bancaInfo, membroId }: DeclaracaoPar
         <Text style={sharedStyles.location}>Salvador, {currentDate}.</Text>
         <View style={sharedStyles.signature}>
           <View style={sharedStyles.signatureLine} />
-          <Text style={sharedStyles.signatureName}>Nome do Coordenador</Text>
+          <Text style={sharedStyles.signatureName}>{nomeCoordenador}</Text>
           <Text style={sharedStyles.signatureTitle}>
             Coordenador do Curso de {curso.nome}
             {"\n"}UFBA

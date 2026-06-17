@@ -10,6 +10,7 @@ export const DeclaracaoOrientacaoPDF = ({
   orientadorId: number
 }) => {
   const { curso, membros } = bancaInfo
+  const nomeCoordenador = curso.nomeCoordenador?.trim() || "Nome do Coordenador"
 
   const orientador = membros.find(
     (m) => m.id === orientadorId && (m.role === "orientador" || m.role === "coorientador")
@@ -72,7 +73,7 @@ export const DeclaracaoOrientacaoPDF = ({
         {/* Assinatura */}
         <View style={styles.signature}>
           <View style={styles.signatureLine} />
-          <Text style={styles.signatureName}>Nome do Coordenador</Text>
+          <Text style={styles.signatureName}>{nomeCoordenador}</Text>
           <Text style={styles.signatureTitle}>
             Coordenador do Curso de {curso.nome}
             {"\n"}
