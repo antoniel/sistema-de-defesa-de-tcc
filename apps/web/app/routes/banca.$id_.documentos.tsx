@@ -50,7 +50,7 @@ export default function BancaDocumentosPage() {
 
   const eligibleParticipants = fileAvaliadores(bancaInfo?.membros) || []
 
-  const isLoading = bancaQuery.isLoading || userQuery.isLoading
+  const isLoading = bancaQuery.isLoading || userQuery.isLoading || !userQuery.isAuthReady
   const error = bancaQuery.error || userQuery.error
 
   const generatePreview = async (type: "ata" | "participacao" | "orientacao", membroId?: number) => {
@@ -163,11 +163,15 @@ export default function BancaDocumentosPage() {
     )
   }
 
+  if (!user) {
+    return null
+  }
+
   return (
     <div className="container mx-auto p-4 md:p-8">
       <Header className="mb-6" />
 
-      <BancaNavigation id={id} user={user!} currentPage="documentos" />
+      <BancaNavigation id={id} user={user} currentPage="documentos" />
 
       <div className="bg-card shadow-md rounded-lg overflow-hidden">
         <BancaHeader

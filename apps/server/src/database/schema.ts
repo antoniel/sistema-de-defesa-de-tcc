@@ -22,7 +22,7 @@ export const Cursos = pgTable("cursos", {
   id: serial("id").primaryKey(),
   nome: text("nome").notNull(),
   sigla: text("sigla").notNull().unique(), // Ex: 'BCC', 'ENGCOMP'
-  // Adicionar outros campos como coordenacao, disciplina principal, etc., se necessário
+  coordenadorId: integer("coordenador_id").references(() => Users.id),
 })
 export type InsertCurso = typeof Cursos.$inferInsert
 export type SelectCurso = typeof Cursos.$inferSelect
@@ -253,8 +253,12 @@ export const usuariosRelations = relations(Users, ({ one, many }) => ({
   // bancasCriadas: many(bancas), // Descomentar se banca.userId for mantido
 }))
 
-export const cursosRelations = relations(Cursos, ({ many }) => ({
+export const cursosRelations = relations(Cursos, ({ one, many }) => ({
   bancas: many(Bancas),
+  coordenador: one(Users, {
+    fields: [Cursos.coordenadorId],
+    references: [Users.id],
+  }),
 }))
 
 export const bancasRelations = relations(Bancas, ({ one, many }) => ({
