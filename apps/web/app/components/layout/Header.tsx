@@ -210,7 +210,7 @@ function RightSideButtons(props: RightSideButtonsProps) {
                     onClick={() => (document.activeElement as HTMLElement)?.blur?.()}
                   >
                     <GraduationCap className="mr-2 h-4 w-4" aria-hidden="true" />
-                    Coordenadores de Curso
+                    Cursos
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
@@ -316,7 +316,7 @@ function MobileRightSideButtons(props: MobileRightSideButtonsProps) {
             <Button variant="ghost" className="w-full justify-start" asChild>
               <Link to="/admin/cursos" onClick={props.onClose} className="flex items-center">
                 <GraduationCap className="mr-2 h-4 w-4" aria-hidden="true" />
-                Coordenadores de Curso
+                Cursos
               </Link>
             </Button>
             <Button variant="ghost" className="w-full justify-start" asChild>

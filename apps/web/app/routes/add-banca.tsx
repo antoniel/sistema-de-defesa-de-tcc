@@ -63,7 +63,7 @@ const DEV_SEED_DATA: Partial<BancaFormData> = {
   // avaliador3Id: 3, // Commented out to test partial banca scenario
 }
 
-import { useAddBancaMutation, useCreateStudentInvitation, useStudentsAvailableForBanca, useTeachers } from "@/hooks"
+import { useAddBancaMutation, useCreateStudentInvitation, useCursos, useStudentsAvailableForBanca, useTeachers } from "@/hooks"
 
 const FORM_STEPS = [
   { id: 0, name: "Informações Básicas" },
@@ -735,6 +735,7 @@ const WorkAndDefenseSection = () => {
     formState: { errors },
   } = useFormContext<BancaFormData>()
   const modalidadeValue = watch("modalidade")
+  const { data: cursos, isLoading: isLoadingCursos, error: cursosError } = useCursos()
 
   const handleYearSemesterFormat = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -802,8 +803,25 @@ const WorkAndDefenseSection = () => {
                     <SelectValue placeholder="Selecione o curso..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">Ciência da Computação</SelectItem>
-                    <SelectItem value="2">Sistemas de Informação</SelectItem>
+                    {isLoadingCursos ? (
+                      <SelectItem value="0" disabled>
+                        Carregando cursos...
+                      </SelectItem>
+                    ) : cursosError ? (
+                      <SelectItem value="0" disabled>
+                        Erro ao carregar cursos
+                      </SelectItem>
+                    ) : cursos && cursos.length > 0 ? (
+                      cursos.map((curso) => (
+                        <SelectItem key={curso.id} value={String(curso.id)}>
+                          {curso.nome}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="0" disabled>
+                        Nenhum curso cadastrado
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               )}
@@ -1139,10 +1157,8 @@ const EvaluatorsReviewSection = ({ values, teachers }: { values: BancaFormData; 
 }
 
 const MetadataReviewSection = ({ values }: { values: BancaFormData }) => {
-  const cursoNomes = {
-    "1": "Ciência da Computação",
-    "2": "Sistemas de Informação",
-  }
+  const { data: cursos } = useCursos()
+  const cursoNome = cursos?.find((curso) => Number(curso.id) === Number(values.cursoId))?.nome
 
   return (
     <div>
@@ -1150,7 +1166,7 @@ const MetadataReviewSection = ({ values }: { values: BancaFormData }) => {
       <KeywordsList keywords={values.palavrasChave} className="mb-4" />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
         <ReviewField label="Turma" value={values.turma} />
-        <ReviewField label="Curso" value={cursoNomes[String(values.cursoId) as keyof typeof cursoNomes]} />
+        <ReviewField label="Curso" value={cursoNome ?? "Não selecionado"} />
         <ReviewField label="Período Acadêmico" value={values.periodoAcademico} />
       </div>
     </div>

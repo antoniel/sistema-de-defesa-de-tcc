@@ -142,7 +142,7 @@ export default function AdminUsersIndexPage() {
           Convites para Professores
         </Button>
         <Button onClick={() => navigate("/admin/cursos")} variant="outline">
-          Coordenadores de Curso
+          Gerenciar Cursos
         </Button>
       </div>
 

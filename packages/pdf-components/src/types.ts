@@ -6,7 +6,9 @@ export interface DocumentInfo {
   turma?: string
   curso: {
     nome: string
-    nomeCoordenador?: string | null
+    coordenador?: {
+      nome: string
+    } | null
   }
   membros: Array<{
     id: number
