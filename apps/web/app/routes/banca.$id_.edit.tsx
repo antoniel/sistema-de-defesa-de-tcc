@@ -38,6 +38,7 @@ const formSchema = z.object({
   periodoAcademico: z.string().min(1, "Período acadêmico é obrigatório").regex(/^\d{4}\.[12]$/, "Formato inválido. Use YYYY.S (S=1 ou 2)"),
   cursoId: z.string().min(1, "Curso é obrigatório"),
   orientadorId: z.string().min(1, "Orientador é obrigatório"),
+  coorientadorId: z.string().optional(),
   autor: z.string().min(1, "Autor é obrigatório"),
   matricula: z.string().min(1, "Matrícula é obrigatória"),
   avaliadores: z.array(
@@ -84,6 +85,10 @@ export default function EditBancaPage() {
           periodoAcademico: banca.periodoAcademico || "",
           cursoId: banca.cursoId?.toString() || "",
           orientadorId: banca.orientadorId?.toString() || "",
+          coorientadorId: (() => {
+            const coorientador = banca.membros?.find((m) => m.role === "coorientador")
+            return coorientador ? coorientador.usuario.id.toString() : "none"
+          })(),
           autor: banca.autor || "",
           matricula: banca.matricula || "",
           avaliadores: (() => {
@@ -106,7 +111,9 @@ export default function EditBancaPage() {
   })
 
   const orientadorId = form.watch("orientadorId")
+  const coorientadorId = form.watch("coorientadorId")
   const avaliadoresValues = form.watch("avaliadores")
+  const [coorientadorSearchTerm, setCoorientadorSearchTerm] = useState("")
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
   const [inviteTargetIndex, setInviteTargetIndex] = useState<number | null>(null)
   const [openSelectIndex, setOpenSelectIndex] = useState<number | null>(null)
@@ -133,7 +140,23 @@ export default function EditBancaPage() {
     ]
   }, [teachers, avaliadoresValues])
 
-  const availableTeachers = teachersList.filter((teacher) => String(teacher.id) !== orientadorId)
+  const availableTeachers = teachersList.filter(
+    (teacher) => String(teacher.id) !== orientadorId && String(teacher.id) !== coorientadorId,
+  )
+
+  const coorientadorCandidates = React.useMemo(() => {
+    if (!teachers) return []
+    return teachersList.filter((teacher) => String(teacher.id) !== orientadorId)
+  }, [teachers, teachersList, orientadorId])
+
+  const filteredCoorientadores = React.useMemo(() => {
+    if (!coorientadorSearchTerm) return coorientadorCandidates
+    const term = coorientadorSearchTerm.toLowerCase()
+    return coorientadorCandidates.filter(
+      (teacher) =>
+        teacher.nome.toLowerCase().includes(term) || teacher.email?.toLowerCase().includes(term),
+    )
+  }, [coorientadorCandidates, coorientadorSearchTerm])
 
   function openInviteDialog(index: number) {
     setInviteTargetIndex(index)
@@ -200,6 +223,8 @@ export default function EditBancaPage() {
       periodoAcademico: data.periodoAcademico,
       cursoId: Number(data.cursoId),
       orientadorId: Number(data.orientadorId),
+      coorientadorId:
+        data.coorientadorId && data.coorientadorId !== "none" ? Number(data.coorientadorId) : null,
       membros: data.avaliadores.map((a) => ({ id: a.usuarioId })),
       alunoId: banca!.alunoId,
     }
@@ -381,18 +406,29 @@ export default function EditBancaPage() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Orientador</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select
+                    onValueChange={(value) => {
+                      field.onChange(value)
+                      if (value === coorientadorId) {
+                        form.setValue("coorientadorId", "none")
+                      }
+                    }}
+                    value={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione o orientador" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
-                      {teachers?.map((user) => (
-                        <SelectItem key={user.id} value={String(user.id)}>
-                          {user.nome}
-                        </SelectItem>
-                      ))}
+                    <SelectContent className="w-[var(--radix-select-trigger-width)] max-w-[var(--radix-select-trigger-width)]">
+                      {teachers?.map((user) => {
+                        const label = formatTeacherOptionLabel(user)
+                        return (
+                          <SelectItem key={user.id} value={String(user.id)} title={label} className="overflow-hidden">
+                            <span className="truncate">{label}</span>
+                          </SelectItem>
+                        )
+                      })}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -400,6 +436,52 @@ export default function EditBancaPage() {
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="coorientadorId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Coorientador</FormLabel>
+                  <Select
+                    onValueChange={(value) => {
+                      field.onChange(value)
+                      setCoorientadorSearchTerm("")
+                    }}
+                    value={field.value || "none"}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o coorientador" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="w-[var(--radix-select-trigger-width)] max-w-[var(--radix-select-trigger-width)]">
+                      <div className="p-2 border-b sticky top-0 bg-background z-10">
+                        <Input
+                          placeholder="Buscar coorientador..."
+                          value={coorientadorSearchTerm}
+                          onChange={(e) => setCoorientadorSearchTerm(e.target.value)}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          className="bg-background"
+                        />
+                      </div>
+                      <SelectItem value="none">Nenhum</SelectItem>
+                      {filteredCoorientadores.map((user) => {
+                        const label = formatTeacherOptionLabel(user)
+                        return (
+                          <SelectItem key={user.id} value={String(user.id)} title={label} className="overflow-hidden">
+                            <span className="truncate">{label}</span>
+                          </SelectItem>
+                        )
+                      })}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <FormField
               control={form.control}
               name="dataRealizacao"
