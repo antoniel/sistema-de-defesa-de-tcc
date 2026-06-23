@@ -5,7 +5,7 @@ import { useNavigate } from "react-router"
 
 interface BancaNavigationProps {
   id: string
-  user: AppUser
+  user?: AppUser | null
   currentPage: "detalhes" | "documentos" | "avaliacoes"
   children?: React.ReactNode
 }

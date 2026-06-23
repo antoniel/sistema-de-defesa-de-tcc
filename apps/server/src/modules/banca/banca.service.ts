@@ -20,6 +20,19 @@ import { type CreateBancaInput, type UpdateBancaInput } from "./banca.schema"
 
 type GetAllBancasError = { type: "database_error"; error: unknown }
 
+async function resolveAuthenticatedUserRole(c: Context<{ Variables: AppVariables }>) {
+  const userId = c.get("jwtPayload")?.sub
+  if (!userId) {
+    return { userId: undefined, userRole: undefined }
+  }
+
+  const user = await getUserById(c, Number(userId))
+  return {
+    userId: Number(userId),
+    userRole: user.ok ? (user.data.role as UserRole) : undefined,
+  }
+}
+
 type GetBancaByIdError = { type: "banca_not_found" } | { type: "database_error"; error: unknown }
 
 type CreateBancaError =
@@ -92,9 +105,7 @@ export const getUpcomingBancasVisible = async (
 > => {
   try {
     const dao = new BancaDAO(c.get)
-    const userId = c.get("jwtPayload")?.sub
-    const user = await getUserById(c, Number(userId))
-    const userRole = user.ok ? user.data.role : undefined
+    const { userId, userRole } = await resolveAuthenticatedUserRole(c)
 
     const { bancas, total } = await dao.getUpcomingBancas({
       page,
@@ -153,9 +164,7 @@ export const getPastBancasVisible = async (
 > => {
   try {
     const dao = new BancaDAO(c.get)
-    const userId = c.get("jwtPayload")?.sub
-    const user = await getUserById(c, Number(userId))
-    const userRole = user.ok ? user.data.role : undefined
+    const { userId, userRole } = await resolveAuthenticatedUserRole(c)
 
     const { bancas, total } = await dao.getPastBancas({
       page,
@@ -218,10 +227,7 @@ export const getAllBancasVisible = async (
 > => {
   try {
     const dao = new BancaDAO(c.get)
-    const userId = c.get("jwtPayload")?.sub
-    const user = await getUserById(c, Number(userId))
-
-    const userRole = user.ok ? user.data.role : undefined
+    const { userId, userRole } = await resolveAuthenticatedUserRole(c)
 
     const [upcomingResult, pastResult] = await Promise.all([
       dao.getUpcomingBancas({
