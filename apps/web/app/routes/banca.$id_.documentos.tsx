@@ -49,11 +49,15 @@ export default function BancaDocumentosPage() {
   const hasAccess = isAdmin || isTeacher
 
   const eligibleParticipants = fileAvaliadores(bancaInfo?.membros) || []
+  const coorientador = bancaInfo?.membros.find((m) => m.role === "coorientador")
 
   const isLoading = bancaQuery.isLoading || userQuery.isLoading || !userQuery.isAuthReady
   const error = bancaQuery.error || userQuery.error
 
-  const generatePreview = async (type: "ata" | "participacao" | "orientacao", membroId?: number) => {
+  const generatePreview = async (
+    type: "ata" | "participacao" | "orientacao" | "coorientacao",
+    membroId?: number,
+  ) => {
     if (!bancaInfo) return
 
     try {
@@ -80,6 +84,12 @@ export default function BancaDocumentosPage() {
           if (!orientador) return
           pdfComponent = <DeclaracaoOrientacaoPDF bancaInfo={bancaInfo} orientadorId={orientador.id} />
           docName = "Declaração de Orientação"
+          break
+        case "coorientacao":
+          const coorientadorMembro = bancaInfo.membros.find((m) => m.role === "coorientador")
+          if (!coorientadorMembro) return
+          pdfComponent = <DeclaracaoOrientacaoPDF bancaInfo={bancaInfo} orientadorId={coorientadorMembro.id} />
+          docName = "Declaração de Coorientação"
           break
         default:
           return
@@ -346,6 +356,57 @@ export default function BancaDocumentosPage() {
                     </Button>
                   </div>
                 </div>
+
+                {coorientador && (
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-semibold mb-2 flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Declaração de Coorientação
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Declaração de coorientação para {coorientador.usuario.nome}.
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => generatePreview("coorientacao")}
+                        className="flex items-center gap-2"
+                      >
+                        <Eye className="h-4 w-4" />
+                        Visualizar
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={async () => {
+                          if (!bancaInfo || !coorientador) return
+
+                          try {
+                            const pdfComponent = (
+                              <DeclaracaoOrientacaoPDF bancaInfo={bancaInfo} orientadorId={coorientador.id} />
+                            )
+                            const blob = await pdf(pdfComponent).toBlob()
+                            const url = URL.createObjectURL(blob)
+                            const link = document.createElement("a")
+                            link.href = url
+                            link.download = "declaracao-coorientacao.pdf"
+                            document.body.appendChild(link)
+                            link.click()
+                            document.body.removeChild(link)
+                            URL.revokeObjectURL(url)
+                          } catch (error) {
+                            console.error("Erro ao gerar PDF:", error)
+                          }
+                        }}
+                        className="flex items-center gap-2"
+                      >
+                        <Download className="h-4 w-4" />
+                        Download
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 {/* CEAG Email Section */}
                 <div className="border rounded-lg p-4 bg-blue-50/50 dark:bg-blue-950/20">

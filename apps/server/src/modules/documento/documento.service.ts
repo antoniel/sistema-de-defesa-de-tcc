@@ -86,8 +86,24 @@ export const sendCeagDeclarations = async (
         })
       }
 
-      // 3. Declarações de Participação (para cada membro não-aluno)
-      const membrosParticipantes = bancaInfo.membros.filter((m) => m.role !== "aluno")
+      // 2b. Declaração de Coorientação (se houver coorientador)
+      const coorientador = bancaInfo.membros.find((m) => m.role === "coorientador")
+      if (coorientador) {
+        const coorientacaoComponent = React.createElement(DeclaracaoOrientacaoPDF, {
+          bancaInfo: bancaInfo as unknown as DocumentInfo,
+          orientadorId: coorientador.id,
+        }) as any
+        const coorientacaoStream = await pdf(coorientacaoComponent).toBlob()
+        const coorientacaoBuffer = Buffer.from(await coorientacaoStream.arrayBuffer())
+        attachments.push({
+          filename: "Declaracao_Coorientacao.pdf",
+          content: coorientacaoBuffer,
+          contentType: "application/pdf",
+        })
+      }
+
+      // 3. Declarações de Participação (para avaliadores)
+      const membrosParticipantes = bancaInfo.membros.filter((m) => m.role === "avaliador")
       for (const membro of membrosParticipantes) {
         const participacaoComponent = React.createElement(DeclaracaoParticipacaoPDF, {
           bancaInfo: bancaInfo as unknown as DocumentInfo,
