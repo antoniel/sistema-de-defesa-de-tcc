@@ -16,6 +16,7 @@ interface CreateTeacherInvitationInput {
 interface CreateTeacherInvitationResponse {
   invitationId: number
   invitationHash: string
+  userId: number
 }
 
 type CreateTeacherInvitationServiceError =
@@ -23,6 +24,8 @@ type CreateTeacherInvitationServiceError =
   | { type: "existing_invitation" }
   | { type: "database_error" }
   | { type: "email_error" }
+
+const buildUnusablePasswordHash = () => `!unusable!${crypto.randomBytes(32).toString("hex")}`
 
 export const createTeacherInvitationService = async (
   c: Context<{ Variables: AppVariables }>,
@@ -61,6 +64,26 @@ export const createTeacherInvitationService = async (
     // Generate invitation hash
     const invitationHash = crypto.randomBytes(32).toString("hex")
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+    const now = new Date()
+
+    const [stubUser] = await dbInstance
+      .insert(Users)
+      .values({
+        email: input.email,
+        nome: input.nome,
+        matricula: `EXT-${crypto.randomBytes(4).toString("hex")}`,
+        passwordHash: buildUnusablePasswordHash(),
+        school: "",
+        academicTitle: "",
+        role: "TEACHER",
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning({ id: Users.id })
+
+    if (!stubUser) {
+      return err({ type: "database_error" })
+    }
 
     // Create invitation
     const newInvitation = await dbInstance
@@ -72,6 +95,7 @@ export const createTeacherInvitationService = async (
         expiresAt,
         invitedBy: Number(adminUser.sub),
         status: "pending",
+        userId: stubUser.id,
       })
       .returning({ insertedId: teacherInvitations.id })
 
@@ -101,6 +125,7 @@ export const createTeacherInvitationService = async (
     return ok({
       invitationId: insertedInvitation.insertedId,
       invitationHash,
+      userId: stubUser.id,
     })
   } catch (dbError) {
     console.error("Database error during teacher invitation creation:", dbError)
@@ -197,13 +222,28 @@ export const acceptTeacherInvitationService = async (
   const dbInstance = c.get("db")
 
   try {
-    // First verify the invitation
-    const verificationResult = await verifyTeacherInvitationService(c, input.invitationHash)
-    if (!verificationResult.ok) {
-      return err(verificationResult.error)
+    const [invitation] = await dbInstance
+      .select()
+      .from(teacherInvitations)
+      .where(eq(teacherInvitations.invitationHash, input.invitationHash))
+      .limit(1)
+
+    if (!invitation) {
+      return err({ type: "invitation_not_found" })
     }
 
-    const invitationDetails = verificationResult.data
+    if (invitation.status === "used") {
+      return err({ type: "invitation_already_used" })
+    }
+
+    if (invitation.expiresAt < new Date()) {
+      await dbInstance
+        .update(teacherInvitations)
+        .set({ status: "expired" })
+        .where(eq(teacherInvitations.invitationHash, input.invitationHash))
+
+      return err({ type: "invitation_expired" })
+    }
 
     // Hash password
     let passwordHash: string
@@ -214,26 +254,44 @@ export const acceptTeacherInvitationService = async (
       return err({ type: "hashing_error" })
     }
 
-    // Create teacher user
     const now = new Date()
-    const newUser = await dbInstance
-      .insert(Users)
-      .values({
-        passwordHash,
-        email: invitationDetails.email,
-        nome: invitationDetails.nome,
-        school: input.school,
-        academicTitle: input.academicTitle,
-        matricula: input.matricula,
-        createdAt: now,
-        updatedAt: now,
-        role: "TEACHER",
-      })
-      .returning({ insertedId: Users.id })
+    let userId: number
 
-    const insertedUser = newUser[0]
-    if (!insertedUser || !insertedUser.insertedId) {
-      return err({ type: "database_error" })
+    if (invitation.userId) {
+      await dbInstance
+        .update(Users)
+        .set({
+          passwordHash,
+          school: input.school,
+          academicTitle: input.academicTitle,
+          matricula: input.matricula,
+          updatedAt: now,
+        })
+        .where(eq(Users.id, invitation.userId))
+
+      userId = invitation.userId
+    } else {
+      const newUser = await dbInstance
+        .insert(Users)
+        .values({
+          passwordHash,
+          email: invitation.email,
+          nome: invitation.nome,
+          school: input.school,
+          academicTitle: input.academicTitle,
+          matricula: input.matricula,
+          createdAt: now,
+          updatedAt: now,
+          role: "TEACHER",
+        })
+        .returning({ insertedId: Users.id })
+
+      const insertedUser = newUser[0]
+      if (!insertedUser?.insertedId) {
+        return err({ type: "database_error" })
+      }
+
+      userId = insertedUser.insertedId
     }
 
     // Mark invitation as used and link to user
@@ -241,13 +299,13 @@ export const acceptTeacherInvitationService = async (
       .update(teacherInvitations)
       .set({
         status: "used",
-        userId: insertedUser.insertedId,
+        userId,
       })
       .where(eq(teacherInvitations.invitationHash, input.invitationHash))
 
-    console.log(`Teacher account created: ${invitationDetails.email}, ID: ${insertedUser.insertedId}`)
+    console.log(`Teacher account created: ${invitation.email}, ID: ${userId}`)
 
-    return ok({ userId: insertedUser.insertedId })
+    return ok({ userId })
   } catch (dbError) {
     console.error("Database error during teacher invitation acceptance:", dbError)
     return err({ type: "database_error" })
