@@ -47,9 +47,10 @@ export const useCreateTeacherInvitation = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teacher-invitations"] })
+      queryClient.invalidateQueries({ queryKey: ["teachers"] })
       toast({
         title: "Convite enviado ✅",
-        description: "O convite para professor foi enviado com sucesso",
+        description: "O convite para membro externo foi enviado com sucesso",
       })
     },
     onError: (error: any) => {

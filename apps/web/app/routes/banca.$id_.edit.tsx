@@ -1,4 +1,5 @@
 import { Header } from "@/components/layout/Header"
+import { InviteExternalMemberDialog } from "@/components/banca/InviteExternalMemberDialog"
 import type { Route } from "./+types/banca.$id_.edit"
 
 export const meta: Route.MetaFunction = () => [
@@ -19,6 +20,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { SelectCurso, SelectUser } from "@tcc/server"
 import { format } from "date-fns"
 import { CalendarIcon } from "lucide-react"
+import React, { useState } from "react"
 import { useFieldArray, useForm } from "react-hook-form"
 import { useNavigate, useParams } from "react-router"
 import { z } from "zod"
@@ -46,6 +48,11 @@ const formSchema = z.object({
 })
 
 type FormValues = z.infer<typeof formSchema>
+
+function formatTeacherOptionLabel(user: { nome: string; academicTitle?: string | null }) {
+  if (user.nome === "Membro externo (convite pendente)") return user.nome
+  return user.academicTitle ? `${user.nome} - ${user.academicTitle}` : user.nome
+}
 
 type updateBanca = RpcType<(typeof apiClient.banca)[":id"]["$put"]>["input"]["json"]
 
@@ -97,6 +104,52 @@ export default function EditBancaPage() {
     control: form.control,
     name: "avaliadores",
   })
+
+  const orientadorId = form.watch("orientadorId")
+  const avaliadoresValues = form.watch("avaliadores")
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
+  const [inviteTargetIndex, setInviteTargetIndex] = useState<number | null>(null)
+  const [openSelectIndex, setOpenSelectIndex] = useState<number | null>(null)
+
+  const teachersList = React.useMemo(() => {
+    const list = teachers ?? []
+    const selectedIds = (avaliadoresValues ?? []).map((a) => Number(a.usuarioId)).filter(Boolean)
+    const missing = selectedIds.filter((id) => !list.some((t) => t.id === id))
+    if (missing.length === 0) return list
+
+    return [
+      ...list,
+      ...missing.map((id) => ({
+        id,
+        nome: "Membro externo (convite pendente)",
+        email: "",
+        academicTitle: "",
+        matricula: "",
+        school: "",
+        role: "TEACHER" as const,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })),
+    ]
+  }, [teachers, avaliadoresValues])
+
+  const availableTeachers = teachersList.filter((teacher) => String(teacher.id) !== orientadorId)
+
+  function openInviteDialog(index: number) {
+    setInviteTargetIndex(index)
+    setOpenSelectIndex(null)
+    setInviteDialogOpen(true)
+  }
+
+  function getAvaliadorOptions(index: number, currentValue: string) {
+    const otherSelectedIds = (avaliadoresValues ?? [])
+      .map((avaliador, i) => (i !== index ? avaliador.usuarioId : null))
+      .filter(Boolean)
+
+    return availableTeachers.filter(
+      (teacher) => String(teacher.id) === currentValue || !otherSelectedIds.includes(String(teacher.id)),
+    )
+  }
 
   // Handler for masking inputs with YYYY.S format
   const handleYearSemesterFormat = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -391,26 +444,44 @@ export default function EditBancaPage() {
 
           <div>
             <FormLabel>Membros da Banca Avaliadora</FormLabel>
+            <p className="text-sm text-muted-foreground mt-1 mb-2">
+              Selecione os avaliadores ou convide um membro externo diretamente em cada campo.
+            </p>
             <div className="space-y-4 mt-2">
               {fields.map((field, index) => (
                 <div key={field.id} className="flex items-center gap-4">
                   <FormField
                     control={form.control}
                     name={`avaliadores.${index}.usuarioId`}
-                    render={({ field }) => (
+                    render={({ field: avaliadorField }) => (
                       <FormItem className="flex-grow">
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select
+                          open={openSelectIndex === index}
+                          onOpenChange={(open) => setOpenSelectIndex(open ? index : null)}
+                          onValueChange={avaliadorField.onChange}
+                          value={avaliadorField.value || undefined}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione um avaliador" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent>
-                            {teachers?.map((user) => (
-                              <SelectItem key={user.id} value={String(user.id)}>
-                                {user.nome}
-                              </SelectItem>
-                            ))}
+                          <SelectContent className="w-[var(--radix-select-trigger-width)] max-w-[var(--radix-select-trigger-width)]">
+                            <button
+                              type="button"
+                              className="relative flex w-full cursor-pointer items-center rounded-sm py-1.5 pl-2 pr-8 text-sm font-medium text-primary outline-none hover:bg-accent hover:text-accent-foreground"
+                              onClick={() => openInviteDialog(index)}
+                            >
+                              + Convidar membro externo
+                            </button>
+                            {getAvaliadorOptions(index, avaliadorField.value).map((user) => {
+                              const label = formatTeacherOptionLabel(user)
+                              return (
+                                <SelectItem key={user.id} value={String(user.id)} title={label} className="overflow-hidden">
+                                  <span className="truncate">{label}</span>
+                                </SelectItem>
+                              )
+                            })}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -427,6 +498,19 @@ export default function EditBancaPage() {
               </Button>
             </div>
           </div>
+
+          <InviteExternalMemberDialog
+            open={inviteDialogOpen}
+            onOpenChange={setInviteDialogOpen}
+            idPrefix="edit-invite-external"
+            onInvited={(member) => {
+              if (inviteTargetIndex === null) return
+              form.setValue(`avaliadores.${inviteTargetIndex}.usuarioId`, String(member.id), {
+                shouldValidate: true,
+              })
+              setInviteTargetIndex(null)
+            }}
+          />
 
           <div className="flex justify-end gap-4">
             <Button type="button" variant="outline" onClick={() => navigate(-1)}>

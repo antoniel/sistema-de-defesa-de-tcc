@@ -597,12 +597,20 @@ export const createBanca = async (
       role: "aluno",
     })
 
+    // Add coorientador if provided
+    if (bancaData.coorientadorId) {
+      await dbInstance.insert(usuariosBancas).values({
+        bancaId: newBanca.id,
+        usuarioId: bancaData.coorientadorId,
+        role: "coorientador",
+      })
+    }
+
     // Add evaluators if provided
     if (bancaData.membros && bancaData.membros.length > 0) {
-      // Filter out the orientador from membros to avoid duplication
-      // The orientador is already added as "orientador" role above
+      const excludedIds = new Set([bancaData.orientadorId, bancaData.coorientadorId].filter(Boolean))
       const avaliadoresData = bancaData.membros
-        .filter((membro) => Number(membro.id) !== bancaData.orientadorId)
+        .filter((membro) => !excludedIds.has(Number(membro.id)))
         .map((membro) => ({
           bancaId: newBanca.id,
           usuarioId: Number(membro.id),
@@ -670,13 +678,25 @@ export const updateBanca = async (
       })
     }
 
+    // Add coorientador if provided
+    if (data.coorientadorId) {
+      await dbInstance.insert(usuariosBancas).values({
+        bancaId: updatedBanca.id,
+        usuarioId: Number(data.coorientadorId),
+        role: "coorientador",
+      })
+    }
+
     // Add avaliadores
     if (data.membros && data.membros.length > 0) {
-      const avaliadoresData = data.membros.map((membro) => ({
-        bancaId: updatedBanca.id,
-        usuarioId: Number(membro.id),
-        role: "avaliador" as const,
-      }))
+      const excludedIds = new Set([Number(data.orientadorId), data.coorientadorId ? Number(data.coorientadorId) : null].filter(Boolean))
+      const avaliadoresData = data.membros
+        .filter((membro) => !excludedIds.has(Number(membro.id)))
+        .map((membro) => ({
+          bancaId: updatedBanca.id,
+          usuarioId: Number(membro.id),
+          role: "avaliador" as const,
+        }))
       await dbInstance.insert(usuariosBancas).values(avaliadoresData)
     }
 
