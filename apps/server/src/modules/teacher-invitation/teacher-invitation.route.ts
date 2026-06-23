@@ -17,7 +17,7 @@ import {
 } from "./teacher-invitation.service"
 
 const app = new Hono<{ Variables: AppVariables }>()
-  .post("/", checkRole(["ADMIN"]), zValidator("json", createTeacherInvitationSchema), async (c) => {
+  .post("/", checkRole(["ADMIN", "TEACHER"]), zValidator("json", createTeacherInvitationSchema), async (c) => {
     const body = c.req.valid("json")
 
     const result = await createTeacherInvitationService(c, body)
@@ -35,6 +35,7 @@ const app = new Hono<{ Variables: AppVariables }>()
       success: true,
       data: {
         invitationId: result.data.invitationId,
+        userId: result.data.userId,
         message: "Convite enviado com sucesso",
       },
     })

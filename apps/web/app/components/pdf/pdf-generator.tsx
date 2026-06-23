@@ -31,7 +31,10 @@ export function PDFGenerator({ bancaId, className, showParticipantSelection = fa
     onParticipantSelect?.(id)
   }
 
-  const generateAndDownloadPDF = async (type: "ata" | "participacao" | "orientacao", membroId?: number) => {
+  const generateAndDownloadPDF = async (
+    type: "ata" | "participacao" | "orientacao" | "coorientacao",
+    membroId?: number,
+  ) => {
     if (!bancaInfo) {
       toast({
         title: "Erro",
@@ -63,6 +66,12 @@ export function PDFGenerator({ bancaId, className, showParticipantSelection = fa
           if (!orientador) throw new Error("Orientador não encontrado")
           pdfComponent = <DeclaracaoOrientacaoPDF bancaInfo={bancaInfo} orientadorId={orientador.id} />
           fileName = `declaracao-orientacao.pdf`
+          break
+        case "coorientacao":
+          const coorientador = bancaInfo.membros.find((m) => m.role === "coorientador")
+          if (!coorientador) throw new Error("Coorientador não encontrado")
+          pdfComponent = <DeclaracaoOrientacaoPDF bancaInfo={bancaInfo} orientadorId={coorientador.id} />
+          fileName = `declaracao-coorientacao.pdf`
           break
         default:
           throw new Error("Tipo de documento inválido")

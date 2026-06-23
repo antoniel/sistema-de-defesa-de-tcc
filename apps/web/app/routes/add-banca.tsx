@@ -1,4 +1,5 @@
 import { KeywordsList } from "@/components/banca/KeywordsList"
+import { InviteExternalMemberDialog } from "@/components/banca/InviteExternalMemberDialog"
 import { Header } from "@/components/layout/Header"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -36,6 +37,7 @@ type BancaFormData = Omit<InsertBanca, "ano" | "semestreLetivo"> & {
   visible: boolean
   hora: string
   orientadorId?: number
+  coorientadorId?: number
   alunoId: number
   periodoAcademico: string // New combined field for ano.semestreLetivo
   avaliador1Id?: number
@@ -75,6 +77,7 @@ const FORM_STEPS = [
 
 type SubmissionPayload = query["input"]["json"] & {
   orientadorId?: number
+  coorientadorId?: number | null
   membros?: Array<{ id: number }>
 }
 
@@ -121,7 +124,7 @@ export default function AddBancaPage() {
       dataRealizacaoCompleta = new Date(`${dataStr}T${data.hora}:00`)
     }
 
-    const { hora, avaliador1Id, avaliador2Id, avaliador3Id, ...dataWithoutExtraFields } = data
+    const { hora, avaliador1Id, avaliador2Id, avaliador3Id, coorientadorId, ...dataWithoutExtraFields } = data
 
     const membros = [{ id: Number(avaliador1Id) }, { id: Number(avaliador2Id) }, { id: Number(avaliador3Id) }].filter(
       (membro) => !!membro.id,
@@ -135,6 +138,7 @@ export default function AddBancaPage() {
       visible: Boolean(data.visible),
       alunoId: Number(data.alunoId),
       orientadorId: Number(data.orientadorId),
+      coorientadorId: coorientadorId ? Number(coorientadorId) : null,
       dataRealizacao: dataRealizacaoCompleta,
       membros,
     }
@@ -490,6 +494,7 @@ const AuthorInfoSection = () => {
   const isUserStudent = user?.role === "STUDENT"
   const [searchTerm, setSearchTerm] = useState("")
   const [orientadorSearchTerm, setOrientadorSearchTerm] = useState("")
+  const [coorientadorSearchTerm, setCoorientadorSearchTerm] = useState("")
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
   const [studentSelectOpen, setStudentSelectOpen] = useState(false)
   const {
@@ -502,6 +507,8 @@ const AuthorInfoSection = () => {
   const alunoIdValue = watch("alunoId")
   const autorValue = watch("autor")
   const matriculaValue = watch("matricula")
+  const orientadorIdValue = watch("orientadorId")
+  const coorientadorIdValue = watch("coorientadorId")
 
   // Buscar a lista de professores do servidor
   const { data: teachers, isLoading: isLoadingTeachers, error: teachersError } = useTeachers()
@@ -545,10 +552,25 @@ const AuthorInfoSection = () => {
     )
   }, [teachers, orientadorSearchTerm])
 
+  const coorientadorCandidates = React.useMemo(() => {
+    if (!teachers) return []
+    return teachers.filter((teacher) => teacher.id !== Number(orientadorIdValue))
+  }, [teachers, orientadorIdValue])
+
+  const filteredCoorientadores = React.useMemo(() => {
+    if (!coorientadorSearchTerm) return coorientadorCandidates
+    const term = coorientadorSearchTerm.toLowerCase()
+    return coorientadorCandidates.filter(
+      (teacher) =>
+        teacher.nome.toLowerCase().includes(term) ||
+        teacher.email?.toLowerCase().includes(term),
+    )
+  }, [coorientadorCandidates, coorientadorSearchTerm])
+
   return (
     <>
       <h2 className="text-xl font-semibold mb-4">Informações do Autor</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="autor">Aluno</Label>
           {isUserStudent ? (
@@ -669,8 +691,11 @@ const AuthorInfoSection = () => {
             render={({ field }) => (
               <Select
                 onValueChange={(value) => {
-                  field.onChange(value)
+                  field.onChange(Number(value))
                   setOrientadorSearchTerm("")
+                  if (Number(value) === Number(coorientadorIdValue)) {
+                    setValue("coorientadorId", undefined)
+                  }
                 }}
                 value={field.value ? String(field.value) : undefined}
               >
@@ -711,6 +736,63 @@ const AuthorInfoSection = () => {
             )}
           />
           {errors.orientadorId && <p className="text-sm text-red-600 mt-1">{errors.orientadorId.message}</p>}
+        </div>
+        <div>
+          <Label htmlFor="coorientadorId">Coorientador</Label>
+          <Controller
+            name="coorientadorId"
+            control={control}
+            render={({ field }) => (
+              <Select
+                onValueChange={(value) => {
+                  if (value === "none") {
+                    field.onChange(undefined)
+                  } else {
+                    field.onChange(Number(value))
+                  }
+                  setCoorientadorSearchTerm("")
+                }}
+                value={field.value ? String(field.value) : "none"}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o coorientador..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <div className="p-2 border-b sticky top-0 bg-background z-10">
+                    <Input
+                      placeholder="Buscar coorientador..."
+                      value={coorientadorSearchTerm}
+                      onChange={(e) => setCoorientadorSearchTerm(e.target.value)}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      className="bg-background"
+                    />
+                  </div>
+                  <SelectItem value="none">Nenhum</SelectItem>
+                  {isLoadingTeachers ? (
+                    <SelectItem value="0" disabled>
+                      Carregando professores...
+                    </SelectItem>
+                  ) : teachersError ? (
+                    <SelectItem value="0" disabled>
+                      Erro ao carregar professores
+                    </SelectItem>
+                  ) : filteredCoorientadores.length > 0 ? (
+                    filteredCoorientadores.map((teacher) => (
+                      <SelectItem key={teacher.id} value={teacher.id.toString()}>
+                        {teacher.nome}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="0" disabled>
+                      {coorientadorSearchTerm
+                        ? "Nenhum professor encontrado para a busca"
+                        : "Nenhum professor disponível"}
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            )}
+          />
         </div>
       </div>
       <InviteStudentDialog
@@ -951,24 +1033,57 @@ const EvaluatorsSection = () => {
   const {
     control,
     watch,
+    setValue,
     formState: { errors },
   } = useFormContext<BancaFormData>()
 
-  // Watch the orientadorId to include as avaliador1
   const orientadorId = watch("orientadorId")
+  const coorientadorId = watch("coorientadorId")
+  const avaliador2Id = watch("avaliador2Id")
+  const avaliador3Id = watch("avaliador3Id")
+  const [inviteExternalDialogOpen, setInviteExternalDialogOpen] = useState(false)
+  const [inviteTargetField, setInviteTargetField] = useState<"avaliador2Id" | "avaliador3Id">("avaliador2Id")
+  const [avaliador2SelectOpen, setAvaliador2SelectOpen] = useState(false)
+  const [avaliador3SelectOpen, setAvaliador3SelectOpen] = useState(false)
 
-  // Buscar a lista de professores
   const { data: teachers, isLoading: isLoadingTeachers, error: teachersError } = useTeachers()
 
-  // Filter teachers excluding the supervisor
-  const availableTeachers = teachers?.filter((teacher) => teacher.id !== Number(orientadorId)) || []
+  const teachersList = React.useMemo(() => {
+    const list = teachers ?? []
+    const optimisticIds = [avaliador2Id, avaliador3Id].filter(Boolean).map(Number)
+    const missing = optimisticIds.filter((id) => !list.some((t) => t.id === id))
+    if (missing.length === 0) return list
+    return [
+      ...list,
+      ...missing.map((id) => ({
+        id,
+        nome: "Membro externo (convite pendente)",
+        email: "",
+        academicTitle: "",
+        matricula: "",
+        school: "",
+        role: "TEACHER" as const,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })),
+    ]
+  }, [teachers, avaliador2Id, avaliador3Id])
+
+  const excludedIds = new Set([Number(orientadorId), Number(coorientadorId)].filter(Boolean))
+  const availableTeachers = teachersList.filter((teacher) => !excludedIds.has(teacher.id))
+
+  function openInviteDialog(field: "avaliador2Id" | "avaliador3Id") {
+    setInviteTargetField(field)
+    setInviteExternalDialogOpen(true)
+  }
 
   return (
     <>
       <h2 className="text-xl font-semibold mb-4">Avaliadores da Banca</h2>
       <p className="text-sm text-muted-foreground mb-6">
         Selecione os avaliadores para compor a banca. Mínimo: orientador + 1 avaliador adicional. Para gerar
-        certificados e relatórios, é necessário ter 3 avaliadores com notas atribuídas.
+        certificados e relatórios, é necessário ter 3 avaliadores com notas atribuídas. Professores da UFBA podem
+        convidar membros externos diretamente nos campos de avaliador.
       </p>
 
       <div className="space-y-4">
@@ -979,12 +1094,11 @@ const EvaluatorsSection = () => {
             control={control}
             rules={{ required: "O orientador deve ser selecionado como avaliador" }}
             render={({ field }) => {
-              // Automatically set orientador as avaliador1
               if (orientadorId && !field.value) {
                 field.onChange(orientadorId)
               }
 
-              const orientador = teachers?.find((t) => t.id === Number(orientadorId))
+              const orientador = teachersList.find((t) => t.id === Number(orientadorId))
 
               return (
                 <div className="flex items-center p-3 border rounded bg-muted/50">
@@ -1006,11 +1120,26 @@ const EvaluatorsSection = () => {
             name="avaliador2Id"
             control={control}
             render={({ field }) => (
-              <Select onValueChange={field.onChange} value={field.value?.toString() ?? ""}>
+              <Select
+                open={avaliador2SelectOpen}
+                onOpenChange={setAvaliador2SelectOpen}
+                onValueChange={(value) => field.onChange(Number(value))}
+                value={field.value ? String(field.value) : undefined}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o 2º avaliador..." />
                 </SelectTrigger>
                 <SelectContent>
+                  <button
+                    type="button"
+                    className="relative flex w-full cursor-pointer items-center rounded-sm py-1.5 pl-2 pr-8 text-sm font-medium text-primary outline-none hover:bg-accent hover:text-accent-foreground"
+                    onClick={() => {
+                      setAvaliador2SelectOpen(false)
+                      openInviteDialog("avaliador2Id")
+                    }}
+                  >
+                    + Convidar membro externo
+                  </button>
                   {isLoadingTeachers ? (
                     <SelectItem value="0" disabled>
                       Carregando professores...
@@ -1022,7 +1151,7 @@ const EvaluatorsSection = () => {
                   ) : availableTeachers.length > 0 ? (
                     availableTeachers.map((teacher) => (
                       <SelectItem key={teacher.id} value={teacher.id.toString()}>
-                        {teacher.nome} - {teacher.academicTitle}
+                        {teacher.nome} - {teacher.academicTitle || "Sem título"}
                       </SelectItem>
                     ))
                   ) : (
@@ -1042,17 +1171,31 @@ const EvaluatorsSection = () => {
           <Controller
             name="avaliador3Id"
             control={control}
-            rules={{ required: false }} // Made optional
+            rules={{ required: false }}
             render={({ field }) => {
-              const avaliador2Id = watch("avaliador2Id")
               const filteredTeachers = availableTeachers.filter((teacher) => teacher.id !== Number(avaliador2Id))
 
               return (
-                <Select onValueChange={field.onChange} value={field.value?.toString() ?? ""}>
+                <Select
+                  open={avaliador3SelectOpen}
+                  onOpenChange={setAvaliador3SelectOpen}
+                  onValueChange={(value) => field.onChange(Number(value))}
+                  value={field.value ? String(field.value) : undefined}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o 3º avaliador..." />
                   </SelectTrigger>
                   <SelectContent>
+                    <button
+                      type="button"
+                      className="relative flex w-full cursor-pointer items-center rounded-sm py-1.5 pl-2 pr-8 text-sm font-medium text-primary outline-none hover:bg-accent hover:text-accent-foreground"
+                      onClick={() => {
+                        setAvaliador3SelectOpen(false)
+                        openInviteDialog("avaliador3Id")
+                      }}
+                    >
+                      + Convidar membro externo
+                    </button>
                     {isLoadingTeachers ? (
                       <SelectItem value="0" disabled>
                         Carregando professores...
@@ -1064,7 +1207,7 @@ const EvaluatorsSection = () => {
                     ) : filteredTeachers.length > 0 ? (
                       filteredTeachers.map((teacher) => (
                         <SelectItem key={teacher.id} value={teacher.id.toString()}>
-                          {teacher.nome} - {teacher.academicTitle}
+                          {teacher.nome} - {teacher.academicTitle || "Sem título"}
                         </SelectItem>
                       ))
                     ) : (
@@ -1080,6 +1223,14 @@ const EvaluatorsSection = () => {
           {errors.avaliador3Id && <p className="text-sm text-red-600 mt-1">{errors.avaliador3Id.message}</p>}
         </div>
       </div>
+
+      <InviteExternalMemberDialog
+        open={inviteExternalDialogOpen}
+        onOpenChange={setInviteExternalDialogOpen}
+        onInvited={(member) => {
+          setValue(inviteTargetField, member.id)
+        }}
+      />
     </>
   )
 }
@@ -1125,16 +1276,33 @@ const BasicInfoReviewSection = ({ values }: { values: BancaFormData }) => (
   </div>
 )
 
-const AuthorInfoReviewSection = ({ values, orientador }: { values: BancaFormData; orientador: any }) => (
+const AuthorInfoReviewSection = ({
+  values,
+  orientador,
+  coorientador,
+}: {
+  values: BancaFormData
+  orientador: any
+  coorientador: any
+}) => (
   <div className="space-y-4">
     <SectionHeader title="Informações do Autor" />
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <ReviewField label="Autor" value={values.autor} />
       <ReviewField label="Matrícula" value={values.matricula} />
     </div>
-    <div>
-      <ReviewField label="Orientador" value={orientador ? `${orientador.nome}` : "Não selecionado"} />
-      <p className="text-sm text-muted-foreground">{`(${orientador?.academicTitle || ""})`}</p>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <ReviewField label="Orientador" value={orientador ? `${orientador.nome}` : "Não selecionado"} />
+        <p className="text-sm text-muted-foreground">{`(${orientador?.academicTitle || ""})`}</p>
+      </div>
+      <div>
+        <ReviewField
+          label="Coorientador"
+          value={coorientador ? `${coorientador.nome}` : "Não selecionado"}
+        />
+        <p className="text-sm text-muted-foreground">{`(${coorientador?.academicTitle || ""})`}</p>
+      </div>
     </div>
   </div>
 )
@@ -1200,13 +1368,14 @@ const ReviewSection = () => {
   const { data: teachers } = useTeachers()
 
   const orientador = teachers?.find((teacher) => Number(teacher.id) === Number(values.orientadorId))
+  const coorientador = teachers?.find((teacher) => Number(teacher.id) === Number(values.coorientadorId))
 
   return (
     <>
       <h2 className="text-xl font-semibold mb-4">Revisão e Confirmação</h2>
       <div className="space-y-6 border rounded-lg p-4">
         <BasicInfoReviewSection values={values} />
-        <AuthorInfoReviewSection values={values} orientador={orientador} />
+        <AuthorInfoReviewSection values={values} orientador={orientador} coorientador={coorientador} />
         <EvaluatorsReviewSection values={values} teachers={teachers || []} />
         <MetadataReviewSection values={values} />
         <DefenseScheduleReviewSection values={values} />
