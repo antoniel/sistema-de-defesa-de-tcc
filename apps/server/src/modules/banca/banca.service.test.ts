@@ -1,8 +1,19 @@
-import { beforeEach, describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { fakeDeps, getFakeDb } from "../../tests/utils"
-import { getUpcomingBancasVisible, getPastBancasVisible, getBancasByOrientador } from "./banca.service"
+import * as usuarioService from "../usuario/usuario.service"
+import { getAllBancasVisible, getUpcomingBancasVisible, getPastBancasVisible, getBancasByOrientador } from "./banca.service"
 import type { Context } from "hono"
 import type { AppVariables } from "../../types"
+
+function createAnonymousContext(db: Awaited<ReturnType<typeof getFakeDb>>) {
+  return {
+    get: (key: "db" | "jwtPayload") => {
+      if (key === "db") return db
+      if (key === "jwtPayload") return undefined
+      throw new Error(`Unknown dependency: ${key}`)
+    },
+  } as any as Context<{ Variables: AppVariables }>
+}
 
 describe("BancaService - Sorting Integration", () => {
   let db: Awaited<ReturnType<typeof getFakeDb>>
@@ -309,6 +320,66 @@ describe("BancaService - Sorting Integration", () => {
       if (!result.ok) {
         expect(result.error.type).toBe("database_error")
       }
+    })
+  })
+
+  describe("unauthenticated access", () => {
+    let anonymousContext: Context<{ Variables: AppVariables }>
+
+    beforeEach(async () => {
+      anonymousContext = createAnonymousContext(db)
+    })
+
+    afterEach(() => {
+      vi.restoreAllMocks()
+    })
+
+    it("should list upcoming bancas without calling getUserById", async () => {
+      const getUserByIdSpy = vi.spyOn(usuarioService, "getUserById")
+
+      const result = await getUpcomingBancasVisible(
+        anonymousContext,
+        undefined,
+        undefined,
+        1,
+        10,
+        undefined
+      )
+
+      expect(result.ok).toBe(true)
+      expect(getUserByIdSpy).not.toHaveBeenCalled()
+    })
+
+    it("should list past bancas without calling getUserById", async () => {
+      const getUserByIdSpy = vi.spyOn(usuarioService, "getUserById")
+
+      const result = await getPastBancasVisible(
+        anonymousContext,
+        undefined,
+        undefined,
+        1,
+        10,
+        undefined
+      )
+
+      expect(result.ok).toBe(true)
+      expect(getUserByIdSpy).not.toHaveBeenCalled()
+    })
+
+    it("should list all bancas without calling getUserById", async () => {
+      const getUserByIdSpy = vi.spyOn(usuarioService, "getUserById")
+
+      const result = await getAllBancasVisible(
+        anonymousContext,
+        undefined,
+        undefined,
+        1,
+        10,
+        undefined
+      )
+
+      expect(result.ok).toBe(true)
+      expect(getUserByIdSpy).not.toHaveBeenCalled()
     })
   })
 })
