@@ -18,7 +18,7 @@ export function FormularioAvaliacaoPDF({ bancaInfo }: FormularioAvaliacaoPDFProp
   const defenseDate = new Date(bancaInfo.dataRealizacao).toLocaleDateString("pt-BR")
   const orientador = bancaInfo.membros.find((m) => m.role === "orientador")
   const coorientador = bancaInfo.membros.find((m) => m.role === "coorientador")
-  const avaliadores = fileAvaliadores(bancaInfo.membros) || []
+  const avaliadores = [...(orientador ? [orientador] : []), ...(fileAvaliadores(bancaInfo.membros) || [])]
 
   const notasValidas = avaliadores.filter((a) => a.nota).map((a) => Number(a.nota))
   const media =
