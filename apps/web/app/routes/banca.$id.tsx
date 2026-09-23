@@ -18,7 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
 import { useUser } from "@/services/useUser"
-import { ArrowLeft, Calendar, Check, ChevronDown, Clock, Copy, Mail, MapPin, School, User } from "lucide-react"
+import { ArrowLeft, Calendar, Check, ChevronDown, Clock, Copy, FileText, Mail, MapPin, School, User } from "lucide-react"
 import { useState } from "react"
 import { useNavigate, useParams } from "react-router"
 import type { Route } from "./+types/banca.$id"
@@ -302,6 +302,18 @@ export default function BancaDetalhesPage() {
 
             {/* Coluna da direita - Conteúdo Acadêmico */}
             <div className="space-y-6 md:col-span-2 lg:col-span-3">
+              {banca.linkTrabalho && (
+                <section>
+                  <h2 className="text-xl font-semibold mb-4">Trabalho Completo</h2>
+                  <Button asChild variant="outline">
+                    <a href={banca.linkTrabalho} target="_blank" rel="noopener noreferrer">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Baixar PDF do TCC
+                    </a>
+                  </Button>
+                </section>
+              )}
+
               <section>
                 <div className="flex items-center gap-2 mb-4">
                   <h2 className="text-xl font-semibold">Resumo</h2>

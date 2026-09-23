@@ -10,6 +10,18 @@ export const paramIdSchema = z.object({
 
 const baseBancaSchema = createInsertSchema(Bancas)
 
+/**
+ * Link público para o PDF do TCC. Campo opcional: aceita URL válida, string vazia,
+ * `null` ou ausência do campo.
+ */
+export const linkTrabalhoSchema = z
+  .string()
+  .trim()
+  .url("Informe uma URL válida (ex.: https://repositorio.ufba.br/...)")
+  .or(z.literal(""))
+  .optional()
+  .nullable()
+
 export const createBancaSchema = baseBancaSchema.extend({
   autor: z.string().min(1, "Autor é obrigatório"),
   matricula: z.string().min(1, "Matrícula é obrigatória"),
@@ -18,6 +30,7 @@ export const createBancaSchema = baseBancaSchema.extend({
   dataRealizacao: z.coerce.date(),
   avaliadores: z.array(z.string()).min(1, "Pelo menos um avaliador é necessário").optional(),
   membros: z.array(z.object({ id: z.number().min(1, "ID do avaliador é obrigatório") })).optional(),
+  linkTrabalho: linkTrabalhoSchema,
 })
 
 const partialCreateBancaSchema = createBancaSchema.partial()
@@ -36,6 +49,7 @@ export const updateBancaSchema = z.object({
   coorientadorId: z.number().min(1, "ID do coorientador inválido").optional().nullable(),
   cursoId: z.number().min(1, "Curso é obrigatório"),
   membros: z.array(z.object({ id: z.string().min(1, "Avaliador é obrigatório") })),
+  linkTrabalho: linkTrabalhoSchema,
 })
 
 export const gradeAssignmentSchema = z.object({

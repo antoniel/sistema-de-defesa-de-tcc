@@ -105,6 +105,59 @@ describe("Rotas de Banca", async () => {
       expect(data.visible).toBe(true)
     })
 
+    it("persiste o link do PDF do TCC quando informado", async () => {
+      const student = await createTestStudent()
+      const [studentUser] = await db.insert(Users).values(student).returning()
+      const linkTrabalho = "https://repositorio.ufba.br/handle/ri/12345"
+      const newBancaData: CreateBancaInput = {
+        ...createTestBancaInput(cursoId, teacherId, studentUser.id),
+        linkTrabalho,
+      }
+
+      const res = await client.banca.$post(
+        { json: newBancaData },
+        { headers: { Authorization: `Bearer ${teacherToken}` } }
+      )
+
+      expect(res.status).toBe(201)
+      const data = await res.json()
+      expect(data.linkTrabalho).toBe(linkTrabalho)
+
+      const [dbBanca] = await db.select().from(Bancas).where(eq(Bancas.id, data.id))
+      expect(dbBanca.linkTrabalho).toBe(linkTrabalho)
+    })
+
+    it("cria banca sem link do PDF do TCC, pois o campo é opcional", async () => {
+      const student = await createTestStudent()
+      const [studentUser] = await db.insert(Users).values(student).returning()
+      const newBancaData = createTestBancaInput(cursoId, teacherId, studentUser.id)
+
+      const res = await client.banca.$post(
+        { json: newBancaData as CreateBancaInput },
+        { headers: { Authorization: `Bearer ${teacherToken}` } }
+      )
+
+      expect(res.status).toBe(201)
+      const data = await res.json()
+      expect(data.linkTrabalho).toBeNull()
+    })
+
+    it("rejeita link do PDF do TCC que não é uma URL válida", async () => {
+      const student = await createTestStudent()
+      const [studentUser] = await db.insert(Users).values(student).returning()
+      const newBancaData = {
+        ...createTestBancaInput(cursoId, teacherId, studentUser.id),
+        linkTrabalho: "repositorio.ufba.br/handle/ri/12345",
+      }
+
+      const res = await client.banca.$post(
+        { json: newBancaData as CreateBancaInput },
+        { headers: { Authorization: `Bearer ${teacherToken}` } }
+      )
+
+      expect(res.status).toBe(400)
+    })
+
     it("não permite criar uma banca para um aluno que já possui uma no mesmo curso", async () => {
       const newBancaData: CreateBancaInput = {
         tituloTrabalho: "Segunda Banca de TCC",
@@ -389,6 +442,36 @@ describe("Rotas de Banca", async () => {
 
       const [dbBanca] = await db.select().from(Bancas).where(eq(Bancas.id, bancaId))
       expect(dbBanca.tituloTrabalho).toBe("Título Atualizado")
+    })
+
+    it("atualiza o link do PDF do TCC e permite limpá-lo", async () => {
+      const linkTrabalho = "https://repositorio.ufba.br/handle/ri/99999"
+      const baseUpdate: UpdateBancaInput = {
+        tituloTrabalho: "Título com link",
+        palavrasChave: "link, pdf",
+        resumo: "Resumo",
+        abstract: "Abstract",
+        dataRealizacao: new Date(),
+        local: "Zoom",
+        alunoId: studentId,
+        orientadorId: teacherId,
+        cursoId,
+        membros: [{ id: teacherId.toString() }],
+      }
+
+      const comLink = await client.banca[":id"].$put(
+        { param: { id: bancaId.toString() }, json: { ...baseUpdate, linkTrabalho } },
+        { headers: { Authorization: `Bearer ${teacherToken}` } }
+      )
+      expect(comLink.status).toBe(200)
+      expect((await comLink.json()).linkTrabalho).toBe(linkTrabalho)
+
+      const semLink = await client.banca[":id"].$put(
+        { param: { id: bancaId.toString() }, json: { ...baseUpdate, linkTrabalho: "" } },
+        { headers: { Authorization: `Bearer ${teacherToken}` } }
+      )
+      expect(semLink.status).toBe(200)
+      expect((await semLink.json()).linkTrabalho).toBeNull()
     })
 
     it("não permite um estudante atualizar uma banca", async () => {
