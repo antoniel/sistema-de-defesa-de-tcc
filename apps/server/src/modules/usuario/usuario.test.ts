@@ -562,6 +562,28 @@ describe("Usuario Routes - exposição de dados", async () => {
     expect(res.status).toBe(401)
   })
 
+  it("não devolve passwordHash ao criar um usuário", async () => {
+    const res = await client.usuario.$post(
+      {
+        json: {
+          email: `criado.${Date.now()}@e2e.local`,
+          password: "senha-de-teste-123",
+          nome: "Usuário Criado",
+          role: "STUDENT",
+          matricula: "CRI-1",
+          school: "Instituto de Computação",
+          academicTitle: "Graduando",
+        },
+      },
+      { headers: { Authorization: `Bearer ${adminToken}` } },
+    )
+
+    expect(res.status).toBe(201)
+    const criado = await res.json()
+    expect(criado).not.toHaveProperty("passwordHash")
+    expect(criado.id).toBeGreaterThan(0)
+  })
+
   it("exige autenticação em GET /usuario/me", async () => {
     const res = await client.usuario.me.$get({})
 

@@ -44,6 +44,15 @@ export const publicUserColumns = {
 
 export type PublicUser = Pick<SelectUser, keyof typeof publicUserColumns>
 
+/**
+ * Remove campos sensíveis de um usuário antes de devolvê-lo na API.
+ * Use em qualquer resposta que devolva uma linha completa de `usuario`.
+ */
+export const toPublicUser = (user: SelectUser): PublicUser => {
+  const { passwordHash: _passwordHash, ...publicUser } = user
+  return publicUser
+}
+
 type GetUserByIdError = { type: "user_not_found" } | { type: "database_error"; error: unknown }
 type UpdateUserError =
   | { type: "user_not_found" }
@@ -106,7 +115,7 @@ type CreateUserError =
 export const createUser = async (
   c: Context<{ Variables: AppVariables }>,
   userData: z.infer<typeof createUserSchema>,
-): Promise<AppResult<SelectUser, CreateUserError>> => {
+): Promise<AppResult<PublicUser, CreateUserError>> => {
   const dbInstance = c.get("db")
 
   try {
@@ -163,7 +172,7 @@ export const createUser = async (
           .set({ status: "used" })
           .where(eq(studentInvitations.id, pendingInvite.id))
 
-        return ok(claimed)
+        return ok(toPublicUser(claimed))
       }
 
       return err({ type: "duplicate_email" })
@@ -198,7 +207,7 @@ export const createUser = async (
       return err({ type: "database_error", error: "Insert operation did not return expected data." })
     }
 
-    return ok(newUserResult)
+    return ok(toPublicUser(newUserResult))
   } catch (error) {
     console.error("Database error during user creation:", error)
     return err({ type: "database_error", error })
