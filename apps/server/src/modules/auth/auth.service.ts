@@ -6,13 +6,14 @@ import { sign } from "hono/jwt"
 import { invites, resetPasswords, Users, type SelectUser } from "../../database/schema"
 import { err, ok, type AppResult } from "../../result"
 import { type AppVariables } from "../../types"
+import { publicUserColumns, type PublicUser } from "../usuario/usuario.service"
 import { type RegisterUserInput } from "./auth.schema"
 import { JWT_AUDIENCE, JWT_EXPIRY_SECONDS, JWT_ISSUER, JWT_SECRET } from "./jwt"
 
 export const getUserService = async (c: Context<{ Variables: AppVariables }>) => {
   const dbInstance = c.get("db")
   const user = await dbInstance
-    .select()
+    .select(publicUserColumns)
     .from(Users)
     .where(eq(Users.id, Number(c.get("jwtPayload").sub)))
   return ok(user)
@@ -23,7 +24,7 @@ interface LoginResponse {
   token: string
   role: string
   name: string
-  user: Omit<SelectUser, "passwordHash" | "createdAt">
+  user: PublicUser
 }
 
 type LoginUserServiceError =
@@ -90,6 +91,7 @@ export const loginUserService = async (
         school: user.school,
         matricula: user.matricula,
         academicTitle: user.academicTitle,
+        createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
     })

@@ -8,24 +8,42 @@ import { getUserById } from "../usuario/usuario.service"
 
 import { verify } from "hono/jwt"
 import type { AppVariables } from "../../types"
+/**
+ * Resolve o usuário autenticado a partir do JWT e confirma que ele ainda existe.
+ * Lança 401 quando não há token válido.
+ */
+async function resolveAuthenticatedUser(c: Context<{ Variables: AppVariables }>) {
+  const userId = c.get("jwtPayload")?.sub
+  if (!userId) {
+    throw new AppError(401, "Usuário não autenticado")
+  }
+  const result = await getUserById(c, Number(userId))
+  if (!result.ok) {
+    throw match(result.error)
+      .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))
+      .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar usuário"))
+      .exhaustive()
+  }
+  return result.data
+}
+
 export const checkRole = (roles: UserRole[]) =>
   createMiddleware<{ Variables: AppVariables }>(async (c, next) => {
-    const userId = c.get("jwtPayload")?.sub
-    if (!userId) {
-      throw new AppError(401, "Usuário não autenticado")
-    }
-    const result = await getUserById(c, Number(userId))
-    if (!result.ok) {
-      throw match(result.error)
-        .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))
-        .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar usuário"))
-        .exhaustive()
-    }
-    if (!roles.includes(result.data.role as UserRole)) {
+    const user = await resolveAuthenticatedUser(c)
+    if (!roles.includes(user.role as UserRole)) {
       throw new AppError(403, "Usuário não tem permissão para acessar esta rota")
     }
     return next()
   })
+
+/**
+ * Exige um usuário autenticado, sem restringir papel.
+ * Use em rotas internas que não devem responder a visitantes anônimos.
+ */
+export const requireAuth = createMiddleware<{ Variables: AppVariables }>(async (c, next) => {
+  await resolveAuthenticatedUser(c)
+  return next()
+})
 
 export const appJwt = (options: { secret: SignatureKey }) => {
   return createMiddleware(async (ctx, next) => {

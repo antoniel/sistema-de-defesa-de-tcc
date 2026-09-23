@@ -388,7 +388,15 @@ export default function EditBancaPage() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Curso</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={(value) => {
+                    // O Radix dispara onValueChange("") ao montar, antes de `values` chegar,
+                    // o que zerava o curso vindo do banco. Ignora valores vazios.
+                    if (!value) return
+                    field.onChange(value)
+                  }}
+                  value={field.value ?? ""}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o curso" />
@@ -416,12 +424,15 @@ export default function EditBancaPage() {
                   <FormLabel>Orientador</FormLabel>
                   <Select
                     onValueChange={(value) => {
+                      // O Radix dispara onValueChange("") ao montar, antes de `values` chegar,
+                      // o que zerava o orientador vindo do banco. Ignora valores vazios.
+                      if (!value) return
                       field.onChange(value)
                       if (value === coorientadorId) {
                         form.setValue("coorientadorId", "none")
                       }
                     }}
-                    value={field.value}
+                    value={field.value ?? ""}
                   >
                     <FormControl>
                       <SelectTrigger>
