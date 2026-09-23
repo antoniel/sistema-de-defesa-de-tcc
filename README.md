@@ -30,6 +30,28 @@ apps/yii2-organizacao-de-defesas  Legado PHP/Yii2 (deprecado)
 
 Importante: este projeto usa o alias `@/` para imports, **não** `~/`.
 
+## Skills de agente
+
+Skills ficam em `.pi/skills/` (descobertas automaticamente pelo pi) e são expostas ao Claude Code
+por symlink em `.claude/skills/`. Elas são lidas na inicialização — **reinicie o agente** depois de
+mexer nelas.
+
+| Skill | Para que serve |
+|---|---|
+| `verify-app` | Verificar mudanças pela interface real do app (browser, CLI, API) e guardar evidências. Baseada em [arielconti10/verify-app](https://github.com/arielconti10/verify-app). |
+
+Requisitos do `verify-app` (todos presentes neste ambiente): macOS/Linux, Python 3,
+`agent-browser` 0.38.1+, FFmpeg e ffprobe. Para conferir: `agent-browser doctor`.
+
+Testes do helper:
+
+```bash
+cd .pi/skills/verify-app
+python3 -m unittest discover -s scripts -p 'test_*.py'
+```
+
+Uso no pi: `/skill:verify-app` ou pedir "verifica X e salva evidência".
+
 ## Setup local (passo a passo)
 
 ### 1. Dependências

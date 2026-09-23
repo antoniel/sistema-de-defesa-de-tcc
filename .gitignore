@@ -19,6 +19,10 @@ node_modules
 # Testing
 coverage
 
+# Python (skill helpers)
+__pycache__/
+*.pyc
+
 # Turbo
 .turbo
 
