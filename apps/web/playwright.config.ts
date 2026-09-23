@@ -55,12 +55,21 @@ export default defineConfig({
       env: { NODE_ENV: "test", PORT: String(API_PORT) },
     },
     {
-      /* `--port` explícito: sem isso o react-router dev sobe em 5173, onde pode estar o dev server. */
-      command: `npm run dev -- --port ${WEB_PORT}`,
+      /*
+       * A suíte roda contra o BUILD DE PRODUÇÃO, não contra o dev server.
+       *
+       * O dev server do Vite re-otimiza dependências quando descobre algo novo, o que
+       * invalida os chunks e recarrega a página. Com cache frio (CI) e workers em paralelo
+       * isso derrubava a hidratação com "Cannot read properties of null (reading 'useState')".
+       * Buildar custa ~5s, elimina essa classe de flake e ainda valida que o build funciona.
+       *
+       * `VITE_API_URL` precisa estar definida AQUI: o Vite a inlina em tempo de build.
+       */
+      command: "npm run build && npm run start",
       url: WEB_URL,
       reuseExistingServer: false,
-      timeout: 120_000,
-      env: { VITE_API_URL: API_URL },
+      timeout: 180_000,
+      env: { VITE_API_URL: API_URL, PORT: String(WEB_PORT) },
     },
   ],
 })

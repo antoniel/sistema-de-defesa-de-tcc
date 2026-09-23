@@ -168,9 +168,9 @@ Duas camadas, com propósitos diferentes:
 | E2E (Playwright) | Fluxos reais pela interface, com browser | `npm run test:e2e` |
 
 O E2E é o portão que garante que um `push` não quebre os fluxos principais — sobretudo o
-**cadastro de defesa**. Ele sobe os próprios servidores em **portas dedicadas** (API 9100,
-web 5273), com banco em memória e dados determinísticos, então nunca encosta no seu
-ambiente de dev nem em dados de produção.
+**cadastro de defesa**. Ele builda o front, sobe os próprios servidores em **portas dedicadas**
+(API 9100, web 5273), com banco em memória e dados determinísticos, então nunca encosta no seu
+ambiente de dev nem em dados de produção. Não precisa de Postgres, `.env` ou dev server rodando.
 
 ```bash
 npm run test:e2e                        # suíte completa
