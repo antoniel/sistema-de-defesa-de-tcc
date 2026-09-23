@@ -15,11 +15,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { cn, rpcReturn, type RpcType } from "@/lib/utils"
 import apiClient from "@/services/apiClient"
+import { useUser } from "@/services/useUser"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { SelectCurso, SelectUser } from "@tcc/server"
 import { format } from "date-fns"
-import { CalendarIcon } from "lucide-react"
+import { ArrowLeft, CalendarIcon } from "lucide-react"
 import React, { useState } from "react"
 import { useFieldArray, useForm } from "react-hook-form"
 import { useNavigate, useParams } from "react-router"
@@ -72,6 +73,8 @@ export default function EditBancaPage() {
   const { data: cursos, isLoading: isLoadingCursos } = useCursos()
   const { data: teachers, isLoading: isLoadingTeachers } = useTeachers()
   const { data: banca, isLoading: isBancaLoading } = useBanca(id!)
+  const userQuery = useUser()
+  const user = userQuery.data
   const updateBancaMutation = useUpdateBanca(id!)
 
   const form = useForm<FormValues>({
@@ -248,8 +251,33 @@ export default function EditBancaPage() {
     })
   }
 
-  if (isLoadingCursos || isLoadingTeachers || isBancaLoading) {
+  if (isLoadingCursos || isLoadingTeachers || isBancaLoading || userQuery.isLoading || !userQuery.isAuthReady) {
     return <BancaSkeleton />
+  }
+
+  /*
+   * Esta rota não tinha nenhuma checagem de usuário: qualquer visitante (inclusive anônimo)
+   * abria o formulário de edição de uma defesa pública. Editar é restrito a admin e ao
+   * orientador da banca — a mesma regra que `banca.$id.tsx` usa para mostrar o botão "Editar".
+   */
+  const canEdit = user?.role === "ADMIN" || (!!user?.id && user.id === banca?.orientadorId)
+
+  if (!canEdit) {
+    return (
+      <div className="container mx-auto p-4 md:p-8">
+        <Header className="mb-6" />
+        <div className="bg-destructive/10 text-destructive p-4 rounded-md mb-4">
+          <h2 className="text-xl font-bold mb-2">Acesso negado</h2>
+          <p>
+            Você não tem permissão para editar esta defesa. Apenas administradores e o orientador da banca podem
+            editá-la.
+          </p>
+        </div>
+        <Button onClick={() => navigate(-1)} variant="outline" className="mt-4">
+          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+        </Button>
+      </div>
+    )
   }
 
   return (

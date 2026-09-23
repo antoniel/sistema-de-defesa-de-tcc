@@ -104,3 +104,41 @@ test.describe("Edição da defesa", () => {
     await expect(asStudent.getByRole("button", { name: "Editar" })).toBeHidden()
   })
 })
+
+/**
+ * A rota `/banca/:id/edit` não tinha checagem de usuário: qualquer visitante abria o
+ * formulário de uma defesa pública. Estes testes batem na URL DIRETA — testar só a
+ * ausência do botão "Editar" não pegaria esse caso.
+ */
+test.describe("Edição da defesa — controle de acesso", () => {
+  const bancaPublica = E2E_BANCAS.upcomingPublic.id
+
+  test("visitante anônimo recebe acesso negado na URL direta", async ({ page }) => {
+    await visit(page, `/banca/${bancaPublica}/edit`)
+
+    await expect(page.getByRole("heading", { name: "Acesso negado" })).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Editar Defesa de TCC" })).toBeHidden()
+    await expect(page.getByRole("button", { name: "Salvar Alterações" })).toBeHidden()
+  })
+
+  test("aluno recebe acesso negado na URL direta", async ({ asStudent }) => {
+    await visit(asStudent, `/banca/${bancaPublica}/edit`)
+
+    await expect(asStudent.getByRole("heading", { name: "Acesso negado" })).toBeVisible()
+    await expect(asStudent.getByRole("button", { name: "Salvar Alterações" })).toBeHidden()
+  })
+
+  test("professor que não é o orientador recebe acesso negado", async ({ asTeacher2 }) => {
+    await visit(asTeacher2, `/banca/${bancaPublica}/edit`)
+
+    await expect(asTeacher2.getByRole("heading", { name: "Acesso negado" })).toBeVisible()
+    await expect(asTeacher2.getByRole("button", { name: "Salvar Alterações" })).toBeHidden()
+  })
+
+  test("o orientador da banca acessa o formulário", async ({ asTeacher }) => {
+    await visit(asTeacher, `/banca/${bancaPublica}/edit`)
+
+    await expect(asTeacher.getByRole("heading", { name: "Editar Defesa de TCC" })).toBeVisible()
+    await expect(asTeacher.getByRole("button", { name: "Salvar Alterações" })).toBeVisible()
+  })
+})
