@@ -14,7 +14,8 @@
     "seed": "tsx scripts/seed.ts",
     "db:studio": "npx drizzle-kit studio",
     "tscheck": "tsc --noEmit --skipLibCheck",
-    "tscheck:watch": "tsc --noEmit --skipLibCheck --watch"
+    "tscheck:watch": "tsc --noEmit --skipLibCheck --watch",
+    "start:test": "NODE_ENV=test tsx src/test-server.ts"
   },
   "main": "shared/index.ts",
   "module": "shared/index.ts",

@@ -206,7 +206,7 @@ export default function AdminUsersIndexPage() {
   )
 }
 
-type UserType = Omit<SelectUser, "createdAt" | "updatedAt"> & {
+type UserType = Omit<SelectUser, "createdAt" | "updatedAt" | "passwordHash"> & {
   createdAt: string
   updatedAt: string
 }

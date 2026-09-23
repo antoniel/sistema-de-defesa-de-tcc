@@ -583,7 +583,11 @@ export const createBanca = async (
       return err({ type: "curso_not_found" })
     }
 
-    const [newBanca] = await dbInstance.insert(Bancas).values(bancaData).returning()
+    /* Normaliza o link opcional: string vazia do formulário vira NULL, igual ao updateBanca. */
+    const [newBanca] = await dbInstance
+      .insert(Bancas)
+      .values({ ...bancaData, linkTrabalho: bancaData.linkTrabalho?.trim() || null })
+      .returning()
 
     if (!newBanca) {
       return err({ type: "database_error", error: "Failed to create banca" })
@@ -648,6 +652,7 @@ export const updateBanca = async (
     // Convert the data format from frontend to database format
     const bancaUpdateData = {
       tituloTrabalho: data.tituloTrabalho,
+      linkTrabalho: data.linkTrabalho || null,
       palavrasChave: data.palavrasChave,
       resumo: data.resumo,
       abstract: data.abstract,
@@ -703,7 +708,11 @@ export const updateBanca = async (
           usuarioId: Number(membro.id),
           role: "avaliador" as const,
         }))
-      await dbInstance.insert(usuariosBancas).values(avaliadoresData)
+      // `values([])` lança "values() must be called with at least one value", então só
+      // inserimos quando sobrou algum avaliador além do orientador/coorientador.
+      if (avaliadoresData.length > 0) {
+        await dbInstance.insert(usuariosBancas).values(avaliadoresData)
+      }
     }
 
     return ok(updatedBanca)

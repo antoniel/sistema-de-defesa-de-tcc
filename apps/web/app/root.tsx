@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router"
 import type { Route } from "./+types/root"
 import "./app.css"
@@ -30,6 +30,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
         },
       })
   )
+
+  /*
+   * Marca no <html> que o React já hidratou.
+   *
+   * A página é renderizada no servidor, então inputs controlados existem no DOM antes de o
+   * React assumir. Um teste (ou qualquer automação) que digite nesse intervalo tem o valor
+   * descartado quando a hidratação acontece — o E2E esperava por `html[data-hydrated]`.
+   */
+  useEffect(() => {
+    document.documentElement.dataset.hydrated = "true"
+  }, [])
+
   return (
     <html lang="en">
       <head>

@@ -501,3 +501,108 @@ describe("Admin Delete User [USR-001, USR-002, USR-003, USR-004]", async () => {
     expect(bancaAfter).toHaveLength(0)
   })
 })
+describe("Usuario Routes - exposição de dados", async () => {
+  const db = await getFakeDb()
+  const client = testClient(app(fakeDeps(db)))
+
+  let adminToken: string
+
+  beforeEach(async () => {
+    await db.delete(Users)
+    await db.insert(Users).values(await createTestUserWithPasswordHash(TEST_ADMIN))
+    await db.insert(Users).values(await createTestUserWithPasswordHash(TEST_TEACHER))
+    await db.insert(Users).values(await createTestUserWithPasswordHash(TEST_STUDENT))
+
+    const loginResponse = await client.auth.login.$post({
+      json: { email: TEST_ADMIN.email, password: TEST_ADMIN.password },
+    })
+    adminToken = (await loginResponse.json()).token
+  })
+
+  afterEach(async () => {
+    await db.delete(Users)
+  })
+
+  it("não devolve passwordHash em GET /usuario/teachers", async () => {
+    const res = await client.usuario.teachers.$get({}, { headers: { Authorization: `Bearer ${adminToken}` } })
+
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.length).toBeGreaterThan(0)
+    data.forEach((user) => expect(user).not.toHaveProperty("passwordHash"))
+  })
+
+  it("exige autenticação em GET /usuario/teachers", async () => {
+    const res = await client.usuario.teachers.$get({})
+
+    expect(res.status).toBe(401)
+  })
+
+  it("não devolve passwordHash em GET /usuario/students/available-for-banca", async () => {
+    const res = await client.usuario.students["available-for-banca"].$get(
+      {},
+      { headers: { Authorization: `Bearer ${adminToken}` } }
+    )
+
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.length).toBeGreaterThan(0)
+    data.forEach((student) => expect(student).not.toHaveProperty("passwordHash"))
+  })
+
+  it("exige autenticação em GET /usuario/students/available-for-banca", async () => {
+    const res = await client.usuario.students["available-for-banca"].$get({})
+
+    expect(res.status).toBe(401)
+  })
+
+  it("exige autenticação em GET /usuario/students", async () => {
+    const res = await client.usuario.students.$get({})
+
+    expect(res.status).toBe(401)
+  })
+
+  it("não devolve passwordHash ao criar um usuário", async () => {
+    const res = await client.usuario.$post(
+      {
+        json: {
+          email: `criado.${Date.now()}@e2e.local`,
+          password: "senha-de-teste-123",
+          nome: "Usuário Criado",
+          role: "STUDENT",
+          matricula: "CRI-1",
+          school: "Instituto de Computação",
+          academicTitle: "Graduando",
+        },
+      },
+      { headers: { Authorization: `Bearer ${adminToken}` } },
+    )
+
+    expect(res.status).toBe(201)
+    const criado = await res.json()
+    expect(criado).not.toHaveProperty("passwordHash")
+    expect(criado.id).toBeGreaterThan(0)
+  })
+
+  it("exige autenticação em GET /usuario/me", async () => {
+    const res = await client.usuario.me.$get({})
+
+    expect(res.status).toBe(401)
+  })
+
+  it("não devolve passwordHash em GET /usuario/me", async () => {
+    const res = await client.usuario.me.$get({}, { headers: { Authorization: `Bearer ${adminToken}` } })
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).not.toHaveProperty("passwordHash")
+  })
+
+  it("não devolve passwordHash em GET /usuario/all", async () => {
+    const res = await client.usuario.all.$get({}, { headers: { Authorization: `Bearer ${adminToken}` } })
+
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.length).toBeGreaterThan(0)
+    data.forEach((user) => expect(user).not.toHaveProperty("passwordHash"))
+  })
+})
