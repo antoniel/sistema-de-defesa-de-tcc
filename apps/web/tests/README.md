@@ -46,6 +46,12 @@ npx playwright install chromium
 `reuseExistingServer: false` faz o Playwright falhar se a porta estiver ocupada — em vez de
 testar contra o servidor errado (que pode apontar para dados de produção).
 
+A suíte roda contra o **build de produção** (`npm run build && npm run start`), não contra o
+dev server. Motivo concreto: o dev server do Vite re-otimiza dependências quando descobre algo
+novo, o que invalida os chunks e recarrega a página — com cache frio (CI) e workers em paralelo
+isso derrubava a hidratação com `Cannot read properties of null (reading 'useState')`. Buildar
+custa ~5s, elimina a classe do problema e ainda valida que o build funciona.
+
 ## Regras para não ter flake
 
 Estas regras não são estilo: cada uma resolve uma flake real que apareceu durante a construção.
@@ -59,6 +65,8 @@ Estas regras não são estilo: cada uma resolve uma flake real que apareceu dura
    "anteriores" mudam conforme o dia.
 4. **`visit(page, path)` em vez de `page.goto`.** A página é renderizada no servidor; digitar
    antes da hidratação faz o React descartar o valor. O helper espera `html[data-hydrated]`.
+   Se esse seletor der timeout, o app provavelmente quebrou ao hidratar — leia o
+   `error-context.md` do `test-results/`, que traz a página em modo texto.
 5. **Escopo por `data-testid`.** A lista tem duas tabelas na mesma página e a seção vazia
    renderiza uma linha — `tbody tr` sem escopo conta a coisa errada.
 6. **Sem `waitForTimeout`.** Use asserções que re-tentam (`toHaveCount`, `toContainText`,
@@ -131,3 +139,5 @@ de API e `VITE_API_URL` apontando para a porta 9100 (o `playwright.config.ts` in
   Use-o para depurar localmente.
 - O link do PDF é validado pelo browser (`type="url"`) antes do zod — a mensagem do app só
   aparece para chamadas diretas à API.
+- `npm run build` roda a cada execução (o build não é cacheado de propósito: cache velho
+  faria a suíte passar testando código antigo).
