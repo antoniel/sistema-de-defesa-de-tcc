@@ -12,6 +12,8 @@
     "docker:down": "docker-compose down",
     "docker:clean": "docker-compose down -v",
     "docker:connect": "docker exec -it sistema-de-banca psql -U postgres -d sistema-de-banca",
+    "db:pull": "mkdir -p data && ssh -p 9999 dokku@app.ic.ufba.br postgres:export sistema-de-defesas-api > data/prod.dump",
+    "db:restore": "docker exec -i sistema-de-banca pg_restore --no-owner --no-privileges --clean --if-exists -U postgres -d sistema-de-banca < data/prod.dump",
     "db:push": "cd apps/server && drizzle-kit push",
     "sync": "git checkout production-web && git merge main && git checkout production-server && git merge main",
     "push:web": "npm run sync && git checkout production-web && git push dokku-web production-web:master --force",

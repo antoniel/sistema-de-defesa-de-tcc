@@ -30,30 +30,109 @@ apps/yii2-organizacao-de-defesas  Legado PHP/Yii2 (deprecado)
 
 Importante: este projeto usa o alias `@/` para imports, **não** `~/`.
 
-## Desenvolvimento
+## Setup local (passo a passo)
 
-Antes de tudo, crie o `.env` na raiz — veja [Variáveis de ambiente](#8-variáveis-de-ambiente).
+### 1. Dependências
 
 ```bash
 npm install
+```
 
-npm run docker:up           # PostgreSQL local (porta 5443)
-npm run migration:run
-npm run seed                # opcional: dados de teste
+> O npm pode avisar que `esbuild`, `bcrypt`, `sharp` têm install scripts não executados
+> (`allow-scripts`). Pode ignorar: `esbuild` usa binários via optional deps e `bcrypt` funciona
+> via prebuild. Se algo quebrar, rode `npm approve-scripts --allow-scripts-pending`.
 
-npm run dev                 # sobe web + server
+### 2. Banco de dados
+
+```bash
+npm run docker:up           # PostgreSQL 17 local na porta 5443
+```
+
+### 3. `.env` na raiz
+
+Não existe `.env.example` versionado — crie manualmente (veja
+[Variáveis de ambiente](#8-variáveis-de-ambiente)):
+
+```bash
+DATABASE_URL=postgres://postgres:postgres@localhost:5443/sistema-de-banca
+FRONTEND_URL=http://localhost:5173
+VITE_API_URL=http://localhost:9000
+SMTP_USER=seu-usuario@gmail.com
+SMTP_PASSWORD=sua-app-password
+JWT_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+NODE_ENV=development
+```
+
+### 4. Popular o banco
+
+Duas opções — **escolha uma**:
+
+**a) Dados de teste (banco zerado do schema):**
+
+```bash
+npm run migration:run       # aplica as 13 migrations
+npm run seed                # dados de teste
+```
+
+**b) Cópia de produção (recomendado para reproduzir bugs reais):**
+
+```bash
+npm run db:pull             # baixa data/prod.dump do Dokku (150 KB)
+npm run db:restore          # restaura no container local
+```
+
+### 5. Subir a aplicação
+
+```bash
+npm run dev                 # web em :5173, API em :9000
+```
+
+Verifique:
+
+```bash
+curl -s localhost:9000/banca/past?page=1\&limit=1   # deve retornar JSON com dados
+curl -s -o /dev/null -w "%{http_code}\n" localhost:5173/
+```
+
+Outros comandos:
+
+```bash
 npm run tscheck             # type check em todos os workspaces
 npm run test                # testes (TUI)
 npm run test:e2e            # Playwright
-```
-
-Comandos úteis do banco:
-
-```bash
 npm run docker:connect      # psql no container
 npm run db:studio           # Drizzle Studio
 npm run migration:gen       # gerar migration a partir do schema
 ```
+
+## Trazer dados de produção para o local
+
+O usuário SSH tem permissão de `postgres:export` / `postgres:connect` no app da API, então dá para
+baixar o banco de produção inteiro:
+
+```bash
+npm run db:pull             # ssh postgres:export → data/prod.dump
+npm run db:restore          # pg_restore --clean no container local
+```
+
+O `db:restore` usa `--clean --if-exists`, então pode rodar quantas vezes quiser em cima do banco
+local. O `data/` já está no `.gitignore`, então o dump nunca vai para o repositório.
+
+Conferir o que veio:
+
+```bash
+docker exec sistema-de-banca psql -U postgres -d sistema-de-banca -c "\
+  select 'usuario' t, count(*) from usuario
+  union all select 'banca', count(*) from banca
+  union all select 'cursos', count(*) from cursos;"
+```
+
+O dump traz junto a tabela `drizzle.migrations`, então depois de restaurar **não** rode
+`npm run migration:run` (ele já vai considerar tudo aplicado).
+
+> ⚠️ **Privacidade:** o dump contém dados reais de alunos, professores e orientadores (e-mails,
+> matrículas, hashes de senha). Nunca commite, nunca suba em issue/chat e não use para testes que
+> escrevam no banco sem necessidade. Para dados sintéticos, use `npm run seed`.
 
 ---
 
