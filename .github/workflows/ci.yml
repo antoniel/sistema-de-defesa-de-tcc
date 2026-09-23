@@ -55,8 +55,10 @@ jobs:
       - name: Run backend tests
         run: npx turbo test --filter=@tcc/server
 
+  # E2E: sobe os próprios servidores em portas dedicadas (API 9100, web 5273) com banco
+  # em memória, então não precisa de Postgres nem de .env no runner.
   playwright-tests:
-    name: Playwright Tests
+    name: Playwright Tests (E2E)
     timeout-minutes: 60
     runs-on: ubuntu-latest
     strategy:

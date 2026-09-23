@@ -199,6 +199,34 @@ describe("Rotas de Banca", async () => {
       expect(data.upcoming[0].id).toBe(bancaId)
     })
 
+    it("a busca por nome do orientador devolve a banca e um total consistente", async () => {
+      /*
+       * Regressão: a contagem sempre fazia JOIN com `usuario`, mas a listagem só fazia JOIN
+       * quando a ordenação era por campo relacionado. O resultado era `meta.total > 0`
+       * acompanhado de zero linhas.
+       */
+      const res = await client.banca.$get({ query: { searchQuery: TEST_TEACHER.nome, limit: "10" } })
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      const encontradas = data.upcoming.length + data.past.length
+
+      expect(encontradas).toBeGreaterThan(0)
+      expect(data.upcoming.some((b) => b.id === bancaId)).toBe(true)
+      expect(data.meta.total).toBe(encontradas)
+    })
+
+    it("a busca por nome do curso devolve a banca e um total consistente", async () => {
+      const res = await client.banca.$get({ query: { searchQuery: TEST_CURSO.nome, limit: "10" } })
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      const encontradas = data.upcoming.length + data.past.length
+
+      expect(encontradas).toBeGreaterThan(0)
+      expect(data.meta.total).toBe(encontradas)
+    })
+
     it("não retorna bancas não visíveis para usuários não relacionados", async () => {
       await db.update(Bancas).set({ visible: false }).where(eq(Bancas.id, bancaId))
 

@@ -1,50 +1,68 @@
 import { defineConfig, devices } from "@playwright/test"
 
 /**
- * @see https://playwright.dev/docs/test-configuration
+ * Configuração E2E do SISDEF.
+ *
+ * Decisões para evitar flake (leia antes de mudar):
+ *
+ * - **Portas dedicadas** (API 9100, web 5273). A suíte nunca encosta no `npm run dev`,
+ *   que aponta para o PostgreSQL de desenvolvimento — que pode ter dados de produção.
+ * - **`reuseExistingServer: false`**: sempre sobe servidores limpos. Se a porta estiver
+ *   ocupada, o Playwright falha em vez de testar contra o servidor errado.
+ * - **`retries: 0`**: retry esconde flake. Se quebrar, quebre.
+ * - **Banco em memória (PGlite)** no test server: cada execução começa do seed determinístico.
+ * - **Sem reset global entre specs**: as specs criam os próprios dados com identificador único,
+ *   então rodam em paralelo sem interferência.
  */
+const API_PORT = 9100
+const WEB_PORT = 5273
+const API_URL = `http://localhost:${API_PORT}`
+const WEB_URL = `http://localhost:${WEB_PORT}`
+
 export default defineConfig({
   testDir: "./tests",
-  /* Run tests in files in parallel */
+  /* As specs são independentes entre si: paralelismo total é seguro. */
   fullyParallel: true,
-  /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
-  /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
-  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: "html",
-  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
-  use: {
-    /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: "http://localhost:5173",
+  /* Sem retry — queremos ver a flake, não escondê-la. */
+  retries: 0,
+  /* Poucos workers: o banco de teste é um PGlite de conexão única. */
+  workers: process.env.CI ? 2 : 3,
+  reporter: [["list"], ["html", { open: "never" }]],
+  /* Um fluxo de cadastro completo (5 passos) é demorado. */
+  timeout: 60_000,
+  expect: { timeout: 10_000 },
 
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: "on-first-retry",
+  use: {
+    baseURL: WEB_URL,
+    /* Diagnóstico de falha: trace, vídeo e screenshot ficam em test-results/. */
+    trace: "retain-on-failure",
+    video: "retain-on-failure",
+    screenshot: "only-on-failure",
+    actionTimeout: 15_000,
+    navigationTimeout: 20_000,
   },
 
-  /* Configure projects for major browsers */
-  projects: [
-    {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
-    },
-  ],
+  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 
-  /* Run your local dev server before starting the tests */
   webServer: [
     {
-      command: "cd ../../apps/server && npm run dev:test",
-      reuseExistingServer: true,
-      port: 9000,
-      timeout: 120 * 1000,
+      /* `start:test` (sem watch): um restart no meio da suíte zeraria o banco. */
+      command: "cd ../../apps/server && npm run start:test",
+      url: `${API_URL}/__test__/health`,
+      reuseExistingServer: false,
+      timeout: 120_000,
+      env: { NODE_ENV: "test", PORT: String(API_PORT) },
     },
     {
-      command: "npm run dev",
-      reuseExistingServer: true,
-      port: 5173,
-      timeout: 120 * 1000,
+      /* `--port` explícito: sem isso o react-router dev sobe em 5173, onde pode estar o dev server. */
+      command: `npm run dev -- --port ${WEB_PORT}`,
+      url: WEB_URL,
+      reuseExistingServer: false,
+      timeout: 120_000,
+      env: { VITE_API_URL: API_URL },
     },
   ],
 })
+
+export { API_URL, WEB_URL }

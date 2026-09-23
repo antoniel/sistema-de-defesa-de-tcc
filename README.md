@@ -158,6 +158,42 @@ O dump traz junto a tabela `drizzle.migrations`, então depois de restaurar **n�
 
 ---
 
+## Testes
+
+Duas camadas, com propósitos diferentes:
+
+| Camada | O que cobre | Como rodar |
+| --- | --- | --- |
+| Unitário/integração (Vitest) | Regras de negócio, rotas e banco (PGlite) | `npm test` na raiz, ou `npm test` em `apps/server` |
+| E2E (Playwright) | Fluxos reais pela interface, com browser | `npm run test:e2e` |
+
+O E2E é o portão que garante que um `push` não quebre os fluxos principais — sobretudo o
+**cadastro de defesa**. Ele sobe os próprios servidores em **portas dedicadas** (API 9100,
+web 5273), com banco em memória e dados determinísticos, então nunca encosta no seu
+ambiente de dev nem em dados de produção.
+
+```bash
+npm run test:e2e                        # suíte completa
+cd apps/web
+npx playwright test --repeat-each=3     # caçar flake
+npx playwright test --ui                # modo interativo
+npx playwright show-report              # relatório da última execução
+```
+
+Se for a primeira vez no seu clone (ou depois de atualizar o Playwright):
+
+```bash
+cd apps/web && npx playwright install chromium
+```
+
+Cobertura: cadastro de defesa (wizard de 5 passos), edição, link do PDF do TCC,
+visibilidade pública/privada, busca/paginação/ordenação, login/logout e administração de
+usuários. A estratégia anti-flake (isolamento de dados, espera de hidratação, escopo de
+seletores) está documentada em [`apps/web/tests/README.md`](apps/web/tests/README.md) —
+leia antes de escrever uma spec nova.
+
+---
+
 # Deploy (infra IC-UFBA / Dokku)
 
 > Esta é a parte que costuma dar dor de cabeça. Leia inteiro antes de mexer.
