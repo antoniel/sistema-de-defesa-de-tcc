@@ -135,6 +135,15 @@ export class BancaDAO {
   }
 
   /**
+   * A busca textual cobre nome de orientador e de curso, que vivem em tabelas relacionadas
+   * (`buildSearchConditionWithJoins`). Sem o JOIN a listagem não acha o que a contagem contou —
+   * a busca por nome de orientador devolvia `total > 0` com zero resultados.
+   */
+  private searchNeedsJoins(searchQuery?: string): boolean {
+    return Boolean(searchQuery?.trim())
+  }
+
+  /**
    * Get total count of bancas matching filters
    */
   async getTotalCount(filters: BancaSearchFilters): Promise<number> {
@@ -161,7 +170,8 @@ export class BancaDAO {
     const dbInstance = this.db("db")
     const { page, limit, orderBy } = options
     const offset = (page - 1) * limit
-    const needsJoins = this.needsJoins(orderBy)
+    /* JOIN é necessário tanto para ordenar por campo relacionado quanto para buscar por ele. */
+    const needsJoins = this.needsJoins(orderBy) || this.searchNeedsJoins(options.searchQuery)
 
     // Add date filters to the main filters
     const filters = { ...options }

@@ -96,7 +96,7 @@ export default function Home() {
                 setRowsPerPage(Number(value))
               }}
             >
-              <SelectTrigger className="w-20">
+              <SelectTrigger data-testid="rows-per-page" className="w-20">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -212,7 +212,7 @@ function AllDefensesTab(props: AllDefensesTabProps) {
               <div className="p-4 border-b">
                 <h3 className="text-lg font-semibold">Próximas defesas</h3>
               </div>
-              <div className="overflow-x-auto">
+              <div data-testid="table-upcoming" className="overflow-x-auto">
                 <HomeTable
                   data={upcomingData}
                   searchQuery={props.searchQuery}
@@ -224,7 +224,7 @@ function AllDefensesTab(props: AllDefensesTabProps) {
               </div>
             </div>
             {upcomingBancasQuery.data?.meta && (
-              <div className="flex items-center justify-between px-4 pt-2">
+              <div data-testid="pagination-upcoming" className="flex items-center justify-between px-4 pt-2">
                 <div className="text-sm text-muted-foreground">
                   Exibindo {upcomingData.length} de {upcomingBancasQuery.data.meta.total} resultado
                   {upcomingBancasQuery.data.meta.total !== 1 ? "s" : ""}
@@ -262,7 +262,7 @@ function AllDefensesTab(props: AllDefensesTabProps) {
             <div className="p-4 border-b">
               <h3 className="text-lg font-semibold">Defesas anteriores</h3>
             </div>
-            <div className="overflow-x-auto">
+            <div data-testid="table-past" className="overflow-x-auto">
               <HomeTable
                 data={pastData}
                 searchQuery={props.searchQuery}
@@ -274,7 +274,7 @@ function AllDefensesTab(props: AllDefensesTabProps) {
             </div>
           </div>
           {pastBancasQuery.data?.meta && (
-            <div className="flex items-center justify-between px-4 pt-2">
+            <div data-testid="pagination-past" className="flex items-center justify-between px-4 pt-2">
               <div className="text-sm text-muted-foreground">
                 Exibindo {pastData.length} de {pastBancasQuery.data.meta.total} resultado
                 {pastBancasQuery.data.meta.total !== 1 ? "s" : ""}

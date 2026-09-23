@@ -583,7 +583,11 @@ export const createBanca = async (
       return err({ type: "curso_not_found" })
     }
 
-    const [newBanca] = await dbInstance.insert(Bancas).values(bancaData).returning()
+    /* Normaliza o link opcional: string vazia do formulário vira NULL, igual ao updateBanca. */
+    const [newBanca] = await dbInstance
+      .insert(Bancas)
+      .values({ ...bancaData, linkTrabalho: bancaData.linkTrabalho?.trim() || null })
+      .returning()
 
     if (!newBanca) {
       return err({ type: "database_error", error: "Failed to create banca" })

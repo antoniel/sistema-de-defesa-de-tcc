@@ -612,12 +612,13 @@ const AuthorInfoSection = () => {
                   }}
                   value={alunoIdValue ? String(alunoIdValue) : undefined}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger data-testid="select-aluno">
                     <SelectValue placeholder="Selecione o aluno..." />
                   </SelectTrigger>
                   <SelectContent>
                     <div className="p-2 border-b sticky top-0 bg-background z-10">
                       <Input
+                        data-testid="search-aluno"
                         placeholder="Buscar aluno..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -699,12 +700,13 @@ const AuthorInfoSection = () => {
                 }}
                 value={field.value ? String(field.value) : undefined}
               >
-                <SelectTrigger>
+                <SelectTrigger data-testid="select-orientador">
                   <SelectValue placeholder="Selecione o orientador..." />
                 </SelectTrigger>
                 <SelectContent>
                   <div className="p-2 border-b sticky top-0 bg-background z-10">
                     <Input
+                      data-testid="search-orientador"
                       placeholder="Buscar orientador..."
                       value={orientadorSearchTerm}
                       onChange={(e) => setOrientadorSearchTerm(e.target.value)}
@@ -1024,12 +1026,12 @@ const WorkAndDefenseSection = () => {
                   ref={field.ref}
                 >
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="local" id="local" />
-                    <Label htmlFor="local">Presencial</Label>
+                    <RadioGroupItem value="local" id="modalidade-local" />
+                    <Label htmlFor="modalidade-local">Presencial</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="remoto" id="remoto" />
-                    <Label htmlFor="remoto">Remoto</Label>
+                    <RadioGroupItem value="remoto" id="modalidade-remoto" />
+                    <Label htmlFor="modalidade-remoto">Remoto</Label>
                   </div>
                 </RadioGroup>
               )}
@@ -1148,7 +1150,7 @@ const EvaluatorsSection = () => {
                 onValueChange={(value) => field.onChange(Number(value))}
                 value={field.value ? String(field.value) : undefined}
               >
-                <SelectTrigger>
+                <SelectTrigger data-testid="select-avaliador-2">
                   <SelectValue placeholder="Selecione o 2º avaliador..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -1204,7 +1206,7 @@ const EvaluatorsSection = () => {
                   onValueChange={(value) => field.onChange(Number(value))}
                   value={field.value ? String(field.value) : undefined}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger data-testid="select-avaliador-3">
                     <SelectValue placeholder="Selecione o 3º avaliador..." />
                   </SelectTrigger>
                   <SelectContent>

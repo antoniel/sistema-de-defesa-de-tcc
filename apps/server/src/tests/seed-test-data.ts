@@ -1,232 +1,212 @@
+import * as bcrypt from "bcryptjs"
+import { sql } from "drizzle-orm"
+import {
+  E2E_ACCOUNTS,
+  E2E_BANCAS,
+  E2E_CURSOS,
+  E2E_FUTURE_DATE,
+  E2E_PAST_DATE,
+  E2E_PASSWORD,
+} from "@tcc/tests"
 import {
   Bancas,
+  bancasDocumentos,
   Cursos,
+  documentos,
+  feedbackSubmissions,
+  featureRequests,
+  featureRequestVotes,
+  invites,
+  resetPasswords,
+  sessions,
+  studentInvitations,
+  teacherInvitations,
   Users,
   usuariosBancas,
   type Database,
-  type InsertBanca,
-  type InsertCurso,
-  type InsertUser,
-  type InsertUsuarioBanca,
 } from "../database"
 
-export const seedTestData = async (db: Database) => {
-  console.log("🌱 Seeding test data...")
+/**
+ * Tabelas cujo `id` é serial e recebem INSERT da aplicação.
+ * O seed usa IDs explícitos, então as sequences precisam ser sincronizadas —
+ * sem isso o próximo `nextval` devolve 1 e estoura `usuario_pkey`.
+ */
+const SEQUENCED_TABLES = [
+  "usuario",
+  "cursos",
+  "banca",
+  "documento",
+  "invite",
+  "reset_password",
+  "teacher_invitation",
+  "student_invitation",
+  "usuario_banca",
+  "banca_documento",
+  "feedback_submission",
+  "feature_request",
+  "feature_request_vote",
+]
 
-  try {
-    // Seed Cursos
-    const cursosData: InsertCurso[] = [
-      {
-        id: 1,
-        nome: "Ciência da Computação",
-        sigla: "BCC",
-      },
-      {
-        id: 2,
-        nome: "Sistemas de Informação",
-        sigla: "BSI",
-      },
-    ]
-
-    await db.insert(Cursos).values(cursosData).onConflictDoNothing()
-    console.log("✅ Cursos seeded")
-
-    // Seed Users
-    const adminPasswordHash = "$2b$10$Tc0O8gfKK5QQNCEOaZzQ2uFaekULT0N3mWxaZ/aVp0q29zNBYN79S"
-    const usersData: InsertUser[] = [
-      {
-        id: 1,
-        passwordHash: adminPasswordHash,
-        email: "admin@test.com",
-        nome: "Admin Test",
-        school: "UFBA",
-        academicTitle: "Doutor",
-        matricula: "ADM123",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        role: "ADMIN",
-      },
-      {
-        id: 2,
-        passwordHash: adminPasswordHash,
-        email: "teacher@test.com",
-        nome: "Professor Test",
-        school: "UFBA",
-        academicTitle: "Doutor",
-        matricula: "PROF123",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        role: "TEACHER",
-      },
-      {
-        id: 3,
-        passwordHash: adminPasswordHash,
-        email: "student@test.com",
-        nome: "Aluno Test",
-        school: "UFBA",
-        academicTitle: "Bacharel",
-        matricula: "STU123",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        role: "STUDENT",
-      },
-      {
-        id: 4,
-        passwordHash: adminPasswordHash,
-        email: "teacher2@test.com",
-        nome: "Professor Test 2",
-        school: "UFBA",
-        academicTitle: "Doutor",
-        matricula: "PROF456",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        role: "TEACHER",
-      },
-    ]
-
-    await db.insert(Users).values(usersData).onConflictDoNothing()
-    console.log("✅ Users seeded")
-
-    // Seed Bancas - Some upcoming and some past
-    const now = new Date()
-    const futureDate1 = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
-    const futureDate2 = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000) // 14 days from now
-    const futureDate3 = new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000) // 21 days from now
-    const pastDate1 = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) // 7 days ago
-    const pastDate2 = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000) // 14 days ago
-
-    const bancasData: InsertBanca[] = [
-      // Upcoming bancas
-      {
-        id: 1,
-        cursoId: 1,
-        alunoId: 3,
-        orientadorId: 2,
-        autor: "Aluno Test",
-        turma: "2024.1",
-        periodoAcademico: "2024.1",
-        matricula: "STU123",
-        modalidade: "remoto",
-        tituloTrabalho: "Sistema de Recomendação para Testes E2E",
-        resumo: "Este trabalho apresenta um sistema de recomendação para testes automatizados end-to-end.",
-        abstract: "This work presents a recommendation system for automated end-to-end tests.",
-        palavrasChave: "testes, e2e, sistemas de recomendação",
-        dataRealizacao: futureDate1,
-        notaFinal: null,
-        local: "https://meet.google.com/test-123",
-        visible: true,
-      },
-      {
-        id: 2,
-        cursoId: 1,
-        alunoId: 3,
-        orientadorId: 2,
-        autor: "Aluno Test 2",
-        turma: "2024.1",
-        periodoAcademico: "2024.1",
-        matricula: "STU456",
-        modalidade: "local",
-        tituloTrabalho: "Análise de Performance em Aplicações Web",
-        resumo: "Análise detalhada de performance em aplicações web modernas.",
-        abstract: "Detailed performance analysis of modern web applications.",
-        palavrasChave: "performance, web, análise",
-        dataRealizacao: futureDate2,
-        notaFinal: null,
-        local: "Sala 301 - Instituto de Computação",
-        visible: true,
-      },
-      {
-        id: 3,
-        cursoId: 2,
-        alunoId: 3,
-        orientadorId: 4,
-        autor: "Aluno Test 3",
-        turma: "2024.1",
-        periodoAcademico: "2024.1",
-        matricula: "STU789",
-        modalidade: "remoto",
-        tituloTrabalho: "Desenvolvimento de API RESTful com Node.js",
-        resumo: "Desenvolvimento de uma API RESTful moderna usando Node.js e TypeScript.",
-        abstract: "Development of a modern RESTful API using Node.js and TypeScript.",
-        palavrasChave: "api, nodejs, typescript",
-        dataRealizacao: futureDate3,
-        notaFinal: null,
-        local: "https://meet.google.com/test-456",
-        visible: true,
-      },
-      // Past bancas
-      {
-        id: 4,
-        cursoId: 1,
-        alunoId: 3,
-        orientadorId: 2,
-        autor: "Aluno Test 4",
-        turma: "2023.2",
-        periodoAcademico: "2023.2",
-        matricula: "STU101",
-        modalidade: "local",
-        tituloTrabalho: "Sistema de Gerenciamento de Tarefas",
-        resumo: "Sistema web para gerenciamento de tarefas e projetos.",
-        abstract: "Web system for task and project management.",
-        palavrasChave: "gerenciamento, tarefas, web",
-        dataRealizacao: pastDate1,
-        notaFinal: "9.5",
-        local: "Sala 201 - Instituto de Computação",
-        visible: true,
-      },
-      {
-        id: 5,
-        cursoId: 2,
-        alunoId: 3,
-        orientadorId: 4,
-        autor: "Aluno Test 5",
-        turma: "2023.2",
-        periodoAcademico: "2023.2",
-        matricula: "STU202",
-        modalidade: "remoto",
-        tituloTrabalho: "Análise de Dados com Python",
-        resumo: "Análise de dados utilizando Python e bibliotecas modernas.",
-        abstract: "Data analysis using Python and modern libraries.",
-        palavrasChave: "análise, dados, python",
-        dataRealizacao: pastDate2,
-        notaFinal: "8.5",
-        local: "https://meet.google.com/test-789",
-        visible: true,
-      },
-    ]
-
-    const insertedBancas = await db.insert(Bancas).values(bancasData).onConflictDoNothing().returning()
-    console.log(
-      "✅ Bancas seeded:",
-      insertedBancas.map((b) => b.id)
+const syncSequences = async (db: Database) => {
+  for (const table of SEQUENCED_TABLES) {
+    await db.execute(
+      sql.raw(
+        `SELECT setval(pg_get_serial_sequence('${table}', 'id'), COALESCE((SELECT MAX(id) FROM ${table}), 0) + 1, false)`,
+      ),
     )
-
-    // Use the actual IDs returned from the database
-    const bancaIds = insertedBancas.map((b) => b.id)
-
-    // Seed UsuarioBanca relations - only for successfully inserted bancas
-    const usuariosBancasData: InsertUsuarioBanca[] = []
-
-    // Add relations for each successfully inserted banca
-    bancaIds.forEach((bancaId, index) => {
-      if (bancaId) {
-        usuariosBancasData.push(
-          { usuarioId: 2, bancaId: bancaId, role: "orientador", nota: index >= 3 ? "9.5" : null },
-          { usuarioId: 4, bancaId: bancaId, role: "avaliador", nota: index >= 3 ? "9.0" : null }
-        )
-      }
-    })
-
-    await db.insert(usuariosBancas).values(usuariosBancasData).onConflictDoNothing()
-    console.log("✅ UsuarioBanca relations seeded")
-
-    console.log("✅ Test data seeded successfully!")
-    console.log(`   - ${cursosData.length} cursos`)
-    console.log(`   - ${usersData.length} users`)
-    console.log(`   - ${bancasData.length} bancas`)
-    console.log(`   - ${usuariosBancasData.length} usuario-banca relations`)
-  } catch (error) {
-    console.error("❌ Error seeding test data:", error)
-    throw error
   }
+}
+
+/**
+ * Limpa todas as tabelas na ordem correta de dependência.
+ * Usado pelo `POST /__test__/reset` e pelo boot do servidor de teste.
+ */
+export const clearTestData = async (db: Database) => {
+  await db.delete(bancasDocumentos)
+  await db.delete(usuariosBancas)
+  await db.delete(invites)
+  await db.delete(resetPasswords)
+  await db.delete(teacherInvitations)
+  await db.delete(studentInvitations)
+  await db.delete(featureRequestVotes)
+  await db.delete(featureRequests)
+  await db.delete(feedbackSubmissions)
+  await db.delete(sessions)
+  await db.delete(Bancas)
+  await db.delete(documentos)
+  await db.delete(Users)
+  await db.delete(Cursos)
+}
+
+/**
+ * Popula o banco de teste com dados determinísticos.
+ *
+ * Os IDs são explícitos para que as specs possam apontar para entidades conhecidas
+ * sem descobri-las em runtime. As datas são absolutas (2099/2020) para que
+ * "próximas" e "anteriores" não mudem conforme o dia em que a suíte roda.
+ */
+export const seedTestData = async (db: Database) => {
+  const passwordHash = await bcrypt.hash(E2E_PASSWORD, 10)
+  const now = new Date()
+
+  await db.insert(Cursos).values([
+    { id: E2E_CURSOS.bcc.id, nome: E2E_CURSOS.bcc.nome, sigla: E2E_CURSOS.bcc.sigla },
+    { id: E2E_CURSOS.bsi.id, nome: E2E_CURSOS.bsi.nome, sigla: E2E_CURSOS.bsi.sigla },
+  ])
+
+  const accounts = Object.values(E2E_ACCOUNTS)
+  await db.insert(Users).values(
+    accounts.map((account) => ({
+      id: account.id,
+      email: account.email,
+      nome: account.nome,
+      role: account.role,
+      matricula: account.matricula,
+      academicTitle: account.academicTitle,
+      school: "Instituto de Computação",
+      passwordHash,
+      createdAt: now,
+      updatedAt: now,
+    })),
+  )
+
+  await db.insert(Bancas).values([
+    {
+      id: E2E_BANCAS.upcomingPublic.id,
+      tituloTrabalho: E2E_BANCAS.upcomingPublic.tituloTrabalho,
+      cursoId: E2E_BANCAS.upcomingPublic.cursoId,
+      alunoId: E2E_BANCAS.upcomingPublic.alunoId,
+      orientadorId: E2E_BANCAS.upcomingPublic.orientadorId,
+      autor: E2E_ACCOUNTS.busyStudent.nome,
+      matricula: E2E_ACCOUNTS.busyStudent.matricula,
+      turma: "GICC0002 PROJETO FINAL DE CURSO II",
+      periodoAcademico: "2026.1",
+      resumo: "Resumo da banca futura pública do ambiente de E2E.",
+      abstract: "Abstract of the upcoming public banca in the E2E environment.",
+      palavrasChave: "e2e, futura, pública",
+      dataRealizacao: E2E_FUTURE_DATE,
+      local: "https://meet.google.com/e2e-upcoming",
+      modalidade: "remoto",
+      visible: true,
+    },
+    {
+      id: E2E_BANCAS.pastPublic.id,
+      tituloTrabalho: E2E_BANCAS.pastPublic.tituloTrabalho,
+      cursoId: E2E_BANCAS.pastPublic.cursoId,
+      alunoId: E2E_BANCAS.pastPublic.alunoId,
+      orientadorId: E2E_BANCAS.pastPublic.orientadorId,
+      autor: E2E_ACCOUNTS.busyStudent.nome,
+      matricula: E2E_ACCOUNTS.busyStudent.matricula,
+      turma: "GICC0002 PROJETO FINAL DE CURSO II",
+      periodoAcademico: "2020.1",
+      resumo: "Resumo da banca passada pública do ambiente de E2E.",
+      abstract: "Abstract of the past public banca in the E2E environment.",
+      palavrasChave: "e2e, passada, pública",
+      dataRealizacao: E2E_PAST_DATE,
+      local: "Sala 301 - Instituto de Computação",
+      modalidade: "local",
+      notaFinal: "9.5",
+      visible: true,
+    },
+    {
+      id: E2E_BANCAS.upcomingPrivate.id,
+      tituloTrabalho: E2E_BANCAS.upcomingPrivate.tituloTrabalho,
+      cursoId: E2E_BANCAS.upcomingPrivate.cursoId,
+      alunoId: E2E_BANCAS.upcomingPrivate.alunoId,
+      orientadorId: E2E_BANCAS.upcomingPrivate.orientadorId,
+      autor: E2E_ACCOUNTS.privateStudent.nome,
+      matricula: E2E_ACCOUNTS.privateStudent.matricula,
+      turma: "GICC0002 PROJETO FINAL DE CURSO II",
+      periodoAcademico: "2026.1",
+      resumo: "Resumo da banca futura privada do ambiente de E2E.",
+      abstract: "Abstract of the upcoming private banca in the E2E environment.",
+      palavrasChave: "e2e, futura, privada",
+      dataRealizacao: E2E_FUTURE_DATE,
+      local: "https://meet.google.com/e2e-private",
+      modalidade: "remoto",
+      visible: false,
+    },
+  ])
+
+  await db.insert(usuariosBancas).values([
+    {
+      bancaId: E2E_BANCAS.upcomingPublic.id,
+      usuarioId: E2E_ACCOUNTS.teacher.id,
+      role: "orientador",
+    },
+    { bancaId: E2E_BANCAS.upcomingPublic.id, usuarioId: E2E_ACCOUNTS.busyStudent.id, role: "aluno" },
+    {
+      bancaId: E2E_BANCAS.upcomingPublic.id,
+      usuarioId: E2E_ACCOUNTS.teacher2.id,
+      role: "avaliador",
+    },
+    {
+      bancaId: E2E_BANCAS.pastPublic.id,
+      usuarioId: E2E_ACCOUNTS.teacher2.id,
+      role: "orientador",
+      nota: "9.5",
+    },
+    { bancaId: E2E_BANCAS.pastPublic.id, usuarioId: E2E_ACCOUNTS.busyStudent.id, role: "aluno" },
+    {
+      bancaId: E2E_BANCAS.pastPublic.id,
+      usuarioId: E2E_ACCOUNTS.teacher.id,
+      role: "avaliador",
+      nota: "9.0",
+    },
+    {
+      bancaId: E2E_BANCAS.upcomingPrivate.id,
+      usuarioId: E2E_ACCOUNTS.teacher.id,
+      role: "orientador",
+    },
+    { bancaId: E2E_BANCAS.upcomingPrivate.id, usuarioId: E2E_ACCOUNTS.privateStudent.id, role: "aluno" },
+  ])
+
+  /* Depois de inserir IDs explícitos, alinha as sequences com o maior id de cada tabela. */
+  await syncSequences(db)
+}
+
+/** Limpa e repopula. Idempotente — pode rodar quantas vezes quiser. */
+export const resetTestData = async (db: Database) => {
+  await clearTestData(db)
+  await seedTestData(db)
 }
