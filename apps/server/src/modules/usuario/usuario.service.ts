@@ -24,6 +24,35 @@ import { createPasswordResetEmail, sendEmail } from "../../services/email.servic
 import { type AppVariables } from "../../types"
 import { createUserSchema, updateUserSchema } from "./usuario.schema"
 
+/**
+ * Colunas de usuário seguras para devolver na API.
+ *
+ * ⚠️ `passwordHash` NUNCA deve entrar aqui. Um `.select()` sem projeção devolve
+ * todas as colunas da tabela — incluindo o hash bcrypt — então sempre projete.
+ */
+export const publicUserColumns = {
+  id: Users.id,
+  nome: Users.nome,
+  email: Users.email,
+  matricula: Users.matricula,
+  school: Users.school,
+  academicTitle: Users.academicTitle,
+  role: Users.role,
+  createdAt: Users.createdAt,
+  updatedAt: Users.updatedAt,
+} as const
+
+export type PublicUser = Pick<SelectUser, keyof typeof publicUserColumns>
+
+/**
+ * Remove campos sensíveis de um usuário antes de devolvê-lo na API.
+ * Use em qualquer resposta que devolva uma linha completa de `usuario`.
+ */
+export const toPublicUser = (user: SelectUser): PublicUser => {
+  const { passwordHash: _passwordHash, ...publicUser } = user
+  return publicUser
+}
+
 type GetUserByIdError = { type: "user_not_found" } | { type: "database_error"; error: unknown }
 type UpdateUserError =
   | { type: "user_not_found" }
@@ -47,10 +76,10 @@ type GetUserAssociationsError = { type: "user_not_found" } | { type: "database_e
 type GetAllUsersError = { type: "database_error"; error: unknown }
 export const getAllUsers = async (
   c: Context<{ Variables: AppVariables }>,
-): Promise<AppResult<SelectUser[], GetAllUsersError>> => {
+): Promise<AppResult<PublicUser[], GetAllUsersError>> => {
   const dbInstance = c.get("db")
   try {
-    const allUsers = await dbInstance.select().from(Users).orderBy(asc(Users.nome))
+    const allUsers = await dbInstance.select(publicUserColumns).from(Users).orderBy(asc(Users.nome))
 
     return ok(allUsers)
   } catch (error) {
@@ -62,11 +91,11 @@ export const getAllUsers = async (
 type GetTeachersError = { type: "database_error"; error: unknown }
 export const getTeachers = async (
   c: Context<{ Variables: AppVariables }>,
-): Promise<AppResult<SelectUser[], GetTeachersError>> => {
+): Promise<AppResult<PublicUser[], GetTeachersError>> => {
   const dbInstance = c.get("db")
   try {
     const teachers = await dbInstance
-      .select()
+      .select(publicUserColumns)
       .from(Users)
       .where(and(or(eq(Users.role, "TEACHER"), eq(Users.role, "ADMIN"))))
       .orderBy(Users.nome)
@@ -86,7 +115,7 @@ type CreateUserError =
 export const createUser = async (
   c: Context<{ Variables: AppVariables }>,
   userData: z.infer<typeof createUserSchema>,
-): Promise<AppResult<SelectUser, CreateUserError>> => {
+): Promise<AppResult<PublicUser, CreateUserError>> => {
   const dbInstance = c.get("db")
 
   try {
@@ -143,7 +172,7 @@ export const createUser = async (
           .set({ status: "used" })
           .where(eq(studentInvitations.id, pendingInvite.id))
 
-        return ok(claimed)
+        return ok(toPublicUser(claimed))
       }
 
       return err({ type: "duplicate_email" })
@@ -178,7 +207,7 @@ export const createUser = async (
       return err({ type: "database_error", error: "Insert operation did not return expected data." })
     }
 
-    return ok(newUserResult)
+    return ok(toPublicUser(newUserResult))
   } catch (error) {
     console.error("Database error during user creation:", error)
     return err({ type: "database_error", error })
@@ -188,10 +217,10 @@ export const createUser = async (
 export const getUserById = async (
   c: Context<{ Variables: AppVariables }>,
   id: number,
-): Promise<AppResult<Omit<SelectUser, "passwordHash" | "createdAt">, GetUserByIdError>> => {
+): Promise<AppResult<PublicUser, GetUserByIdError>> => {
   const dbInstance = c.get("db")
   try {
-    const result = await dbInstance.select().from(Users).where(eq(Users.id, id)).limit(1)
+    const result = await dbInstance.select(publicUserColumns).from(Users).where(eq(Users.id, id)).limit(1)
     const user = result[0]
 
     if (!user) {
@@ -666,7 +695,7 @@ export const resetPassword = async (
 }
 
 type GetStudentsAvailableForBancaError = { type: "database_error"; error: unknown }
-export type StudentAvailableForBanca = SelectUser & { invitationPending: boolean }
+export type StudentAvailableForBanca = PublicUser & { invitationPending: boolean }
 
 export const getStudentsAvailableForBanca = async (
   c: Context<{ Variables: AppVariables }>,
@@ -682,7 +711,7 @@ export const getStudentsAvailableForBanca = async (
     const studentIdsWithBancas = studentsWithBancas.map((s) => s.id)
 
     const availableStudents = await dbInstance
-      .select()
+      .select(publicUserColumns)
       .from(Users)
       .where(
         and(

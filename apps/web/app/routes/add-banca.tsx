@@ -612,12 +612,13 @@ const AuthorInfoSection = () => {
                   }}
                   value={alunoIdValue ? String(alunoIdValue) : undefined}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger data-testid="select-aluno">
                     <SelectValue placeholder="Selecione o aluno..." />
                   </SelectTrigger>
                   <SelectContent>
                     <div className="p-2 border-b sticky top-0 bg-background z-10">
                       <Input
+                        data-testid="search-aluno"
                         placeholder="Buscar aluno..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -699,12 +700,13 @@ const AuthorInfoSection = () => {
                 }}
                 value={field.value ? String(field.value) : undefined}
               >
-                <SelectTrigger>
+                <SelectTrigger data-testid="select-orientador">
                   <SelectValue placeholder="Selecione o orientador..." />
                 </SelectTrigger>
                 <SelectContent>
                   <div className="p-2 border-b sticky top-0 bg-background z-10">
                     <Input
+                      data-testid="search-orientador"
                       placeholder="Buscar orientador..."
                       value={orientadorSearchTerm}
                       onChange={(e) => setOrientadorSearchTerm(e.target.value)}
@@ -934,6 +936,28 @@ const WorkAndDefenseSection = () => {
             <p className="text-xs text-muted-foreground mt-1">Formato: Ano.Semestre (ex: 2024.2)</p>
           </div>
         </div>
+
+        <div className="mt-4">
+          <Label htmlFor="linkTrabalho">Link do PDF do TCC 🔗</Label>
+          <Input
+            id="linkTrabalho"
+            type="url"
+            {...register("linkTrabalho", {
+              validate: (value) => {
+                if (!value) return true
+                return (
+                  /^https?:\/\/.+/i.test(value) || "Informe uma URL válida começando com http:// ou https://"
+                )
+              },
+            })}
+            placeholder="https://repositorio.ufba.br/handle/..."
+            aria-invalid={errors.linkTrabalho ? "true" : "false"}
+          />
+          {errors.linkTrabalho && <p className="text-sm text-red-600 mt-1">{errors.linkTrabalho.message}</p>}
+          <p className="text-sm text-muted-foreground">
+            Opcional. Se preenchido, o link de download aparece para todos na página da defesa.
+          </p>
+        </div>
       </div>
 
       {/* Seção de Agendamento */}
@@ -1002,12 +1026,12 @@ const WorkAndDefenseSection = () => {
                   ref={field.ref}
                 >
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="local" id="local" />
-                    <Label htmlFor="local">Presencial</Label>
+                    <RadioGroupItem value="local" id="modalidade-local" />
+                    <Label htmlFor="modalidade-local">Presencial</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="remoto" id="remoto" />
-                    <Label htmlFor="remoto">Remoto</Label>
+                    <RadioGroupItem value="remoto" id="modalidade-remoto" />
+                    <Label htmlFor="modalidade-remoto">Remoto</Label>
                   </div>
                 </RadioGroup>
               )}
@@ -1126,7 +1150,7 @@ const EvaluatorsSection = () => {
                 onValueChange={(value) => field.onChange(Number(value))}
                 value={field.value ? String(field.value) : undefined}
               >
-                <SelectTrigger>
+                <SelectTrigger data-testid="select-avaliador-2">
                   <SelectValue placeholder="Selecione o 2º avaliador..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -1182,7 +1206,7 @@ const EvaluatorsSection = () => {
                   onValueChange={(value) => field.onChange(Number(value))}
                   value={field.value ? String(field.value) : undefined}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger data-testid="select-avaliador-3">
                     <SelectValue placeholder="Selecione o 3º avaliador..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -1337,6 +1361,7 @@ const MetadataReviewSection = ({ values }: { values: BancaFormData }) => {
         <ReviewField label="Curso" value={cursoNome ?? "Não selecionado"} />
         <ReviewField label="Período Acadêmico" value={values.periodoAcademico} />
       </div>
+      <ReviewField label="Link do PDF do TCC 🔗" value={values.linkTrabalho || "Não informado"} className="mt-2" />
     </div>
   )
 }

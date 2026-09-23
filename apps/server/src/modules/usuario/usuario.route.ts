@@ -4,12 +4,12 @@ import { Hono } from "hono"
 import { match } from "ts-pattern"
 import { AppError } from "../../error"
 import { type AppVariables } from "../../types"
-import { checkRole } from "../auth/auth.middleware"
+import { checkRole, requireAuth } from "../auth/auth.middleware"
 import * as schema from "./usuario.schema"
 import * as service from "./usuario.service"
 
 export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
-  .get("/me", async (c) => {
+  .get("/me", requireAuth, async (c) => {
     const result = await service.getUserById(c, Number(c.get("jwtPayload").sub))
     if (!result.ok) {
       throw match(result.error)
@@ -28,7 +28,7 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json(result.data)
   })
-  .get("/teachers", async (c) => {
+  .get("/teachers", requireAuth, async (c) => {
     const result = await service.getTeachers(c)
     if (!result.ok) {
       throw match(result.error)
@@ -37,7 +37,7 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json(result.data)
   })
-  .get("/students", async (c) => {
+  .get("/students", requireAuth, async (c) => {
     const result = await service.getStudents(c)
     if (!result.ok) {
       throw match(result.error)
@@ -46,7 +46,7 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json(result.data)
   })
-  .get("/students/available-for-banca", async (c) => {
+  .get("/students/available-for-banca", requireAuth, async (c) => {
     const result = await service.getStudentsAvailableForBanca(c)
     if (!result.ok) {
       throw match(result.error)

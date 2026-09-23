@@ -49,6 +49,7 @@ export const Bancas = pgTable(
     turma: text("turma").notNull(),
     periodoAcademico: text("periodo_academico").notNull(),
     tituloTrabalho: text("titulo_trabalho").notNull(),
+    linkTrabalho: text("link_trabalho"), // URL pública do PDF do TCC (opcional)
     resumo: text("resumo").notNull(),
     abstract: text("abstract").notNull(),
     palavrasChave: text("palavras_chave").notNull(),

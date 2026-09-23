@@ -1,0 +1,1 @@
+ALTER TABLE "banca" ADD COLUMN "link_trabalho" text;

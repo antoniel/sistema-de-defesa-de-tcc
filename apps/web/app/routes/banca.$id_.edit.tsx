@@ -7,7 +7,7 @@ export const meta: Route.MetaFunction = () => [
 ]
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -29,6 +29,12 @@ import { useBanca } from "@/hooks"
 
 const formSchema = z.object({
   tituloTrabalho: z.string().min(1, "Título é obrigatório"),
+  linkTrabalho: z
+    .string()
+    .trim()
+    .url("Informe uma URL válida (ex.: https://repositorio.ufba.br/...)")
+    .or(z.literal(""))
+    .optional(),
   palavrasChave: z.string().min(1, "Palavras-chave são obrigatórias"),
   resumo: z.string().min(1, "Resumo é obrigatório"),
   abstract: z.string().min(1, "Abstract é obrigatório"),
@@ -76,6 +82,7 @@ export default function EditBancaPage() {
     values: banca
       ? {
           tituloTrabalho: banca.tituloTrabalho,
+          linkTrabalho: banca.linkTrabalho || "",
           palavrasChave: banca.palavrasChave,
           resumo: banca.resumo,
           abstract: banca.abstract,
@@ -214,6 +221,7 @@ export default function EditBancaPage() {
   const onSubmit = (data: FormValues) => {
     const submitData: updateBanca = {
       tituloTrabalho: data.tituloTrabalho,
+      linkTrabalho: data.linkTrabalho || null,
       resumo: data.resumo,
       abstract: data.abstract,
       palavrasChave: data.palavrasChave,
@@ -380,7 +388,15 @@ export default function EditBancaPage() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Curso</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={(value) => {
+                    // O Radix dispara onValueChange("") ao montar, antes de `values` chegar,
+                    // o que zerava o curso vindo do banco. Ignora valores vazios.
+                    if (!value) return
+                    field.onChange(value)
+                  }}
+                  value={field.value ?? ""}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o curso" />
@@ -408,12 +424,15 @@ export default function EditBancaPage() {
                   <FormLabel>Orientador</FormLabel>
                   <Select
                     onValueChange={(value) => {
+                      // O Radix dispara onValueChange("") ao montar, antes de `values` chegar,
+                      // o que zerava o orientador vindo do banco. Ignora valores vazios.
+                      if (!value) return
                       field.onChange(value)
                       if (value === coorientadorId) {
                         form.setValue("coorientadorId", "none")
                       }
                     }}
-                    value={field.value}
+                    value={field.value ?? ""}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -519,6 +538,23 @@ export default function EditBancaPage() {
                 <FormControl>
                   <Input placeholder="Local da defesa ou link da sala virtual" {...field} />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="linkTrabalho"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Link do PDF do TCC 🔗</FormLabel>
+                <FormControl>
+                  <Input type="url" placeholder="https://repositorio.ufba.br/handle/..." {...field} />
+                </FormControl>
+                <FormDescription>
+                  Opcional. Se preenchido, o link de download aparece para todos na página da defesa.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
