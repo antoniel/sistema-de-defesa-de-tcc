@@ -30,6 +30,8 @@ jobs:
             ${{ runner.os }}-turbo-
       - name: Run tscheck
         run: npm run tscheck
+      - name: Run helper script tests
+        run: python3 -m unittest discover -s scripts -p 'test_*.py'
 
   backend-tests:
     name: Backend Tests
