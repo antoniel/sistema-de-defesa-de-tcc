@@ -138,6 +138,50 @@ python3 "$SKILL_DIR/scripts/evidence.py" close "$VERIFY_DIR"
 `check` valida mídia, não comportamento. Revisar as imagens visualmente nas dimensões originais
 antes de afirmar qualquer coisa sobre a interface.
 
+## 5b. Vídeo de demo (derivado, NÃO é evidência)
+
+A gravação gerenciada é contínua de propósito: ela prova a sequência ação→resultado. Só que o
+agente pensa entre uma ação e outra, e esse tempo parado entra no vídeo — numa verificação real
+medida aqui, **43s de gravação tinham só ~4,5s de conteúdo**.
+
+Para demo (PR, apresentação, revisão humana) gere um derivado com os trechos parados removidos:
+
+```sh
+python3 scripts/demo_cut.py /tmp/verify-xxx/interaction.mp4 -o /tmp/demo.mp4 --report
+python3 scripts/demo_cut.py /tmp/verify-xxx/interaction.mp4 --dry-run   # só relata o corte
+```
+
+Regras:
+
+- **A evidência não é alterada.** O derivado sai fora do diretório de captura (o script recusa
+  escrever dentro de um diretório com `capture.json`, a menos que se use `--force`).
+- **Nunca rotule o derivado como evidência.** `evidence.py check` valida o arquivo original;
+  o corte não passa por essa validação e não substitui a gravação.
+- Cada trecho parado é encurtado para `--keep` segundos (padrão 0.6), preservando o **começo** —
+  que é onde está o resultado da ação anterior, o que a pessoa precisa ler.
+- Pausas menores que `--min-freeze` (padrão 1.0s) ficam: são o ritmo natural de leitura.
+
+Testes da lógica de corte (sem ffmpeg, roda em ~0.1s):
+
+```sh
+python3 -m unittest discover -s scripts -p 'test_demo_cut*.py'
+```
+
+Validação do render, com durações conhecidas (15s = 2s parado, 3s movimento, 4s parado,
+3s movimento, 3s parado) — deve dar 7,8s:
+
+```sh
+ffmpeg -hide_banner -loglevel error -y \
+  -f lavfi -i "color=c=navy:s=640x360:d=2:r=60" \
+  -f lavfi -i "testsrc=s=640x360:d=3:r=60" \
+  -f lavfi -i "color=c=navy:s=640x360:d=4:r=60" \
+  -f lavfi -i "testsrc=s=640x360:d=3:r=60" \
+  -f lavfi -i "color=c=navy:s=640x360:d=3:r=60" \
+  -filter_complex "[0:v][1:v][2:v][3:v][4:v]concat=n=5:v=1:a=0[v]" -map "[v]" \
+  -c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p /tmp/synth.mp4
+python3 scripts/demo_cut.py /tmp/synth.mp4 -o /tmp/synth-demo.mp4 --report
+```
+
 ## 6. Mapa de features
 
 | Feature | Rota / entrada | Conta necessária | Resultado observável | Persistência |
