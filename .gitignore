@@ -9,12 +9,35 @@ node_modules
 .pnp
 .pnp.js
 
-# Local env files
+# Local env files (nunca versionar segredos)
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
+!.env.sample
+!.env.test
+
+# Dumps e backups de banco (contêm dados reais — nunca versionar)
+*.dump
+*.sql
+*.sql.gz
+*.sql.bz2
+*.sql.zip
+*.psql
+*.bak
+*.backup
+backup/
+backups/
+!apps/server/src/database/drizzle/**/*.sql
+
+# Credenciais e chaves
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa*
+id_ed25519*
+docker-compose.override.yml
 
 # Testing
 coverage
@@ -35,7 +58,6 @@ out/
 build
 dist
 
-
 # Debug
 npm-debug.log*
 yarn-debug.log*
@@ -43,24 +65,14 @@ yarn-error.log*
 
 # Misc
 .DS_Store
-*.pem
-*.aux
 *.log
+*.aux
 *.out
 *.pdf
 *.toc
 *.bbl
 *.blg
 *.fis
-*.fdb_latexmk
-*.fls
-*.synctex.gz
-*.fdb_latexmk
-*.fls
-*.synctex.gz
-*.fdb_latexmk
-*.fls
-*.synctex.gz
 *.fdb_latexmk
 *.fls
 *.synctex.gz
