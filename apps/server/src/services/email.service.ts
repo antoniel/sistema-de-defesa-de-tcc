@@ -7,6 +7,7 @@ import {
   createStudentInvitationEmail as createStudentInvitationEmailTemplate,
   createTeacherInvitationEmail as createTeacherInvitationEmailTemplate,
   type CalendarInviteEmailProps,
+  type InvitationInviter,
 } from "../templates/email"
 
 export type EmailAttachment = {
@@ -93,12 +94,21 @@ export const sendEmail = async (input: SendEmailInput): Promise<AppResult<void, 
   }
 }
 
-export const createTeacherInvitationEmail = (nome: string, invitationUrl: string): string => {
-  return createTeacherInvitationEmailTemplate({ nome, invitationUrl })
+export const createTeacherInvitationEmail = (
+  nome: string,
+  invitationUrl: string,
+  invitedBy?: InvitationInviter,
+  expiresAt?: Date
+): string => {
+  return createTeacherInvitationEmailTemplate({ nome, invitationUrl, invitedBy, expiresAt })
 }
 
-export const createStudentInvitationEmail = (nome: string, invitationUrl: string): string => {
-  return createStudentInvitationEmailTemplate({ nome, invitationUrl })
+export const createStudentInvitationEmail = (
+  nome: string,
+  invitationUrl: string,
+  invitedBy?: InvitationInviter
+): string => {
+  return createStudentInvitationEmailTemplate({ nome, invitationUrl, invitedBy })
 }
 
 export const createPasswordResetEmail = (nome: string, resetUrl: string): string => {

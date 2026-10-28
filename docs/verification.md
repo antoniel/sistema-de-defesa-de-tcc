@@ -138,6 +138,79 @@ python3 "$SKILL_DIR/scripts/evidence.py" close "$VERIFY_DIR"
 `check` valida mídia, não comportamento. Revisar as imagens visualmente nas dimensões originais
 antes de afirmar qualquer coisa sobre a interface.
 
+## 5b. Vídeo de demo (NÃO é evidência)
+
+A gravação gerenciada é contínua de propósito: ela prova a sequência ação→resultado, incluindo a
+espera entre os dois. **Não encurte esse arquivo cortando os trechos parados.**
+
+Motivo: numa captura em resolução cheia (2880×1800), o movimento do cursor muda pouquíssimos
+pixels e o `freezedetect` o considera imagem parada. O corte então **remove o gesto**, e a emenda
+aparece como um salto. O resultado vira um storyboard de estados, não um vídeo de interação.
+
+### O caminho certo: gravar takes separados
+
+Deixe o gravador **parado** enquanto escolhe a próxima ação. Ligue quando o gesto começar. Guarde o
+caminho inteiro do ponteiro. Desligue depois que o resultado estiver legível por ~0,6s.
+
+```sh
+DEMO_DIR="$VERIFY_DIR-demo"
+mkdir -p "$DEMO_DIR/takes"
+
+agent-browser --session "$BROWSER_SESSION" record start "$DEMO_DIR/takes/01.mp4" --fps 60 --cursor
+# execute um gesto preparado, depois segure o resultado
+agent-browser --session "$BROWSER_SESSION" record stop
+# escolha a próxima ação aqui: com o gravador parado, essa espera NÃO entra no demo
+agent-browser --session "$BROWSER_SESSION" record start "$DEMO_DIR/takes/02.mp4" --fps 60 --cursor
+# execute o próximo gesto e segure o resultado
+agent-browser --session "$BROWSER_SESSION" record stop
+
+python3 scripts/demo_join.py "$DEMO_DIR/takes/01.mp4" "$DEMO_DIR/takes/02.mp4" -o "$DEMO_DIR/demo.mp4"
+```
+
+O `demo_join.py` só coloca os takes em ordem — não corta frame nem re-codifica (`-c copy`). Por isso
+os takes precisam ter os mesmos parâmetros de gravação (o mesmo `record start --fps 60 --cursor`).
+
+### Regras
+
+- **A evidência não é alterada.** O demo sai fora do diretório de captura: o script recusa escrever
+dentro de um diretório que tenha `capture.json` (verifica também os diretórios pais).
+- **Nunca rotule o demo como evidência.** `evidence.py check` valida só a gravação original.
+- Para a demo, use o **mesmo** viewport/escala da captura, para o visual bater com a evidência.
+
+### Alternativa: encurtar uma gravação já existente
+
+`scripts/demo_cut.py` pega um vídeo contínuo e remove os trechos parados. Serve para dar uma olhada
+rápida num arquivo longo que já foi gravado, mas **não** para demo: pelo motivo do cursor acima, ele
+tira os gestos do vídeo. A saída fica parecendo uma sequência de telas paradas.
+
+```sh
+python3 scripts/demo_cut.py /tmp/verify-xxx/interaction.mp4 --dry-run --report  # só relata
+python3 scripts/demo_cut.py /tmp/verify-xxx/interaction.mp4 -o /tmp/demo.mp4 --report
+```
+
+### Testes
+
+```sh
+python3 -m unittest discover -s scripts -p 'test_*.py'    # 15 testes, ~0,15s, sem ffmpeg
+```
+
+Os testes de CLI pulam sozinhos quando falta ffmpeg (o runner do `tscheck` no CI não tem).
+
+Validação do corte com durações conhecidas (15s = 2s parado, 3s movimento, 4s parado, 3s movimento,
+3s parado) — deve dar 7,8s:
+
+```sh
+ffmpeg -hide_banner -loglevel error -y \
+  -f lavfi -i "color=c=navy:s=640x360:d=2:r=60" \
+  -f lavfi -i "testsrc=s=640x360:d=3:r=60" \
+  -f lavfi -i "color=c=navy:s=640x360:d=4:r=60" \
+  -f lavfi -i "testsrc=s=640x360:d=3:r=60" \
+  -f lavfi -i "color=c=navy:s=640x360:d=3:r=60" \
+  -filter_complex "[0:v][1:v][2:v][3:v][4:v]concat=n=5:v=1:a=0[v]" -map "[v]" \
+  -c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p /tmp/synth.mp4
+python3 scripts/demo_cut.py /tmp/synth.mp4 -o /tmp/synth-demo.mp4 --report
+```
+
 ## 6. Mapa de features
 
 | Feature | Rota / entrada | Conta necessária | Resultado observável | Persistência |
