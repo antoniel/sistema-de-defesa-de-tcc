@@ -108,7 +108,12 @@ export const createTeacherInvitationService = async (
 
     // Send invitation email
     const invitationUrl = `${env.FRONTEND_URL || "http://localhost:5173"}/teacher-invitation/${invitationHash}`
-    const emailHtml = createTeacherInvitationEmail(input.nome, invitationUrl)
+    const [inviterUser] = await dbInstance
+      .select({ nome: Users.nome, email: Users.email })
+      .from(Users)
+      .where(eq(Users.id, Number(adminUser.sub)))
+      .limit(1)
+    const emailHtml = createTeacherInvitationEmail(input.nome, invitationUrl, inviterUser, expiresAt)
 
     const emailResult = await sendEmail({
       to: input.email,

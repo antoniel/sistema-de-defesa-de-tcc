@@ -105,7 +105,12 @@ export const createStudentInvitationService = async (
     }
 
     const invitationUrl = `${env.FRONTEND_URL || "http://localhost:5173"}/student-invitation/${invitationHash}`
-    const emailHtml = createStudentInvitationEmail(input.nome, invitationUrl)
+    const [inviterUser] = await dbInstance
+      .select({ nome: Users.nome, email: Users.email })
+      .from(Users)
+      .where(eq(Users.id, Number(inviter.sub)))
+      .limit(1)
+    const emailHtml = createStudentInvitationEmail(input.nome, invitationUrl, inviterUser)
 
     const emailResult = await sendEmail({
       to: input.email,

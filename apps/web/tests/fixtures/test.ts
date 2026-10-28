@@ -46,6 +46,8 @@ interface E2EFixtures {
   asAdmin: Page
   /** Página já autenticada como TEACHER (orientador do seed). */
   asTeacher: Page
+  /** Página autenticada como outro TEACHER do seed — NÃO é orientador da banca 1. */
+  asTeacher2: Page
   /** Página já autenticada como STUDENT (aluno sem banca). */
   asStudent: Page
   /** Helpers de criação de dados. */
@@ -202,6 +204,9 @@ export const test = base.extend<E2EFixtures>({
   },
   asTeacher: async ({ browser, factory }, use) => {
     await useWithToken(browser, await factory.login("teacher"), use)
+  },
+  asTeacher2: async ({ browser, factory }, use) => {
+    await useWithToken(browser, await factory.login("teacher2"), use)
   },
   asStudent: async ({ browser, factory }, use) => {
     await useWithToken(browser, await factory.login("freeStudent"), use)

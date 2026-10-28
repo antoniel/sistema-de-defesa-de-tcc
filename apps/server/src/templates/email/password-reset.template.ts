@@ -1,4 +1,4 @@
-import { createBaseEmailTemplate } from './base.template'
+import { createBaseEmailTemplate, emailStyles, escapeHtml } from './base.template'
 
 export interface PasswordResetEmailProps {
   nome: string
@@ -9,22 +9,17 @@ export const createPasswordResetEmail = (props: PasswordResetEmailProps): string
   const { nome, resetUrl } = props
 
   const content = `
-    <h2>Olá, ${nome}!</h2>
-    <p>Você solicitou a recuperação de senha para sua conta no Sistema Banca.</p>
-    <p>Para redefinir sua senha, clique no botão abaixo:</p>
-    
-    <div class="warning">
+    <h2 style="${emailStyles.h2}">Olá, ${escapeHtml(nome)}!</h2>
+    <p style="${emailStyles.p}">Você solicitou a recuperação de senha para sua conta no Sistema Banca.</p>
+    <p style="${emailStyles.p}">Para redefinir sua senha, clique no botão abaixo:</p>
+
+    <div style="${emailStyles.warning}">
       <strong>⚠️ Importante:</strong>
-      <ul>
+      <ul style="margin: 8px 0 0 0; padding-left: 20px;">
         <li>Este link expira em 1 hora</li>
         <li>Só pode ser usado uma vez</li>
         <li>Se você não solicitou esta recuperação, ignore este email</li>
       </ul>
-    </div>
-    
-    <p>Se você não conseguir clicar no botão, copie e cole este link no seu navegador:</p>
-    <div class="link-fallback">
-      ${resetUrl}
     </div>
   `
 
@@ -33,6 +28,7 @@ export const createPasswordResetEmail = (props: PasswordResetEmailProps): string
     content,
     buttonText: 'Redefinir Senha',
     buttonUrl: resetUrl,
-    variant: 'default'
+    variant: 'default',
+    preheader: 'Redefina sua senha do Sistema Banca. O link expira em 1 hora.',
   })
 }
