@@ -2,6 +2,37 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> `AGENTS.md` é um symlink para este arquivo. O pi carrega **apenas o primeiro arquivo que
+> encontra por diretório** (`AGENTS.override.md` > `AGENTS.md` > `CLAUDE.md`), então um
+> `AGENTS.md` separado faria todo este conteúdo ser ignorado. Edite aqui.
+
+## Regras de colaboração
+
+### Git: não commite e não faça push
+
+**Nunca rode `git commit` nem `git push`.** Quem commita e empurra é o usuário.
+
+- Não crie commit "para deixar salvo", nem para fechar uma tarefa, nem para registrar um fix
+  pequeno. Não empurra por estar tudo verde.
+- Não faça push para `origin` nem para os remotes do Dokku (`dokku-web`, `dokku-server`) —
+  `npm run push:web` e `npm run push:server` deployam **produção**.
+- Não reescreva histórico: sem `--amend`, `rebase`, `reset --hard`, `filter-branch` ou
+  force-push.
+- Termine deixando as mudanças no working tree. No relatório final, diga o que mudou, quais
+  arquivos e como validar (`npm run tscheck`, `npm test`, `npm run test:e2e`).
+- Se você acredita que algo merece um commit, **descreva a mensagem sugerida e pergunte**.
+
+A única exceção: o usuário pedir explicitamente commit ou push **naquela mensagem**. Vale mesmo
+quando a tarefa parece pronta, mesmo quando o CI precisa rodar para validar, e mesmo quando já
+existem commits locais não empurrados.
+
+### Ao mudar comportamento
+
+- Rode `npm run tscheck` e `npm test` antes de dizer que terminou.
+- "Passa na minha máquina" não é evidência de estabilidade. Para o E2E, valide nas condições
+  do CI: `cd apps/web && rm -rf node_modules/.vite build && npx playwright test --workers=2`.
+- Não afirme que algo foi corrigido sem ter verificado. Se não deu para verificar, diga isso.
+
 ## Project Structure
 
 This is a monorepo containing an academic thesis committee ("banca") management system with the following structure:

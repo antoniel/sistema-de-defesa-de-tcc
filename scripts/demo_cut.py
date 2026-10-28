@@ -1,29 +1,29 @@
 #!/usr/bin/env python3
-"""Gera um vídeo de demonstração fluido a partir de uma captura do verify-app.
+"""Derive a fluid demo video from a verify-app capture.
 
-O vídeo gravado pelo verify-app é EVIDÊNCIA: contínuo, sem cortes, validado por
-`evidence.py check`. Enquanto o agente pensa entre uma ação e outra, a tela fica parada,
-e isso aparece como tempo morto.
+The video recorded by verify-app is EVIDENCE: continuous, uncut, validated by
+`evidence.py check`. While the agent thinks between one action and the next, the screen does not
+change, and that shows up as dead time.
 
-Este script NÃO toca na evidência. Ele lê a gravação e escreve um derivado, com os
-trechos parados removidos, para uso como demo (PR, apresentação, revisão humana).
+This script never touches the evidence. It reads the recording and writes a derivative with the
+idle stretches removed, for use as a demo (PR, presentation, human review).
 
-Regra da skill que isto respeita: "Keep original media unchanged. Store diagnostic
-derivatives outside the managed capture directory."
+Skill rule this respects: "Keep original media unchanged. Store diagnostic derivatives outside
+the managed capture directory."
 
-Uso:
-    python3 scripts/demo_cut.py gravacao.mp4
-    python3 scripts/demo_cut.py gravacao.mp4 -o demo.mp4 --min-freeze 1.0 --keep 0.6
-    python3 scripts/demo_cut.py gravacao.mp4 --dry-run --report
+Usage:
+    python3 scripts/demo_cut.py recording.mp4
+    python3 scripts/demo_cut.py recording.mp4 -o demo.mp4 --min-freeze 1.0 --keep 0.6
+    python3 scripts/demo_cut.py recording.mp4 --dry-run --report
 
-Como funciona:
-    1. `freezedetect` do ffmpeg marca os intervalos em que a imagem não muda.
-    2. Cada intervalo parado é encurtado para no máximo `--keep` segundos (o começo é
-       preservado, porque é ali que está o resultado da última ação, que precisa ser lido).
-    3. Os pedaços restantes são concatenados numa passada só de ffmpeg.
+How it works:
+    1. ffmpeg's `freezedetect` marks the intervals where the picture does not change.
+    2. Each idle interval is shortened to at most `--keep` seconds (its start is preserved,
+       because that is where the previous action's result is, which needs to be read).
+    3. The remaining pieces are concatenated in a single ffmpeg pass.
 
-Só entram no corte os trechos parados maiores que `--min-freeze`, para não engolir as
-pausas curtas e naturais (leitura de tela, tempo de resposta da interface).
+Only idle stretches longer than `--min-freeze` are cut, so short natural pauses (reading the
+screen, interface response time) stay in.
 """
 
 from __future__ import annotations
@@ -36,13 +36,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-# Intervalo considerado "parado". -60dB é bem estrito (quase sem ruído de compressão).
+# Difference below which two frames count as identical. -60dB is strict (almost no compression noise).
 DEFAULT_THRESHOLD = "-60dB"
-# Trechos parados menores que isto são pausas naturais e ficam.
+# Idle stretches shorter than this are natural pauses and stay.
 DEFAULT_MIN_FREEZE = 1.0
-# Quanto do começo de cada trecho parado é preservado.
+# How much of the start of each idle stretch is preserved.
 DEFAULT_KEEP = 0.6
-# Menor segmento que vale a pena manter no resultado.
+# Shortest segment worth keeping in the result.
 MIN_SEGMENT = 0.2
 
 FREEZE_LINE = re.compile(
@@ -56,7 +56,7 @@ class DemoCutError(Exception):
 
 def require_tool(name: str) -> None:
     if shutil.which(name) is None:
-        raise DemoCutError(f"{name} não encontrado no PATH. Instale o ffmpeg.")
+        raise DemoCutError(f"{name} not found on PATH. Install ffmpeg.")
 
 
 def probe_duration(video: Path) -> float:
@@ -78,11 +78,11 @@ def probe_duration(video: Path) -> float:
     try:
         return float(result.stdout.strip())
     except ValueError as error:
-        raise DemoCutError(f"Não consegui ler a duração de {video}") from error
+        raise DemoCutError(f"Could not read the duration of {video}") from error
 
 
 def find_freezes(video: Path, threshold: str, min_freeze: float) -> list[tuple[float, float]]:
-    """Roda freezedetect e devolve os intervalos parados, já filtrados por duração."""
+    """Run freezedetect and return the idle intervals, already filtered by duration."""
     command = [
         "ffmpeg",
         "-hide_banner",
@@ -99,7 +99,7 @@ def find_freezes(video: Path, threshold: str, min_freeze: float) -> list[tuple[f
     ]
     result = subprocess.run(command, capture_output=True, text=True)
     if result.returncode != 0:
-        raise DemoCutError(f"freezedetect falhou:\n{result.stderr[-800:]}")
+        raise DemoCutError(f"freezedetect failed:\n{result.stderr[-800:]}")
 
     freezes: list[tuple[float, float]] = []
     pending_start: float | None = None
@@ -112,20 +112,20 @@ def find_freezes(video: Path, threshold: str, min_freeze: float) -> list[tuple[f
         elif match.group("end") is not None and pending_start is not None:
             freezes.append((pending_start, float(match.group("end"))))
             pending_start = None
-    # Um freeze que chegou ao fim do vídeo sem `freeze_end` ainda conta.
+    # A freeze that reaches the end of the video without a `freeze_end` still counts.
     if pending_start is not None:
         freezes.append((pending_start, probe_duration(video)))
     return freezes
 
 
 def build_segments(duration: float, freezes: list[tuple[float, float]], keep: float) -> list[tuple[float, float]]:
-    """Converte os freezes em pedaços a manter: encurta cada freeze para `keep` segundos."""
+    """Turn the freezes into the pieces to keep: each freeze is shortened to `keep` seconds."""
     segments: list[tuple[float, float]] = []
     cursor = 0.0
     for start, end in freezes:
         if start > cursor:
             segments.append((cursor, min(start, duration)))
-        # Preserva o começo do freeze (onde está o resultado da ação anterior) e descarta o resto.
+        # Keep the start of the freeze (where the previous action's result is) and drop the rest.
         trimmed_end = min(start + keep, end)
         if trimmed_end > start:
             segments.append((start, trimmed_end))
@@ -148,7 +148,7 @@ def build_segments(duration: float, freezes: list[tuple[float, float]], keep: fl
 
 def render(video: Path, output: Path, segments: list[tuple[float, float]]) -> None:
     if len(segments) == 1 and segments[0][0] == 0:
-        raise DemoCutError("Nada para cortar: nenhum trecho parado acima do limite.")
+        raise DemoCutError("Nothing to cut: no idle stretch above the limit.")
     parts = []
     labels = []
     for index, (start, end) in enumerate(segments):
@@ -169,7 +169,7 @@ def render(video: Path, output: Path, segments: list[tuple[float, float]]) -> No
         "-map",
         "[out]",
         "-an",
-        # Mesmos parâmetros da captura original, para a demo ficar idêntica em qualidade.
+        # Same parameters as the original capture, so the demo matches its quality.
         "-c:v",
         "libx264",
         "-preset",
@@ -185,29 +185,31 @@ def render(video: Path, output: Path, segments: list[tuple[float, float]]) -> No
     ]
     result = subprocess.run(command, capture_output=True, text=True)
     if result.returncode != 0:
-        raise DemoCutError(f"ffmpeg falhou ao renderizar:\n{result.stderr[-800:]}")
+        raise DemoCutError(f"ffmpeg failed to render:\n{result.stderr[-800:]}")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("video", type=Path, help="gravação de origem (a evidência, que não é alterada)")
-    parser.add_argument("-o", "--output", type=Path, help="arquivo de saída (padrão: <nome>-demo.mp4)")
+    parser.add_argument("video", type=Path, help="source recording (the evidence, which is never modified)")
+    parser.add_argument("-o", "--output", type=Path, help="output file (default: <name>-demo.mp4)")
     parser.add_argument(
         "--min-freeze",
         type=float,
         default=DEFAULT_MIN_FREEZE,
-        help=f"duração mínima de um trecho parado para cortar (padrão: {DEFAULT_MIN_FREEZE}s)",
+        help=f"shortest idle stretch to cut (default: {DEFAULT_MIN_FREEZE}s)",
     )
     parser.add_argument(
         "--keep",
         type=float,
         default=DEFAULT_KEEP,
-        help=f"quanto preservar do começo de cada trecho parado (padrão: {DEFAULT_KEEP}s)",
+        help=f"how much of the start of each idle stretch to preserve (default: {DEFAULT_KEEP}s)",
     )
-    parser.add_argument("--threshold", default=DEFAULT_THRESHOLD, help=f"limiar do freezedetect (padrão: {DEFAULT_THRESHOLD})")
-    parser.add_argument("--dry-run", action="store_true", help="só relata o que seria cortado")
-    parser.add_argument("--report", action="store_true", help="imprime o relatório em JSON")
-    parser.add_argument("--force", action="store_true", help="permite escrever dentro de um diretório de captura")
+    parser.add_argument(
+        "--threshold", default=DEFAULT_THRESHOLD, help=f"freezedetect threshold (default: {DEFAULT_THRESHOLD})"
+    )
+    parser.add_argument("--dry-run", action="store_true", help="report what would be cut, write nothing")
+    parser.add_argument("--report", action="store_true", help="print the report as JSON")
+    parser.add_argument("--force", action="store_true", help="allow writing inside a capture directory")
     args = parser.parse_args()
 
     try:
@@ -215,17 +217,17 @@ def main() -> int:
         require_tool("ffprobe")
         video = args.video.resolve()
         if not video.is_file():
-            raise DemoCutError(f"Arquivo não encontrado: {video}")
+            raise DemoCutError(f"File not found: {video}")
 
         output = args.output.resolve() if args.output else video.with_name(f"{video.stem}-demo.mp4")
         if output == video:
-            raise DemoCutError("A saída não pode ser o próprio arquivo de origem")
+            raise DemoCutError("The output cannot be the source file itself")
 
-        # A evidência mora num diretório com capture.json. O derivado não pode cair ali.
+        # Evidence lives in a directory with capture.json. The derivative must not land there.
         if (output.parent / "capture.json").exists() and not args.force:
             raise DemoCutError(
-                f"{output.parent} é um diretório de captura gerenciado pela skill.\n"
-                "Grave o derivado fora dele (ex.: -o /tmp/demo.mp4) para não misturar demo com evidência."
+                f"{output.parent} is a managed capture directory.\n"
+                "Write the derivative outside it (e.g. -o /tmp/demo.mp4) so demo and evidence stay apart."
             )
 
         duration = probe_duration(video)
@@ -253,14 +255,15 @@ def main() -> int:
             print(json.dumps(report, indent=2))
         else:
             print(
-                f"{report['sourceSeconds']}s → {report['outputSeconds']}s "
-                f"(removido {report['removedSeconds']}s / {report['compression']} em {report['freezesDetected']} pausas)"
+                f"{report['sourceSeconds']}s -> {report['outputSeconds']}s "
+                f"(removed {report['removedSeconds']}s / {report['compression']} across "
+                f"{report['freezesDetected']} pauses)"
             )
             if not args.dry_run:
                 print(f"demo: {report['output']}")
         return 0
     except (DemoCutError, subprocess.SubprocessError) as error:
-        print(f"erro: {error}", file=sys.stderr)
+        print(f"error: {error}", file=sys.stderr)
         return 1
 
 

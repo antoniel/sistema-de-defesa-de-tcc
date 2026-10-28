@@ -1,14 +1,15 @@
-"""Testes da lógica de corte do `demo_cut.py`.
+"""Tests for the cutting logic in `demo_cut.py`.
 
-Só a decisão de quais pedaços manter é testada aqui — é a parte que pode errar de forma
-silenciosa. O render com ffmpeg é validado à parte, com um vídeo sintético de durações
-conhecidas (ver docs/verification.md).
+Only the decision of which pieces to keep is tested here — that is the part that can fail
+silently. The ffmpeg render is validated separately against a synthetic video with known
+durations (see references/natural-recording.md).
 
-Rodar:
+Run:
     python3 -m unittest discover -s scripts -p 'test_demo_cut*.py'
 """
 
 import importlib.util
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -29,53 +30,53 @@ def kept(segments):
 
 class BuildSegmentsTest(unittest.TestCase):
     """
-    Segmentos contíguos são unidos de propósito: cortar num ponto onde nada foi removido
-    só cria um corte a mais. Por isso `(0,3) + (3,3.6)` vira `(0,3.6)`.
+    Contiguous segments are merged on purpose: cutting at a point where nothing was removed
+    only adds an extra cut. That is why `(0,3) + (3,3.6)` becomes `(0,3.6)`.
     """
 
-    def test_sem_pausa_mantem_o_video_inteiro(self):
+    def test_no_freeze_keeps_the_whole_video(self):
         self.assertEqual(demo_cut.build_segments(10.0, [], keep=0.6), [(0.0, 10.0)])
 
-    def test_pausa_no_meio_e_encurtada_para_o_keep(self):
-        # Pausa de 4s (3→7) com keep de 0.6s: mantém 0→3.6 e pula direto para 7.
+    def test_middle_freeze_is_shortened_to_keep(self):
+        # 4s freeze (3 to 7) with keep 0.6: keeps 0 to 3.6 and jumps straight to 7.
         segments = demo_cut.build_segments(10.0, [(3.0, 7.0)], keep=0.6)
         self.assertEqual(segments, [(0.0, 3.6), (7.0, 10.0)])
         self.assertEqual(kept(segments), 6.6)
 
-    def test_pausa_no_inicio_preserva_o_comeco(self):
+    def test_freeze_at_the_start_keeps_its_beginning(self):
         segments = demo_cut.build_segments(10.0, [(0.0, 5.0)], keep=0.6)
         self.assertEqual(segments, [(0.0, 0.6), (5.0, 10.0)])
 
-    def test_pausa_no_fim_preserva_o_comeco_da_pausa(self):
-        # O hold final do resultado é uma pausa: preserva o começo dela.
+    def test_freeze_at_the_end_keeps_its_beginning(self):
+        # The final hold on the result is a freeze: keep the start of it.
         segments = demo_cut.build_segments(10.0, [(8.0, 10.0)], keep=0.6)
         self.assertEqual(segments, [(0.0, 8.6)])
 
-    def test_pausa_menor_que_o_keep_nao_remove_nada(self):
+    def test_freeze_shorter_than_keep_removes_nothing(self):
         segments = demo_cut.build_segments(10.0, [(4.0, 4.4)], keep=0.6)
         self.assertEqual(segments, [(0.0, 10.0)])
 
-    def test_pausas_adjacentes_geram_um_keep_para_cada(self):
+    def test_adjacent_freezes_produce_one_keep_each(self):
         segments = demo_cut.build_segments(10.0, [(3.0, 5.0), (5.0, 7.0)], keep=0.6)
         self.assertEqual(segments, [(0.0, 3.6), (5.0, 5.6), (7.0, 10.0)])
 
-    def test_segmento_menor_que_o_minimo_e_descartado(self):
-        # Sobra só 0.1s depois da pausa, abaixo de MIN_SEGMENT.
+    def test_segment_below_the_minimum_is_dropped(self):
+        # Only 0.1s left after the freeze, below MIN_SEGMENT.
         segments = demo_cut.build_segments(10.0, [(9.9, 10.0)], keep=0.6)
         self.assertEqual(segments, [(0.0, 9.9)])
 
-    def test_pausa_maior_que_o_video_nao_estoura_o_limite(self):
+    def test_freeze_longer_than_the_video_does_not_overflow(self):
         segments = demo_cut.build_segments(10.0, [(2.0, 99.0)], keep=0.6)
         self.assertEqual(segments, [(0.0, 2.6)])
 
-    def test_segmentos_nunca_passam_do_fim_do_video(self):
+    def test_segments_never_pass_the_end_of_the_video(self):
         segments = demo_cut.build_segments(10.0, [(5.0, 12.0)], keep=5.0)
         self.assertTrue(segments)
         for _, end in segments:
             self.assertLessEqual(end, 10.0)
 
-    def test_video_longo_com_muitas_pausas_encolhe_bastante(self):
-        # Reproduz o caso real: 43s de gravação com 7 pausas de "pensamento".
+    def test_long_video_with_many_pauses_shrinks_a_lot(self):
+        # Reproduces the measured case: a 43s recording with 7 thinking pauses.
         freezes = [(0.0, 5.3), (5.4, 20.1), (20.3, 22.7), (22.7, 25.7), (26.0, 30.8), (30.8, 37.2), (37.3, 43.4)]
         segments = demo_cut.build_segments(43.4, freezes, keep=0.6)
         self.assertLess(kept(segments), 6.0)
@@ -83,26 +84,38 @@ class BuildSegmentsTest(unittest.TestCase):
 
 
 class CliTest(unittest.TestCase):
-    def test_recusa_escrever_dentro_do_diretorio_de_captura(self):
+    """
+    These tests exercise the CLI path, which starts by requiring ffmpeg/ffprobe. Without them the
+    script fails before reaching the rule under test, so the tests are skipped — the CI runner that
+    only runs type checks does not have ffmpeg installed.
+    """
+
+    @unittest.skipUnless(
+        shutil.which("ffmpeg") and shutil.which("ffprobe"), "requires ffmpeg and ffprobe on PATH"
+    )
+    def test_refuses_to_write_inside_a_capture_directory(self):
         with tempfile.TemporaryDirectory() as folder:
             capture = Path(folder) / "capture"
             capture.mkdir()
             (capture / "capture.json").write_text("{}")
             video = capture / "interaction.mp4"
-            video.write_bytes(b"nao importa")
+            video.write_bytes(b"does not matter")
 
             result = subprocess.run([sys.executable, str(SCRIPT), str(video)], capture_output=True, text=True)
 
             self.assertEqual(result.returncode, 1)
-            self.assertIn("diretório de captura gerenciado", result.stderr)
+            self.assertIn("managed capture directory", result.stderr)
 
-    def test_aceita_saida_fora_do_diretorio_de_captura(self):
+    @unittest.skipUnless(
+        shutil.which("ffmpeg") and shutil.which("ffprobe"), "requires ffmpeg and ffprobe on PATH"
+    )
+    def test_accepts_output_outside_the_capture_directory(self):
         with tempfile.TemporaryDirectory() as folder:
             capture = Path(folder) / "capture"
             capture.mkdir()
             (capture / "capture.json").write_text("{}")
             video = capture / "interaction.mp4"
-            video.write_bytes(b"nao importa")
+            video.write_bytes(b"does not matter")
 
             result = subprocess.run(
                 [sys.executable, str(SCRIPT), str(video), "-o", str(Path(folder) / "demo.mp4"), "--dry-run"],
@@ -110,8 +123,8 @@ class CliTest(unittest.TestCase):
                 text=True,
             )
 
-            # Passa da checagem do diretório e falha depois, por não ser um vídeo válido.
-            self.assertNotIn("diretório de captura gerenciado", result.stderr)
+            # Gets past the directory check and fails later, because it is not a valid video.
+            self.assertNotIn("managed capture directory", result.stderr)
 
 
 if __name__ == "__main__":
