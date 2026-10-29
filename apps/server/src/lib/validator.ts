@@ -33,7 +33,14 @@ export const validator = <
 >(target: Target, schema: T): MiddlewareHandler<E, P, V> => {
   return zValidator<T, Target, E, P, In, Out, I, V>(target, schema, (result, c) => {
     if (!result.success) {
-      return c.json({ message: "Dados inválidos" }, 400)
+      // Ação segura: a MENSAGEM humana do schema (pt-BR, escrita por nós) é
+      // acionável e não revela estrutura; o `path`/shape do Zod é que
+      // fornecera o fingerprint — esses nunca vão ao cliente. Defaults do
+      // Zod em inglês ("Required") viram mensagem acionável em português.
+      const firstIssue = result.error.issues[0]
+      const message =
+        firstIssue?.message === "Required" ? "Campo obrigatório não preenchido." : (firstIssue?.message ?? "Dados inválidos")
+      return c.json({ message }, 400)
     }
   })
 }

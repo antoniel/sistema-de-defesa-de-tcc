@@ -4,6 +4,7 @@ import { match } from "ts-pattern"
 import { AppError } from "../../error"
 import { type AppVariables } from "../../types"
 import { checkRole } from "../auth/auth.middleware"
+import { rateLimit } from "../../middleware/rate-limit"
 import {
   acceptStudentInvitationSchema,
   createStudentInvitationSchema,
@@ -20,6 +21,7 @@ const app = new Hono<{ Variables: AppVariables }>()
   .post(
     "/",
     checkRole(["ADMIN", "TEACHER"]),
+    rateLimit({ name: "student-invitation", keyByUser: true, max: 10, message: "Limite de envios atingido, tente mais tarde." }),
     validator("json", createStudentInvitationSchema),
     async (c) => {
       const body = c.req.valid("json")
@@ -65,7 +67,7 @@ const app = new Hono<{ Variables: AppVariables }>()
       },
     })
   })
-  .post("/accept", validator("json", acceptStudentInvitationSchema), async (c) => {
+  .post("/accept", rateLimit({ name: "student-invitation-accept" }), validator("json", acceptStudentInvitationSchema), async (c) => {
     const body = c.req.valid("json")
     const result = await acceptStudentInvitationService(c, body)
 

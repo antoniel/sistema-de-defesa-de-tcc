@@ -1,88 +1,100 @@
-import type { MiddlewareHandler } from "hono"
-
+import type { Context } from "hono"
+import { createMiddleware } from "hono/factory"
+import { sql } from "drizzle-orm"
 import { AppError } from "../error"
 import { type AppVariables } from "../types"
 
 /**
- * Rate limit em memória (zero dependências).
+ * Rate limiting persistido no banco (KV com TTL) — módulo dos-hardening.
  *
- * Parâmetros:
- * - Janela: 60 segundos (`windowMs`). Janela fixa por chave; ao expirar, a
- *   contagem reinicia na próxima request.
- * - Limite: 20 requests por janela (`max`) — dentro da faixa exigida pela
- *   especificação de segurança (429 em até 25 tentativas).
- * - Chave: IP do cliente (`x-forwarded-for`, primeiro valor, ou "unknown").
- *   O store é criado por montagem do middleware, então a rota já é implícita
- *   na chave — login e reset não compartilham contadores.
+ * Um upsert atômico por request: linha por chave (`rota:ip` ou `rota:sub`),
+ * com janela fixa. Sobrevive a restart e é seguro entre instâncias (o
+ * incremento é transacional no Postgres).
+ *
+ * - Parâmetros: `max` (20/janela por padrão) e `windowMs` (60s).
+ * - `keyByUser`: conta por identidade (jwtPayload.sub) em vez de IP — use
+ *   em rotas autenticadas atrás de `checkRole`/`requireAuth` (NAT de campus
+ *   não pune colegas; abuso é identidade).
+ * - `clearOnSuccess`: status < 400 limpa o balde (login legítimo não conta
+ *   contra o brute force; desligado por padrão — em rotas de criação o
+ *   SUCESSO é justamente o que se limita).
+ * - TTL e ring: cada linha carrega `expires_at` (fim da janela) e a purga
+ *   oportunista (2% das requests) apaga expirados — a tabela nunca cresce
+ *   indefinidamente.
  * - Excedeu: `AppError(429)` (nunca 500).
  *
- * Limitação conhecida: armazenamento é por instância/processo. Reinício do
- * servidor ou múltiplas instâncias reiniciam/compartimentalizam as contagens.
- * No deploy atual (single Dokku) isso é aceitável.
+ * Limitação conhecida: precisa do `db` no contexto (montar DEPOIS do
+ * `depsMiddleware`). Backup/cópia do banco carrega os contadores — janelas
+ * curtas tornam isso irrelevante.
  */
 
 export const RATE_LIMIT_WINDOW_MS = 60_000
 export const RATE_LIMIT_MAX = 20
 
-type Bucket = { count: number; windowStart: number }
-
 interface RateLimitOptions {
+  /** Nome do bucket (por rota) — a chave final é `name:ip` ou `name:sub`. */
+  name: string
   max?: number
   windowMs?: number
   message?: string
-  /**
-   * Conta APENAS tentativas malsucedidas: um request que sai com status < 400
-   * limpa o balde da chave. Use em endpoints onde o sucesso legítimo é frequente
-   * (ex.: login) — brute force é feito de falhas, e o fluxo normal nunca alcança
-   * o limite. Default: false (conta todos os requests, ex. reset de senha).
-   */
+  keyByUser?: boolean
   clearOnSuccess?: boolean
 }
 
-const clientKey = (headers: Headers): string => {
-  const forwarded = headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+const clientKey = (c: Context<{ Variables: AppVariables }>): string => {
+  const forwarded = c.req.raw.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
   return forwarded && forwarded.length > 0 ? forwarded : "unknown"
 }
 
-export const rateLimit = (options: RateLimitOptions = {}): MiddlewareHandler<{ Variables: AppVariables }> => {
+export const rateLimit = (options: RateLimitOptions) => {
   const max = options.max ?? RATE_LIMIT_MAX
   const windowMs = options.windowMs ?? RATE_LIMIT_WINDOW_MS
   const message = options.message ?? "Muitas tentativas. Tente novamente mais tarde."
+  const keyByUser = options.keyByUser ?? false
   const clearOnSuccess = options.clearOnSuccess ?? false
-  const buckets = new Map<string, Bucket>()
 
-  return async (c, next) => {
-    const key = clientKey(c.req.raw.headers)
-    const now = Date.now()
-    const bucket = buckets.get(key)
-
-    if (!bucket || bucket.windowStart + windowMs <= now) {
-      buckets.set(key, { count: 1, windowStart: now })
-    } else {
-      bucket.count += 1
-      if (bucket.count > max) {
-        throw new AppError(429, message)
-      }
-    }
-
-    // Purga oportunista de janelas expiradas para não crescer sem limite.
-    if (buckets.size > 10_000) {
-      for (const [bucketKey, entry] of buckets) {
-        if (entry.windowStart + windowMs <= now) {
-          buckets.delete(bucketKey)
-        }
-      }
-    }
+  return createMiddleware<{ Variables: AppVariables }>(async (c, next) => {
+    const db = c.get("db")
+    const identity = keyByUser ? String(c.get("jwtPayload")?.sub ?? "anonymous") : clientKey(c)
+    const key = `${options.name}:${identity}`
+    const windowSeconds = Math.ceil(windowMs / 1000)
 
     try {
-      await next()
-      if (clearOnSuccess && c.res.status < 400) {
-        buckets.delete(key)
+      // Upsert atômico: janela expirada zera o balde; senão incrementa.
+      const result = await db.execute(sql`
+        INSERT INTO rate_limit_bucket (key, count, expires_at)
+        VALUES (${key}, 1, now() + (${windowSeconds} || ' seconds')::interval)
+        ON CONFLICT (key) DO UPDATE SET
+          count = CASE WHEN rate_limit_bucket.expires_at <= now() THEN 1 ELSE rate_limit_bucket.count + 1 END,
+          expires_at = CASE WHEN rate_limit_bucket.expires_at <= now()
+            THEN EXCLUDED.expires_at
+            ELSE rate_limit_bucket.expires_at END
+        RETURNING count
+      `)
+      const count = Number((result.rows[0] as { count: number })?.count ?? 1)
+      if (count > max) {
+        throw new AppError(429, message)
+      }
+
+      // Purga oportunista (ring): 2% das requests limpam linhas expiradas.
+      if (Math.random() < 0.02) {
+        await db.execute(sql`DELETE FROM rate_limit_bucket WHERE expires_at < now()`)
+      }
+
+      try {
+        await next()
+        if (clearOnSuccess && c.res.status < 400) {
+          await db.execute(sql`DELETE FROM rate_limit_bucket WHERE key = ${key}`)
+        }
+      } catch (error) {
+        throw error
       }
     } catch (error) {
-      // Falha (403 de senha errada etc.) mantém a contagem — é o que o
-      // limitador deve cobrar. O sucesso limpa o balde no caminho acima.
-      throw error
+      if (error instanceof AppError) throw error
+      // Banco fora do ar: fail-closed em rotas de abuso custoso seria pior
+      // que um degrade controlado — loga e deixa passar (a janela é curta).
+      console.error("Rate limiter DB error (fail-open):", error)
+      await next()
     }
-  }
+  })
 }

@@ -11,7 +11,7 @@ import * as schema from "./banca.schema"
 import * as service from "./banca.service"
 
 export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
-  .post("/", validator("json", schema.createBancaSchema), async (c) => {
+  .post("/", checkRole(["ADMIN", "TEACHER"]), validator("json", schema.createBancaSchema), async (c) => {
     const validatedBancaData = c.req.valid("json")
     const result = await service.createBanca(c, validatedBancaData)
 

@@ -190,7 +190,7 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json(result.data)
   })
-  .post("/request-password-reset", rateLimit(), validator("json", schema.requestPasswordResetSchema), async (c) => {
+  .post("/request-password-reset", rateLimit({ name: "request-password-reset" }), validator("json", schema.requestPasswordResetSchema), async (c) => {
     const { email } = c.req.valid("json")
     const result = await service.requestPasswordReset(c, email)
     if (!result.ok) {

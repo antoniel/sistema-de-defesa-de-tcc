@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
+import { getServerErrorMessage } from "@/lib/server-error"
 import { useLoginMutation, useRequestPasswordResetMutation } from "@/services/authService"
 import { useUser } from "@/services/useUser"
 import { useQueryClient } from "@tanstack/react-query"
@@ -141,9 +142,7 @@ export function LoginForm(p: { onSuccess?: () => void }) {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Erro de Login</AlertTitle>
           <AlertDescription>
-            {loginMutation.error.cause instanceof Error
-              ? loginMutation.error.cause.message
-              : loginMutation.error.message}
+            {getServerErrorMessage(loginMutation.error, "Usuário ou senha inválidos.")}
           </AlertDescription>
         </Alert>
       )}

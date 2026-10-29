@@ -31,7 +31,7 @@ const resetPasswordSchema = z.object({
 })
 
 export const authRoutes = new Hono<{ Variables: AppVariables }>()
-  .post("/login", rateLimit({ clearOnSuccess: true }), validator("json", loginSchema), async (c) => {
+  .post("/login", rateLimit({ name: "auth-login", clearOnSuccess: true }), validator("json", loginSchema), async (c) => {
     const { email, password } = c.req.valid("json")
     const result = await loginUserService(c, email, password)
     if (!result.ok) {
@@ -92,7 +92,7 @@ export const authRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json({ message: "Senha redefinida com sucesso." }, 200)
   })
-  .post("/register", validator("json", insertUserSchema), async (c) => {
+  .post("/register", rateLimit({ name: "register", max: 10 }), validator("json", insertUserSchema), async (c) => {
     const userData = c.req.valid("json")
     const result = await registerUserService(c, userData)
 
