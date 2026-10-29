@@ -527,9 +527,13 @@ export const getUserBancas = async (
       orderBy: desc(Bancas.dataRealizacao),
     })
 
-    // Add user's role to each banca
+    // Add user's role to each banca, devolvendo apenas dados públicos dos membros
     const bancasWithRole: UserBancaWithRole[] = bancas.map((banca) => ({
       ...banca,
+      membros: banca.membros.map(({ usuario, ...membro }) => ({
+        ...membro,
+        usuario: toPublicUser(usuario) as SelectUser,
+      })),
       userRole: roleMap.get(banca.id) as "orientador" | "coorientador" | "aluno" | "avaliador",
     }))
 
@@ -568,10 +572,7 @@ export const getStudents = async (
   }
 }
 
-type RequestPasswordResetError =
-  | { type: "user_not_found" }
-  | { type: "database_error"; error: unknown }
-  | { type: "email_error" }
+type RequestPasswordResetError = { type: "database_error"; error: unknown }
 
 export const requestPasswordReset = async (
   c: Context<{ Variables: AppVariables }>,
@@ -588,7 +589,7 @@ export const requestPasswordReset = async (
       .limit(1)
 
     if (user.length === 0) {
-      return err({ type: "user_not_found" })
+      return ok(undefined)
     }
 
     const userData = user[0]
@@ -616,7 +617,7 @@ export const requestPasswordReset = async (
 
     if (!emailResult.ok) {
       console.error("Failed to send password reset email:", emailResult.error)
-      return err({ type: "email_error" })
+      return ok(undefined)
     }
 
     return ok(undefined)

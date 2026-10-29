@@ -55,8 +55,30 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json(result.data)
   })
-  .post("/", checkRole(["ADMIN", "TEACHER"]), zValidator("json", schema.createUserSchema), async (c) => {
-    const validatedUserData = c.req.valid("json")
+  .post("/", checkRole(["ADMIN", "TEACHER"]), zValidator("json", schema.createUserRequestSchema), async (c) => {
+    const callerResult = await service.getUserById(c, Number(c.get("jwtPayload").sub))
+    if (!callerResult.ok) {
+      throw match(callerResult.error)
+        .with({ type: "database_error" }, () => new AppError(500, "Erro ao buscar usuário"))
+        .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))
+        .exhaustive()
+    }
+
+    const requestedUserData = c.req.valid("json")
+    const isAdmin = callerResult.data.role === "ADMIN"
+
+    // Somente ADMIN pode conceder o papel ADMIN (evita escalação TEACHER → ADMIN).
+    if (!isAdmin && requestedUserData.role === "ADMIN") {
+      throw new AppError(403, "Usuário não tem permissão para criar contas com este papel")
+    }
+    if (isAdmin && requestedUserData.role === undefined) {
+      throw new AppError(400, "Papel é obrigatório")
+    }
+
+    const validatedUserData = {
+      ...requestedUserData,
+      role: requestedUserData.role ?? "TEACHER",
+    }
     const result = await service.createUser(c, validatedUserData)
     if (!result.ok) {
       throw match(result.error)
@@ -68,7 +90,7 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json(result.data, 201)
   })
-  .get("/:id", zValidator("param", schema.idParamSchema.shape.param), async (c) => {
+  .get("/:id", requireAuth, zValidator("param", schema.idParamSchema.shape.param), async (c) => {
     const { id } = c.req.valid("param")
     const result = await service.getUserById(c, id)
     if (!result.ok) {
@@ -172,12 +194,10 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
     const result = await service.requestPasswordReset(c, email)
     if (!result.ok) {
       throw match(result.error)
-        .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))
-        .with({ type: "email_error" }, () => new AppError(500, "Erro ao enviar email"))
         .with({ type: "database_error" }, () => new AppError(500, "Erro interno do servidor"))
         .exhaustive()
     }
-    return c.json({ message: "Email de recuperação enviado com sucesso" })
+    return c.json({ message: "Se o email existir, um link de redefinição foi enviado." })
   })
   .post("/reset-password", zValidator("json", schema.resetPasswordSchema), async (c) => {
     const { token, newPassword } = c.req.valid("json")
@@ -186,7 +206,7 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
       throw match(result.error)
         .with({ type: "invalid_token" }, () => new AppError(400, "Token inválido"))
         .with({ type: "token_expired" }, () => new AppError(400, "Token expirado"))
-        .with({ type: "user_not_found" }, () => new AppError(404, "Usuário não encontrado"))
+        .with({ type: "user_not_found" }, () => new AppError(400, "Token inválido"))
         .with({ type: "hashing_error" }, () => new AppError(500, "Erro ao processar senha"))
         .with({ type: "database_error" }, () => new AppError(500, "Erro interno do servidor"))
         .exhaustive()

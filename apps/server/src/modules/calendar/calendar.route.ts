@@ -5,6 +5,7 @@ import { AppError } from "../../error"
 import { generateCalendarInvites } from "../../services/calendar.service"
 import { sendCalendarInviteEmail } from "../../services/email.service"
 import type { AppVariables } from "../../types"
+import { requireAuth } from "../auth/auth.middleware"
 import { getBancaById } from "../banca/banca.service"
 import { sendCalendarInviteSchema } from "./calendar.schema"
 
@@ -47,7 +48,7 @@ export const calendarRoutes = new Hono<{ Variables: AppVariables }>()
 
     return c.json({ url: outlookUrl })
   })
-  .post("/:bancaId/email", zValidator("json", sendCalendarInviteSchema), async (c) => {
+  .post("/:bancaId/email", requireAuth, zValidator("json", sendCalendarInviteSchema), async (c) => {
     const bancaId = Number(c.req.param("bancaId"))
     const { email, recipientName } = c.req.valid("json")
 

@@ -15,6 +15,13 @@ export const preRegisterUserSchema = createUserSchema.pick({
   role: true,
 })
 
+/**
+ * Corpo aceito em `POST /usuario`. Mantém `role` opcional para que o handler
+ * decida o papel conforme o chamador: `ADMIN` escolhe livremente (e é obrigado
+ * a informar), enquanto papéis inferiores não podem escalar para `ADMIN`.
+ */
+export const createUserRequestSchema = createUserSchema.partial({ role: true })
+
 export const idParamSchema = z.object({
   param: z.object({ id: z.coerce.number() }),
 })
