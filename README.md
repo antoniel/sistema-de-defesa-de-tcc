@@ -1,5 +1,6 @@
 # SISDEF 3.0 — Sistema de Defesas de TCC (IC-UFBA)
 
+
 Monorepo do sistema de marcação e organização de defesas de Trabalhos de Conclusão de Curso do
 Instituto de Computação da UFBA.
 
