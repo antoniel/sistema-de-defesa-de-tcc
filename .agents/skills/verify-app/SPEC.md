@@ -15,7 +15,7 @@ A passing build, accepted screenshot, or completed upload proves only its own ch
 | Coding agent | Scope decisions, project discovery, real interactions, visual review, and truthful reporting. |
 | Browser or application tool | Navigation, authentication, input, screenshots, recordings, and observable runtime state. |
 | Capture helper | Managed capture settings, file integrity, media checks, and accepted-file output. |
-| Evidence formatter | Comparison markup, exact replacement of its marked section, and attachment selection. |
+| Evidence formatter | Comparison markup, exact replacement of its marked section, attachment selection, and PR publication that keeps the existing description out of the agent's view. |
 | GitHub CLI | Authorized uploads and replacement of local Markdown references with attachment URLs. |
 
 The instructions must work with different coding agents and codebases.
@@ -38,6 +38,9 @@ Unchecked items are proposed work, not release commitments.
 
 - [x] Discover the actual application root, runtime, startup commands, readiness checks, and current address.
 - [x] Reuse existing verification procedures and feature maps.
+- [x] Write feature maps in a fixed format with sub-feature IDs, entry points, driving steps, and gotchas.
+- [x] Exercise every mapped entry point of a changed sub-feature or report it as not run.
+- [x] Label artifacts with their sub-feature ID and entry point.
 - [x] Create a project procedure when missing, using repository conventions and available tools.
 - [x] Keep setup in the task report when the task is read-only.
 - [x] Check startup commands for installations, migrations, workers, and shared-resource writes.
@@ -56,6 +59,7 @@ Unknown steps remain explicitly unverified.
 
 Start the feature map with the requested behavior and required primary paths.
 Include relevant alternate entry points, account or data state, side effects, and persistence checks.
+Each sub-feature has a stable ID so reports can name what passed, failed, or was not run.
 A setup is verified only after the agent executes one representative path and validates its evidence.
 Other mapped features remain untested until exercised.
 
@@ -154,6 +158,8 @@ These decisions currently rely on agent instructions and judgment. They are not 
 
 An error screen can be valid evidence for an error-path check. Its meaning depends on the expected result.
 
+A recording contains the agent's idle time between actions, so its length does not match how much content it has. A watchable demo is recorded as separate gesture takes, with the recorder stopped between them, then joined by `scripts/demo_join.py` outside the managed directory. Do not cut still frames out of the evidence file. The demo is presentation material, not evidence.
+
 ### Publishing verification
 
 - [ ] Check image pairing and standalone video playback in a rendered fixture PR.
@@ -171,8 +177,9 @@ Static scores are diagnostic signals. Do not remove useful checks or tests merel
 
 ## Verification and completion
 
-The current local suite contains 34 tests: 22 capture-helper tests and 12 formatter tests.
-Coverage includes acceptance and rejection, capture completion, media decoding, locking, body preservation, and formatter error paths.
+The capture-helper and formatter suites contain 39 tests: 22 capture-helper tests and 17 formatter tests.
+Coverage includes acceptance and rejection, capture completion, media decoding, locking, body preservation, formatter error paths,
+and publication against a stand-in for gh that checks the existing description is never printed.
 Media tests need FFmpeg and ffprobe; skipped tests must remain visible in the result.
 
 A real capture set was used to check fresh validation, attachment selection, and repeated local formatting.
@@ -200,6 +207,7 @@ A blocked or failed task can be reported completely without being described as v
 
 - [Skill instructions](SKILL.md)
 - [Project setup](references/project-setup.md)
+- [Feature map format](references/feature-map.md)
 - [Browser evidence](references/browser-evidence.md)
 - [Video recording and review](references/natural-recording.md)
 - [Evidence formatting and GitHub publishing](references/publish-evidence.md)

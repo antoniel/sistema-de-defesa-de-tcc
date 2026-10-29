@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-29T15:34:42.021Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "tap",
+        "summary": "tap button \"Menu do usuário: Admin E2E\"",
+        "target": {
+          "role": "button",
+          "name": "Menu do usuário: Admin E2E"
+        }
+      },
+      {
+        "name": "tap",
+        "summary": "tap menuitem \"Sair\"",
+        "target": {
+          "role": "menuitem",
+          "name": "Sair"
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "tests/flows.e2e.ts::admin%20entra%20pelo%20cabe%C3%A7alho%2C%20v%C3%AA%20o%20menu%20do%20usu%C3%A1rio%20e%20sai",
+      "targetId": "web",
+      "instructionDigest": "16e10fb41028667c93afeafa159776ec4c78832f108632bd741a197c689adfe4",
+      "paramsDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "callIndex": 0,
+      "agent": "default"
+    },
+    "recordedBy": {
+      "provider": "opencode.go",
+      "model": "deepseek-v4.1-flash"
+    },
+    "summary": "Abri o menu do usuário no cabeçalho (botão \"Menu do usuário: Admin E2E\"), o menu exibiu \"Meu Perfil\", \"Cursos\", \"Gerenciar Usuários\" e \"Sair\". Ao clicar em \"Sair\", a sessão foi encerrada: o cabeçalho voltou a mostrar os botões \"Login\" e \"Registre-se\" (o menu do usuário e a opção \"Cadastrar Defesa d…",
+    "startPath": "/?activeTab=%22all-defenses%22",
+    "endPath": "/?activeTab=%22all-defenses%22",
+    "endAnchors": [
+      {
+        "role": "button",
+        "name": "Login"
+      },
+      {
+        "role": "button",
+        "name": "Registre-se"
+      }
+    ],
+    "goneAnchors": [
+      {
+        "text": "Olá, Admin E2E"
+      },
+      {
+        "text": "Administrador"
+      },
+      {
+        "role": "button",
+        "name": "Cadastrar Defesa de TCC"
+      },
+      {
+        "role": "tab",
+        "name": "Minhas defesas",
+        "testId": "my-defesas-tab"
+      },
+      {
+        "role": "tab",
+        "name": "Participações",
+        "testId": "my-participations-tab"
+      },
+      {
+        "role": "button",
+        "name": "Menu do usuário: Admin E2E"
+      }
+    ],
+    "endWaitMs": 13401,
+    "keyedBy": {
+      "cacheSchema": "trace-1",
+      "policyVersion": "conservative/6",
+      "project": "bacda00e1afe41aeb0a88004723ff5369c54411bbd7cecc1b53a3e87003f7a58",
+      "platform": "web",
+      "engineName": "web",
+      "engineSpiVersion": 1,
+      "appIdentity": "c840cb9706b31787443e64b2845fff62ae1833779ff79b190f7cb5ebb7a996d0",
+      "agentContextDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}

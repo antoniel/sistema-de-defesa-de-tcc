@@ -3,6 +3,7 @@ import { Hono } from "hono"
 import { match } from "ts-pattern"
 import { z } from "zod"
 import { AppError } from "../../error"
+import { rateLimit } from "../../middleware/rate-limit"
 import { type AppVariables } from "../../types"
 
 import { insertUserSchema } from "./auth.schema"
@@ -30,7 +31,7 @@ const resetPasswordSchema = z.object({
 })
 
 export const authRoutes = new Hono<{ Variables: AppVariables }>()
-  .post("/login", zValidator("json", loginSchema), async (c) => {
+  .post("/login", rateLimit({ clearOnSuccess: true }), zValidator("json", loginSchema), async (c) => {
     const { email, password } = c.req.valid("json")
     const result = await loginUserService(c, email, password)
     if (!result.ok) {

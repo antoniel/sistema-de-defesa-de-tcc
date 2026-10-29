@@ -3,6 +3,7 @@ import { zValidator } from "@hono/zod-validator"
 import { Hono } from "hono"
 import { match } from "ts-pattern"
 import { AppError } from "../../error"
+import { rateLimit } from "../../middleware/rate-limit"
 import { type AppVariables } from "../../types"
 import { checkRole, requireAuth } from "../auth/auth.middleware"
 import * as schema from "./usuario.schema"
@@ -189,7 +190,7 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json(result.data)
   })
-  .post("/request-password-reset", zValidator("json", schema.requestPasswordResetSchema), async (c) => {
+  .post("/request-password-reset", rateLimit(), zValidator("json", schema.requestPasswordResetSchema), async (c) => {
     const { email } = c.req.valid("json")
     const result = await service.requestPasswordReset(c, email)
     if (!result.ok) {

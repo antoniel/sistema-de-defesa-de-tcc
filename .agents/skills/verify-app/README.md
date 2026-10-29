@@ -6,11 +6,13 @@ A reusable skill for coding agents that verify application behavior through real
 
 - Discovers project startup commands, available tools, authentication requirements, and shared resources.
 - Creates a project verification procedure when one is missing.
+- Maintains a feature map with sub-feature IDs, entry points, and gotchas, so later runs report coverage by ID.
 - Checks browser flows, CLI commands, APIs, and other public interfaces.
 - Captures evidence and separates observed results from untested claims.
 - Preserves evidence when test sessions and processes stop.
 
 Start with [SKILL.md](SKILL.md). Project setup instructions are in [references/project-setup.md](references/project-setup.md).
+The feature map layout is in [references/feature-map.md](references/feature-map.md).
 See [the product spec](SPEC.md) for scope, current capabilities, verification limits, and proposed work.
 
 ## Example output
@@ -36,7 +38,13 @@ For a visual code change, the same format can compare the original and updated v
 
 ## Use with a coding agent
 
-Copy this repository into the skill directory supported by your coding agent. Keep the supporting files with SKILL.md.
+Install it with the [skills](https://skills.sh) CLI:
+
+```sh
+npx skills add arielconti10/verify-app
+```
+
+Or copy this repository into the skill directory supported by your coding agent. Keep the supporting files with SKILL.md.
 For agents without skill support, provide SKILL.md as the task instructions and make its references available.
 The optional `agents/openai.yaml` file supplies Codex display metadata. Other agents can ignore it.
 
@@ -65,7 +73,8 @@ The optional [publishing guide](references/publish-evidence.md) covers `gh --att
 It explains upload access, Markdown URL replacement, video placement, and recovery after partial failures.
 
 The local formatter prepares Before/After tables, previews, and standalone videos from freshly validated captures.
-It replaces one marked evidence section while preserving unrelated PR text. It does not publish anything itself.
+It replaces one marked evidence section while preserving unrelated PR text.
+For an existing PR it reads the description itself, never prints it, and publishes only with `--publish`.
 PR evidence goes in the description; comments are not used as upload storage.
 
 ## Tests

@@ -1,10 +1,12 @@
 import * as bcrypt from "bcryptjs"
-import crypto from "crypto"
 import { and, eq, gte } from "drizzle-orm"
 import { type Context } from "hono"
 import { sign } from "hono/jwt"
+import { env } from "../../config/env"
 import { invites, resetPasswords, Users, type SelectUser } from "../../database/schema"
+import { generateResetToken, hashResetToken, resetTokenHashesMatch } from "../../lib/reset-token"
 import { err, ok, type AppResult } from "../../result"
+import { createPasswordResetEmail, sendEmail } from "../../services/email.service"
 import { type AppVariables } from "../../types"
 import { publicUserColumns, type PublicUser } from "../usuario/usuario.service"
 import { type RegisterUserInput } from "./auth.schema"
@@ -108,35 +110,44 @@ export const requestPasswordResetService = async (
   email: string
 ): Promise<AppResult<void, RequestPasswordResetServiceError>> => {
   const dbInstance = c.get("db")
-  console.log(`Password reset requested for email: ${email}`)
 
   try {
-    const potentialUsers = await dbInstance.select({ id: Users.id }).from(Users).where(eq(Users.email, email)).limit(1)
+    const potentialUsers = await dbInstance
+      .select({ id: Users.id, nome: Users.nome })
+      .from(Users)
+      .where(eq(Users.email, email))
+      .limit(1)
     const user = potentialUsers[0]
 
     if (!user) {
-      console.log(`Password reset request failed: User not found or inactive for email ${email}`)
-
       return ok(undefined)
     }
 
-    const resetToken = crypto.randomBytes(32).toString("hex")
+    const resetToken = generateResetToken()
     const expiryMinutes = 60
     const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000)
 
     try {
+      // Only one active token per user: invalidate previous requests.
       await dbInstance.delete(resetPasswords).where(eq(resetPasswords.userId, user.id))
 
+      // Store only the derived hash of the token, never the token itself.
       await dbInstance.insert(resetPasswords).values({
         userId: user.id,
-        resetPasswordHash: resetToken,
+        resetPasswordHash: hashResetToken(resetToken),
         expiresAt: expiresAt,
       })
 
-      console.log(`Password reset token generated for user ID: ${user.id}`)
+      const resetUrl = `${env.FRONTEND_URL || "http://localhost:5173"}/reset-password/${resetToken}`
+      const emailResult = await sendEmail({
+        to: email,
+        subject: "Recuperação de Senha - Sistema Banca",
+        html: createPasswordResetEmail(user.nome, resetUrl),
+      })
 
-      const resetUrl = `https://your-frontend-url/reset-password/${resetToken}`
-      console.log(`Reset URL (Email Placeholder): ${resetUrl}`)
+      if (!emailResult.ok) {
+        console.error(`Failed to send password reset email for ${email}:`, emailResult.error)
+      }
 
       return ok(undefined)
     } catch (error) {
@@ -157,29 +168,27 @@ export const verifyResetHashService = async (
   hash: string
 ): Promise<AppResult<{ valid: boolean }, VerifyResetHashServiceError>> => {
   const dbInstance = c.get("db")
-  console.log(`Verifying reset hash: ${hash}`)
+  const tokenHash = hashResetToken(hash)
 
   try {
     const potentialResets = await dbInstance
-      .select({ id: resetPasswords.id })
+      .select({ id: resetPasswords.id, resetPasswordHash: resetPasswords.resetPasswordHash })
       .from(resetPasswords)
-      .where(and(eq(resetPasswords.resetPasswordHash, hash), gte(resetPasswords.expiresAt, new Date())))
+      .where(and(eq(resetPasswords.resetPasswordHash, tokenHash), gte(resetPasswords.expiresAt, new Date())))
       .limit(1)
 
     const resetRecord = potentialResets[0]
 
-    if (!resetRecord) {
-      console.log(`Reset hash verification failed: Hash not found or expired.`)
-
+    if (!resetRecord || !resetTokenHashesMatch(resetRecord.resetPasswordHash, tokenHash)) {
       const expiredCheck = await dbInstance
         .select({ id: resetPasswords.id })
         .from(resetPasswords)
-        .where(eq(resetPasswords.resetPasswordHash, hash))
+        .where(eq(resetPasswords.resetPasswordHash, tokenHash))
         .limit(1)
       if (expiredCheck[0]) {
         try {
-          await dbInstance.delete(resetPasswords).where(eq(resetPasswords.resetPasswordHash, hash))
-          console.log(`Cleaned up expired reset token for hash: ${hash}`)
+          await dbInstance.delete(resetPasswords).where(eq(resetPasswords.resetPasswordHash, tokenHash))
+          console.log("Cleaned up expired reset token.")
         } catch (cleanupError) {
           console.error("Error cleaning up expired reset token:", cleanupError)
         }
@@ -188,7 +197,6 @@ export const verifyResetHashService = async (
       return err({ type: "token_invalid" })
     }
 
-    console.log(`Reset hash verification successful for hash: ${hash}`)
     return ok({ valid: true })
   } catch (dbError) {
     console.error("Database error during reset hash verification:", dbError)
@@ -209,19 +217,19 @@ export const resetPasswordService = async (
   newPassword: string
 ): Promise<AppResult<void, ResetPasswordServiceError>> => {
   const dbInstance = c.get("db")
-  console.log(`Attempting password reset with hash: ${hash}`)
+  const tokenHash = hashResetToken(hash)
 
   try {
     const potentialResets = await dbInstance
-      .select({ userId: resetPasswords.userId })
+      .select({ userId: resetPasswords.userId, resetPasswordHash: resetPasswords.resetPasswordHash })
       .from(resetPasswords)
-      .where(and(eq(resetPasswords.resetPasswordHash, hash), gte(resetPasswords.expiresAt, new Date())))
+      .where(and(eq(resetPasswords.resetPasswordHash, tokenHash), gte(resetPasswords.expiresAt, new Date())))
       .limit(1)
 
     const resetRecord = potentialResets[0]
 
-    if (!resetRecord) {
-      console.log(`Password reset failed: Hash ${hash} not found or expired during reset attempt.`)
+    if (!resetRecord || !resetTokenHashesMatch(resetRecord.resetPasswordHash, tokenHash)) {
+      console.log("Password reset failed: token not found or expired during reset attempt.")
 
       return err({ type: "token_invalid_or_expired" })
     }
@@ -250,12 +258,11 @@ export const resetPasswordService = async (
 
       console.log(`Password successfully reset for user ID: ${userId}`)
 
-      await dbInstance.delete(resetPasswords).where(eq(resetPasswords.resetPasswordHash, hash))
-      console.log(`Reset token deleted for hash: ${hash}`)
+      await dbInstance.delete(resetPasswords).where(eq(resetPasswords.resetPasswordHash, tokenHash))
 
       return ok(undefined)
     } catch (error) {
-      console.error(`Error updating password or deleting reset token for hash ${hash}:`, error)
+      console.error(`Error updating password or deleting reset token for user ID ${resetRecord.userId}:`, error)
       return err({ type: "update_error" })
     }
   } catch (dbError) {

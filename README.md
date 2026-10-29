@@ -26,7 +26,7 @@ apps/yii2-organizacao-de-defesas  Legado PHP/Yii2 (deprecado)
 | Backend | Hono, Drizzle ORM, PostgreSQL, Zod, ts-pattern |
 | Auth | JWT + bcryptjs |
 | E-mail | Nodemailer (Ethereal em dev, Gmail SMTP em produção) |
-| Testes | Vitest (unit), Playwright (E2E) |
+| Testes | Vitest (unit + specs de segurança), Playwright (E2E declarativo), e2e (E2E agêntico com replay) |
 | Build/CI | Turborepo |
 
 Importante: este projeto usa o alias `@/` para imports, **não** `~/`.
@@ -161,14 +161,58 @@ O dump traz junto a tabela `drizzle.migrations`, então depois de restaurar **n�
 
 ## Testes
 
-Duas camadas, com propósitos diferentes:
+Camadas de teste, cada uma com propósito diferente:
 
 | Camada | O que cobre | Como rodar |
 | --- | --- | --- |
-| Unitário/integração (Vitest) | Regras de negócio, rotas e banco (PGlite) | `npm test` na raiz, ou `npm test` em `apps/server` |
+| Unitário/integração (Vitest) | Regras de negócio, rotas e banco (PGlite) | `npm test` na raiz, ou `npm run test` em `apps/server` |
+| **Specs de segurança** (Vitest) | Controles de segurança como testes: vazamento de dados, auth em rotas, rate limiting, tokens de reset, enumeração | `cd apps/server && npx vitest --run src/tests/security` |
 | E2E (Playwright) | Fluxos reais pela interface, com browser | `npm run test:e2e` |
+| **E2E agêntico** (e2e) | Fluxos de UI escritos como objetivos; passos verificados fazem replay sem chamar modelo | `cd apps/web && npx e2e run tests/flows.e2e.ts` |
 
-O E2E é o portão que garante que um `push` não quebre os fluxos principais — sobretudo o
+### Specs de segurança (`apps/server/src/tests/security/`)
+
+Cada vulnerabilidade corrigida fica travada por um arquivo de spec (`01-banca-password-hash-leak`
+… `08-reset-token-security`) com testes de controle que provam que a funcionalidade legítima
+sobreviveu. A convenção é:
+
+- **Teste vermelho = vulnerabilidade aberta ou regressão.** Corrija o código, nunca o teste.
+- Os testes especificam o *contrato* de segurança (o que é proibido na resposta), não a
+  implementação — o fix pode escolher o mecanismo.
+- Rodam sobre PGlite + seed determinístico (`@tcc/tests`), sem Docker e sem porta aberta.
+
+### E2E agêntico (`apps/web/tests/flows.e2e.ts`)
+
+5 fluxos: login/logout pelo cabeçalho, listagem/detalhe público, criação de convite de professor,
+banca privada inacessível por URL direta e gating de menu por papel. Cobertura de segurança na
+camada de UI; a de API fica nas specs de segurança acima.
+
+Diferente do Playwright, este runner **precisa do stack no ar** (não sobe o próprio):
+
+```bash
+cd apps/server && NODE_ENV=test npx tsx src/test-server.ts   # API 9100, PGlite em memória
+cd apps/web && VITE_API_URL=http://localhost:9100 npm run dev  # web 5173
+cd apps/web && npx e2e run tests/flows.e2e.ts               # a suíte
+```
+
+O modelo dos passos agênticos é a **assinatura OpenCode Go** do usuário: faça
+`npx e2e login opencode-console` uma vez (config usa `go/deepseek-v4.1-flash`). Passos
+`agent.act` verificados são gravados em `apps/web/.e2e/cache/` — **diretório commitado no git**
+(replays sem chamar modelo) — e as rodadas seguintes fazem replay deles; apenas `agent.assert`
+roda live. Cada tentativa também grava vídeo (`.e2e/results/`, ignorado pelo git).
+
+```bash
+npx e2e cache ls                     # inspecionar gravações (o "plano")
+npx e2e run tests/flows.e2e.ts --video on   # vídeo para uma run específica
+CI=1 npx e2e run --strict-cache      # CI: gravação velha falha em vez de pagar modelo
+```
+
+Entradas de cache são código de teste: revise-as no PR que as gravar. Quem escreve/debuga os
+testes tem os guias na skill `.agents/skills/e2e/` e no MCP `e2e mcp`.
+
+### E2E declarativo (Playwright)
+
+O Playwright é o portão que garante que um `push` não quebre os fluxos principais — sobretudo o
 **cadastro de defesa**. Ele builda o front, sobe os próprios servidores em **portas dedicadas**
 (API 9100, web 5273), com banco em memória e dados determinísticos, então nunca encosta no seu
 ambiente de dev nem em dados de produção. Não precisa de Postgres, `.env` ou dev server rodando.
@@ -187,11 +231,11 @@ Se for a primeira vez no seu clone (ou depois de atualizar o Playwright):
 cd apps/web && npx playwright install chromium
 ```
 
-Cobertura: cadastro de defesa (wizard de 5 passos), edição, link do PDF do TCC,
+Cobertura do Playwright: cadastro de defesa (wizard de 5 passos), edição, link do PDF do TCC,
 visibilidade pública/privada, busca/paginação/ordenação, login/logout e administração de
-usuários. A estratégia anti-flake (isolamento de dados, espera de hidratação, escopo de
-seletores) está documentada em [`apps/web/tests/README.md`](apps/web/tests/README.md) —
-leia antes de escrever uma spec nova.
+usuários (controle de acesso por papel nas telas também — edição e atalhos de admin). A estratégia
+anti-flake (isolamento de dados, espera de hidratação, escopo de seletores) está documentada em
+[`apps/web/tests/README.md`](apps/web/tests/README.md) — leia antes de escrever uma spec nova.
 
 ---
 

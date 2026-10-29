@@ -1,0 +1,97 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-29T15:40:40.802Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "tap",
+        "summary": "tap button \"Novo Convite\"",
+        "target": {
+          "role": "button",
+          "name": "Novo Convite"
+        }
+      },
+      {
+        "name": "type",
+        "summary": "type \"{{param:/nome}}\" into textbox \"Nome do Professor\" in \"Convidar Professor\"",
+        "target": {
+          "role": "textbox",
+          "name": "Nome do Professor",
+          "placeholder": "Nome completo",
+          "within": "Convidar Professor"
+        },
+        "value": "{{param:/nome}}"
+      },
+      {
+        "name": "type",
+        "summary": "type \"prof.convidado.e2e.1793288409809@test.l…\" into textbox \"Email\" in \"Convidar Professor\"",
+        "target": {
+          "role": "textbox",
+          "name": "Email",
+          "placeholder": "email@exemplo.com",
+          "within": "Convidar Professor"
+        },
+        "value": "{{param:/email}}"
+      },
+      {
+        "name": "tap",
+        "summary": "tap button \"Enviar Convite\" in \"Convidar Professor\"",
+        "target": {
+          "role": "button",
+          "name": "Enviar Convite",
+          "within": "Convidar Professor"
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "tests/flows.e2e.ts::admin%20cria%20convite%20de%20professor%20pelo%20formul%C3%A1rio%20e%20ele%20vira%20pendente%20na%20lista",
+      "targetId": "web",
+      "instructionDigest": "e37feb7ec0b7cec177fa54f5826a6c60296f8c296d713ed301957ceec1ded845",
+      "paramsDigest": "27b0df7d18892c92a7a85ae994b0fae34d7ace26153f5ef1fa8de8eb46886142",
+      "callIndex": 0,
+      "agent": "default"
+    },
+    "recordedBy": {
+      "provider": "opencode.go",
+      "model": "deepseek-v4.1-flash"
+    },
+    "summary": "Abri o diálogo \"Convidar Professor\" pelo botão \"Novo Convite\", preenchi o nome \"Professor Convidado E2E 1793288409809\" e o email \"prof.convidado.e2e.1793288409809@test.local\" e cliquei em \"Enviar Convite\". O toast confirmou \"Convite enviado ✅ O convite para membro externo foi enviado com sucesso\" e…",
+    "startPath": "/admin/teacher-invitations",
+    "endPath": "/admin/teacher-invitations",
+    "endAnchors": [
+      {
+        "role": "status",
+        "name": "Convite enviado ✅ O convite para membro externo foi enviado com sucesso"
+      },
+      {
+        "role": "cell",
+        "name": "{{param:/nome}}"
+      },
+      {
+        "role": "cell",
+        "name": "{{param:/email}}"
+      },
+      {
+        "text": "Convite enviado ✅"
+      },
+      {
+        "text": "O convite para membro externo foi enviado com sucesso"
+      }
+    ],
+    "endWaitMs": 16583,
+    "keyedBy": {
+      "cacheSchema": "trace-1",
+      "policyVersion": "conservative/6",
+      "project": "bacda00e1afe41aeb0a88004723ff5369c54411bbd7cecc1b53a3e87003f7a58",
+      "platform": "web",
+      "engineName": "web",
+      "engineSpiVersion": 1,
+      "appIdentity": "c840cb9706b31787443e64b2845fff62ae1833779ff79b190f7cb5ebb7a996d0",
+      "agentContextDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}

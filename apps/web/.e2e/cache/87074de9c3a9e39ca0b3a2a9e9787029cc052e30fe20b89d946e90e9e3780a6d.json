@@ -1,0 +1,113 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-29T15:32:53.781Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "tap",
+        "summary": "tap node \"Banca Futura Pública E2E\" in \"15/06/99\" (2 of 2)",
+        "target": {
+          "name": "Banca Futura Pública E2E",
+          "within": "15/06/99",
+          "position": {
+            "index": 1,
+            "of": 2
+          }
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "tests/flows.e2e.ts::visitante%20an%C3%B4nimo%20v%C3%AA%20a%20lista%20p%C3%BAblica%20e%20abre%20o%20detalhe%20da%20banca",
+      "targetId": "web",
+      "instructionDigest": "babb94575ed710bb20c0d8b6c05b3e52a66a9727cc4fe71c8bd2217c244effea",
+      "paramsDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "callIndex": 0,
+      "agent": "default"
+    },
+    "recordedBy": {
+      "provider": "opencode.go",
+      "model": "deepseek-v4.1-flash"
+    },
+    "summary": "Ao clicar no título \"Banca Futura Pública E2E\" na lista pública, o app navegou para /banca/1 e carregou a página \"Detalhes da Defesa\" com o heading \"Banca Futura Pública E2E\", discente Aluno Ocupado E2E, data 15/06/2099, horário 11:00, link do Meet, orientador, comissão avaliadora, resumo, abstract…",
+    "startPath": "/?activeTab=%22all-defenses%22",
+    "endPath": "/banca/1",
+    "endAnchors": [
+      {
+        "role": "image",
+        "name": "Brasão da UFBA"
+      },
+      {
+        "role": "heading",
+        "name": "Banca Futura Pública E2E"
+      },
+      {
+        "text": "student.busy@e2e.local"
+      },
+      {
+        "text": "Ciência da Computação"
+      },
+      {
+        "role": "heading",
+        "name": "Detalhes da Defesa"
+      },
+      {
+        "text": "15/06/2099"
+      },
+      {
+        "text": "Horário"
+      },
+      {
+        "text": "Link"
+      }
+    ],
+    "goneAnchors": [
+      {
+        "role": "searchbox",
+        "name": "Buscar defesas, alunos, orientadores ou avaliadores...",
+        "placeholder": "Buscar defesas, alunos, orientadores ou avaliadores..."
+      },
+      {
+        "role": "tab",
+        "name": "Defesas",
+        "testId": "all-defenses-tab",
+        "states": [
+          "selected"
+        ]
+      },
+      {
+        "text": "Exibir:"
+      },
+      {
+        "text": "linhas"
+      },
+      {
+        "role": "heading",
+        "name": "Próximas defesas"
+      },
+      {
+        "text": "15/06/99"
+      },
+      {
+        "text": "BCC"
+      },
+      {
+        "text": "Exibindo 1 de 1 resultado"
+      }
+    ],
+    "endWaitMs": 16197,
+    "keyedBy": {
+      "cacheSchema": "trace-1",
+      "policyVersion": "conservative/6",
+      "project": "bacda00e1afe41aeb0a88004723ff5369c54411bbd7cecc1b53a3e87003f7a58",
+      "platform": "web",
+      "engineName": "web",
+      "engineSpiVersion": 1,
+      "appIdentity": "c840cb9706b31787443e64b2845fff62ae1833779ff79b190f7cb5ebb7a996d0",
+      "agentContextDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}

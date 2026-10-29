@@ -62,3 +62,30 @@ If the PNG is unclear too, inspect browser rendering before attributing the prob
 For a separate diagnostic, compare device scales 1 and 2 with identical CSS viewport, zoom, and page state.
 Keep diagnostic files outside managed evidence. Check actual dimensions, decoding, pointer targeting, and motion.
 Preserve original media. Do not change managed settings or silently lower resolution after failure.
+
+## Demo recording
+
+The evidence recording stays continuous. It proves the action then the result, including the wait
+between them. Do not shorten that file by cutting still frames. On a full-resolution capture, a
+pointer move changes too few pixels to count as motion, so a freeze cut removes the gesture and
+the join looks like a jump.
+
+For a watchable demo, leave the recorder stopped while choosing the next action. Start it when the
+gesture begins. Keep the whole pointer path. Stop after the result has been readable for about 0.6 s.
+
+```sh
+DEMO_DIR="${VERIFY_DIR}-demo"
+mkdir -p "$DEMO_DIR/takes"
+agent-browser --session "$BROWSER_SESSION" record start "$DEMO_DIR/takes/01.mp4" --fps 60 --cursor
+# Perform one prepared gesture, then hold the result briefly.
+agent-browser --session "$BROWSER_SESSION" record stop
+# Choose the next action here. The recorder is stopped, so this wait is not in the demo.
+agent-browser --session "$BROWSER_SESSION" record start "$DEMO_DIR/takes/02.mp4" --fps 60 --cursor
+# Perform the next gesture and hold its result.
+agent-browser --session "$BROWSER_SESSION" record stop
+python3 scripts/demo_join.py "$DEMO_DIR/takes/01.mp4" "$DEMO_DIR/takes/02.mp4" -o "$DEMO_DIR/demo.mp4"
+```
+
+The join only places the takes in order. It does not trim frames or re-encode them.
+Write the demo outside the capture folder. The script refuses to write inside a directory that
+contains `capture.json`. The demo is not evidence. `check` only validates the original recording.

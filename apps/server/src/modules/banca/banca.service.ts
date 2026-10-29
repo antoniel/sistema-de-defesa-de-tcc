@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, gte, ilike, inArray, lt, or } from "drizzle-orm"
 import { type Context } from "hono"
 import type { InferResultType } from "../../database"
+import { pgErrorInfo } from "../../lib/pg-error"
 import {
   Bancas,
   bancasDocumentos,
@@ -658,7 +659,8 @@ export const createBanca = async (
 
     return ok(newBanca)
   } catch (error: any) {
-    if (error?.code === "23505" && error?.constraint === "aluno_curso_unique") {
+    const pgError = pgErrorInfo(error)
+    if (pgError.code === "23505" && pgError.constraint === "aluno_curso_unique") {
       return err({ type: "student_already_has_banca" })
     }
     console.error("Error creating banca:", error)
