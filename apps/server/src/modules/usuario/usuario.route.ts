@@ -1,4 +1,4 @@
-import { zValidator } from "@hono/zod-validator"
+import { validator } from "../../lib/validator"
 
 import { Hono } from "hono"
 import { match } from "ts-pattern"
@@ -56,7 +56,7 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json(result.data)
   })
-  .post("/", checkRole(["ADMIN", "TEACHER"]), zValidator("json", schema.createUserRequestSchema), async (c) => {
+  .post("/", checkRole(["ADMIN", "TEACHER"]), validator("json", schema.createUserRequestSchema), async (c) => {
     const callerResult = await service.getUserById(c, Number(c.get("jwtPayload").sub))
     if (!callerResult.ok) {
       throw match(callerResult.error)
@@ -91,7 +91,7 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json(result.data, 201)
   })
-  .get("/:id", requireAuth, zValidator("param", schema.idParamSchema.shape.param), async (c) => {
+  .get("/:id", requireAuth, validator("param", schema.idParamSchema.shape.param), async (c) => {
     const { id } = c.req.valid("param")
     const result = await service.getUserById(c, id)
     if (!result.ok) {
@@ -102,7 +102,7 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json(result.data)
   })
-  .put("/me", zValidator("json", schema.updateUserSchema.shape.body.omit({ role: true })), async (c) => {
+  .put("/me", validator("json", schema.updateUserSchema.shape.body.omit({ role: true })), async (c) => {
     const validatedUpdateData = c.req.valid("json")
     const result = await service.updateUser(c, Number(c.get("jwtPayload").sub), validatedUpdateData)
     if (!result.ok) {
@@ -114,7 +114,7 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json(result.data)
   })
-  .post("/me/change-password", zValidator("json", schema.changePasswordSchema), async (c) => {
+  .post("/me/change-password", validator("json", schema.changePasswordSchema), async (c) => {
     const { currentPassword, newPassword } = c.req.valid("json")
     const userId = Number(c.get("jwtPayload").sub)
 
@@ -133,8 +133,8 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
   .put(
     "/:id",
     checkRole(["ADMIN"]),
-    zValidator("param", schema.updateUserSchema.shape.param),
-    zValidator("json", schema.updateUserSchema.shape.body),
+    validator("param", schema.updateUserSchema.shape.param),
+    validator("json", schema.updateUserSchema.shape.body),
     async (c) => {
       const { id } = c.req.valid("param")
       const validatedUpdateData = c.req.valid("json")
@@ -152,8 +152,8 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
   .delete(
     "/:id",
     checkRole(["ADMIN"]),
-    zValidator("param", schema.idParamSchema.shape.param),
-    zValidator("query", schema.deleteUserQuerySchema),
+    validator("param", schema.idParamSchema.shape.param),
+    validator("query", schema.deleteUserQuerySchema),
     async (c) => {
       const { id } = c.req.valid("param")
       const { cascade } = c.req.valid("query")
@@ -168,7 +168,7 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
       return c.body(null, 204)
     }
   )
-  .get("/:id/bancas", zValidator("param", schema.idParamSchema.shape.param), async (c) => {
+  .get("/:id/bancas", validator("param", schema.idParamSchema.shape.param), async (c) => {
     const { id } = c.req.valid("param")
     const result = await service.getUserBancas(c, id)
     if (!result.ok) {
@@ -179,7 +179,7 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json(result.data)
   })
-  .get("/:id/associations", checkRole(["ADMIN"]), zValidator("param", schema.idParamSchema.shape.param), async (c) => {
+  .get("/:id/associations", checkRole(["ADMIN"]), validator("param", schema.idParamSchema.shape.param), async (c) => {
     const { id } = c.req.valid("param")
     const result = await service.getUserAssociations(c, id)
     if (!result.ok) {
@@ -190,7 +190,7 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json(result.data)
   })
-  .post("/request-password-reset", rateLimit(), zValidator("json", schema.requestPasswordResetSchema), async (c) => {
+  .post("/request-password-reset", rateLimit(), validator("json", schema.requestPasswordResetSchema), async (c) => {
     const { email } = c.req.valid("json")
     const result = await service.requestPasswordReset(c, email)
     if (!result.ok) {
@@ -200,7 +200,7 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json({ message: "Se o email existir, um link de redefinição foi enviado." })
   })
-  .post("/reset-password", zValidator("json", schema.resetPasswordSchema), async (c) => {
+  .post("/reset-password", validator("json", schema.resetPasswordSchema), async (c) => {
     const { token, newPassword } = c.req.valid("json")
     const result = await service.resetPassword(c, token, newPassword)
     if (!result.ok) {

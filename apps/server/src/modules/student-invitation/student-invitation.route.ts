@@ -1,4 +1,4 @@
-import { zValidator } from "@hono/zod-validator"
+import { validator } from "../../lib/validator"
 import { Hono } from "hono"
 import { match } from "ts-pattern"
 import { AppError } from "../../error"
@@ -20,7 +20,7 @@ const app = new Hono<{ Variables: AppVariables }>()
   .post(
     "/",
     checkRole(["ADMIN", "TEACHER"]),
-    zValidator("json", createStudentInvitationSchema),
+    validator("json", createStudentInvitationSchema),
     async (c) => {
       const body = c.req.valid("json")
       const result = await createStudentInvitationService(c, body)
@@ -44,7 +44,7 @@ const app = new Hono<{ Variables: AppVariables }>()
       })
     },
   )
-  .get("/verify/:hash", zValidator("param", verifyStudentInvitationSchema), async (c) => {
+  .get("/verify/:hash", validator("param", verifyStudentInvitationSchema), async (c) => {
     const { hash } = c.req.valid("param")
     const result = await verifyStudentInvitationService(c, hash)
 
@@ -65,7 +65,7 @@ const app = new Hono<{ Variables: AppVariables }>()
       },
     })
   })
-  .post("/accept", zValidator("json", acceptStudentInvitationSchema), async (c) => {
+  .post("/accept", validator("json", acceptStudentInvitationSchema), async (c) => {
     const body = c.req.valid("json")
     const result = await acceptStudentInvitationService(c, body)
 

@@ -14,6 +14,7 @@ Every finding is verified, not guessed; every fix ends in a passing suite.
 | Pedido do usuário | Módulo | Metodologia |
 | --- | --- | --- |
 | "secure-app para deps", "auditar dependências", "checar CVEs", "patchear dependências" | `deps` | [modules/deps/MODULE.md](modules/deps/MODULE.md) |
+| "anti-fingerprinting", "o que a app revela da stack", "levantamento de fingerprint" | `fingerprinting` | [modules/fingerprinting/MODULE.md](modules/fingerprinting/MODULE.md) |
 | Outro tema de segurança (ofensiva, DoS/rate limit, auth, secrets) | Ainda não existe módulo — **não improvise** | Crie o módulo novo seguindo [modules/README.md](modules/README.md) |
 
 Se o pedido cobrir mais de um módulo, execute um de cada vez, com relatório separado por módulo.

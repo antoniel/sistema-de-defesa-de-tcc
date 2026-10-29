@@ -1,4 +1,4 @@
-import { zValidator } from "@hono/zod-validator"
+import { validator } from "../../lib/validator"
 import { Hono } from "hono"
 import { match } from "ts-pattern"
 import { AppError } from "../../error"
@@ -48,7 +48,7 @@ export const calendarRoutes = new Hono<{ Variables: AppVariables }>()
 
     return c.json({ url: outlookUrl })
   })
-  .post("/:bancaId/email", requireAuth, zValidator("json", sendCalendarInviteSchema), async (c) => {
+  .post("/:bancaId/email", requireAuth, validator("json", sendCalendarInviteSchema), async (c) => {
     const bancaId = Number(c.req.param("bancaId"))
     const { email, recipientName } = c.req.valid("json")
 

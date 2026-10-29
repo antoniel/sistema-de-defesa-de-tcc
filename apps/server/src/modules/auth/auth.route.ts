@@ -1,4 +1,4 @@
-import { zValidator } from "@hono/zod-validator"
+import { validator } from "../../lib/validator"
 import { Hono } from "hono"
 import { match } from "ts-pattern"
 import { z } from "zod"
@@ -31,7 +31,7 @@ const resetPasswordSchema = z.object({
 })
 
 export const authRoutes = new Hono<{ Variables: AppVariables }>()
-  .post("/login", rateLimit({ clearOnSuccess: true }), zValidator("json", loginSchema), async (c) => {
+  .post("/login", rateLimit({ clearOnSuccess: true }), validator("json", loginSchema), async (c) => {
     const { email, password } = c.req.valid("json")
     const result = await loginUserService(c, email, password)
     if (!result.ok) {
@@ -56,7 +56,7 @@ export const authRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json(result.data, 200)
   })
-  .post("/reset-password", zValidator("json", requestResetSchema), async (c) => {
+  .post("/reset-password", validator("json", requestResetSchema), async (c) => {
     const { email } = c.req.valid("json")
     const result = await requestPasswordResetService(c, email)
 
@@ -82,7 +82,7 @@ export const authRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json(result.data, 200)
   })
-  .post("/reset-password/reset", zValidator("json", resetPasswordSchema), async (c) => {
+  .post("/reset-password/reset", validator("json", resetPasswordSchema), async (c) => {
     const { hash, newPassword } = c.req.valid("json")
     const result = await resetPasswordService(c, hash, newPassword)
     if (!result.ok) {
@@ -92,7 +92,7 @@ export const authRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json({ message: "Senha redefinida com sucesso." }, 200)
   })
-  .post("/register", zValidator("json", insertUserSchema), async (c) => {
+  .post("/register", validator("json", insertUserSchema), async (c) => {
     const userData = c.req.valid("json")
     const result = await registerUserService(c, userData)
 

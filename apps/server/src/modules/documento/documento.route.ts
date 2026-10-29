@@ -1,4 +1,4 @@
-import { zValidator } from "@hono/zod-validator"
+import { validator } from "../../lib/validator"
 import { Hono } from "hono"
 import { match } from "ts-pattern"
 import { z } from "zod"
@@ -18,7 +18,7 @@ export const documentoRoutes = new Hono<{ Variables: AppVariables }>()
   .get(
     "/info/:bancaId",
     checkRole(["TEACHER", "ADMIN"]),
-    zValidator("param", z.object({ bancaId: z.string() })),
+    validator("param", z.object({ bancaId: z.string() })),
     async (c) => {
       const { bancaId } = c.req.valid("param")
       const bancaIdNumber = parseInt(bancaId)
@@ -34,8 +34,8 @@ export const documentoRoutes = new Hono<{ Variables: AppVariables }>()
   .post(
     "/send-ceag-declarations/:bancaId",
     checkRole(["TEACHER", "ADMIN"]),
-    zValidator("param", z.object({ bancaId: z.string() })),
-    zValidator("json", sendCeagDeclarationsSchema),
+    validator("param", z.object({ bancaId: z.string() })),
+    validator("json", sendCeagDeclarationsSchema),
     async (c) => {
       const { bancaId } = c.req.valid("param")
       const { ceapgEmail, senderName, senderEmail, message } = c.req.valid("json")

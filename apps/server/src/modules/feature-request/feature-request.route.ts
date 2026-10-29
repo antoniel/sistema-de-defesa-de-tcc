@@ -1,4 +1,4 @@
-import { zValidator } from "@hono/zod-validator"
+import { validator } from "../../lib/validator"
 import { Hono } from "hono"
 import { match } from "ts-pattern"
 import { AppError } from "../../error"
@@ -12,7 +12,7 @@ import {
 } from "./feature-request.service"
 
 export const featureRequestRoutes = new Hono<{ Variables: AppVariables }>()
-  .post("/", zValidator("json", createFeatureRequestSchema), async (c) => {
+  .post("/", validator("json", createFeatureRequestSchema), async (c) => {
     const validatedData = c.req.valid("json")
     const result = await createFeatureRequest(c, validatedData)
 
@@ -54,7 +54,7 @@ export const featureRequestRoutes = new Hono<{ Variables: AppVariables }>()
 
     return c.json(requestsWithUserVoted)
   })
-  .post("/vote", zValidator("json", voteFeatureRequestSchema), async (c) => {
+  .post("/vote", validator("json", voteFeatureRequestSchema), async (c) => {
     const { featureRequestId } = c.req.valid("json")
     const userId = c.get("jwtPayload").sub
 

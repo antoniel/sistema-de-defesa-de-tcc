@@ -1,4 +1,4 @@
-import { zValidator } from "@hono/zod-validator"
+import { validator } from "../../lib/validator"
 import { Hono } from "hono"
 import { match } from "ts-pattern"
 import { AppError } from "../../error"
@@ -17,7 +17,7 @@ export const cursoRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json(result.data)
   })
-  .post("/", checkRole(["ADMIN"]), zValidator("json", createCursoSchema), async (c) => {
+  .post("/", checkRole(["ADMIN"]), validator("json", createCursoSchema), async (c) => {
     const body = c.req.valid("json")
     const result = await service.createCurso(c, body)
 
@@ -34,8 +34,8 @@ export const cursoRoutes = new Hono<{ Variables: AppVariables }>()
   .patch(
     "/:id",
     checkRole(["ADMIN"]),
-    zValidator("param", cursoIdParamSchema),
-    zValidator("json", updateCursoSchema),
+    validator("param", cursoIdParamSchema),
+    validator("json", updateCursoSchema),
     async (c) => {
       const { id } = c.req.valid("param")
       const body = c.req.valid("json")
@@ -57,7 +57,7 @@ export const cursoRoutes = new Hono<{ Variables: AppVariables }>()
   .delete(
     "/:id",
     checkRole(["ADMIN"]),
-    zValidator("param", cursoIdParamSchema),
+    validator("param", cursoIdParamSchema),
     async (c) => {
       const { id } = c.req.valid("param")
       const result = await service.deleteCurso(c, id)

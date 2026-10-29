@@ -8,6 +8,7 @@ Cada módulo é uma metodologia completa, autocontida, indexada pelo [SKILL.md](
 | Módulo | Escopo | Estado |
 | --- | --- | --- |
 | [`deps`](modules/deps/MODULE.md) | Dependências: inventário de lockfile, CVEs com match de versão, triagem de exploração, patch não-breaking, relatório | ✅ ativo |
+| [`fingerprinting`](modules/fingerprinting/MODULE.md) | Anti-reconhecimento: headers, erros, assets, arquivos gerados — o que a app revela da stack para um red team | ✅ ativo |
 | ofensiva (auditoria de superfície, auth, IDOR, enumeração) | Pentest do código próprio | planejado |
 | DoS/hardening | Rate limit, cap de payloads, abuso de endpoints caros | planejado |
 | secrets/config | Vazamento de segredos, config de produção, headers | planejado |
