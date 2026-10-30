@@ -11,7 +11,7 @@ export const verifyTeacherInvitationSchema = z.object({
 
 export const acceptTeacherInvitationSchema = z.object({
   invitationHash: z.string().min(1, "Hash de convite é obrigatório"),
-  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
+  password: z.string().min(8, "Senha deve ter no mínimo 8 caracteres"),
   school: z.string().min(1, "Escola é obrigatória"),
   academicTitle: z.string().min(1, "Título acadêmico é obrigatório"),
   matricula: z.string().min(1, "Matrícula é obrigatória")

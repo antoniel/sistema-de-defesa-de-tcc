@@ -16,7 +16,14 @@ Every finding is verified, not guessed; every fix ends in a passing suite.
 | "secure-app para deps", "auditar dependências", "checar CVEs", "patchear dependências" | `deps` | [modules/deps/MODULE.md](modules/deps/MODULE.md) |
 | "anti-fingerprinting", "o que a app revela da stack", "levantamento de fingerprint" | `fingerprinting` | [modules/fingerprinting/MODULE.md](modules/fingerprinting/MODULE.md) |
 | "rate limiting", "lockout", "content abuse", "o que pode ser flodado", "hardening anti-DoS" | `dos-hardening` | [modules/dos-hardening/MODULE.md](modules/dos-hardening/MODULE.md) |
-| Outro tema de segurança (ofensiva, DoS/rate limit, auth, secrets) | Ainda não existe módulo — **não improvise** | Crie o módulo novo seguindo [modules/README.md](modules/README.md) |
+| "revisão de access control", "rotas sem auth", "IDOR", "escalação de papel", "matriz de permissões" | `access-control` | [modules/access-control/MODULE.md](modules/access-control/MODULE.md) |
+| "vazamento de dados", "o que a resposta expõe", "PII nas respostas", "projection" | `data-exposure` | [modules/data-exposure/MODULE.md](modules/data-exposure/MODULE.md) |
+| "enumeração", "oráculo de existência", "respostas discriminam", "user enumeration" | `enumeration` | [modules/enumeration/MODULE.md](modules/enumeration/MODULE.md) |
+| Outro tema de segurança (auth de verdade, secrets, TLS/infra) | Ainda não existe módulo — **não improvise** | Crie o módulo novo seguindo [modules/README.md](modules/README.md) |
+
+**Preferência por módulo ESPECÍFICO a tema genérico**: módulo abrangente ("ofensiva") não
+tem método repetível; categoria fechada tem checklist, harness e aprendizado acumulado
+(cada projeto alimenta os checklists dos módulos com os padrões de bug que ele revelou).
 
 Se o pedido cobrir mais de um módulo, execute um de cada vez, com relatório separado por módulo.
 

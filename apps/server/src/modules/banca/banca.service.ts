@@ -822,13 +822,27 @@ export const getBancasByUser = async (
       return err({ type: "user_not_found" })
     }
 
+    // Privacidade: anônimo/não-ADMIN vê apenas bancas visíveis do usuário
+    // (mesma regra de getUserBancas — sem isso, GET /banca/usuario/:id
+    // vazava bancas privadas de qualquer pessoa).
+    let isAdmin = false
+    const viewerId = Number(c.get("jwtPayload")?.sub ?? 0)
+    if (viewerId) {
+      const viewerResult = await getUserById(c, viewerId)
+      isAdmin = viewerResult.ok && viewerResult.data.role === "ADMIN"
+    }
+
     const bancas = await dbInstance
       .select({
         banca: Bancas,
       })
       .from(usuariosBancas)
       .innerJoin(Bancas, eq(usuariosBancas.bancaId, Bancas.id))
-      .where(eq(usuariosBancas.usuarioId, userId))
+      .where(
+        isAdmin
+          ? eq(usuariosBancas.usuarioId, userId)
+          : and(eq(usuariosBancas.usuarioId, userId), eq(Bancas.visible, true))
+      )
       .orderBy(desc(Bancas.dataRealizacao))
 
     return ok(bancas.map((row) => row.banca))
