@@ -16,6 +16,10 @@ FROM base AS builder
 WORKDIR /app
 ENV VITE_API_URL=https://sistema-de-defesas-api.app.ic.ufba.br/
 COPY --from=deps /app/node_modules ./node_modules
+# npm pode aninhar bins/deps no workspace (ex.: @react-router/* sob apps/web
+# por conflito de peers do valibot com o e2e runner) — sem esta cópia o
+# binário `react-router` não existe no PATH e o build falha (exit 127).
+COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY --from=pruner /app/out/full/ .
 COPY turbo.json package-lock.json ./
 RUN npm run build --workspace=@tcc/web
