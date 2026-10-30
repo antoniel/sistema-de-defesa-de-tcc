@@ -22,14 +22,23 @@ export const linkTrabalhoSchema = z
   .optional()
   .nullable()
 
-export const createBancaSchema = baseBancaSchema.extend({
+export const createBancaSchema = baseBancaSchema
+  .omit({
+    // Anti-abuso na criação: id é serial (nunca do payload), notaFinal é
+    // atribuída depois pela banca avaliadora (POST /:bancaId/notas).
+    id: true,
+    notaFinal: true,
+  })
+  .extend({
   autor: z.string().min(1, "Autor é obrigatório"),
   matricula: z.string().min(1, "Matrícula é obrigatória"),
-  alunoId: z.number().min(1, "Discente é obrigatório"),
-  coorientadorId: z.number().min(1, "ID do coorientador inválido").optional().nullable(),
+  alunoId: z.number().int().min(1, "Discente é obrigatório"),
+  orientadorId: z.number().int().min(1),
+  coorientadorId: z.number().int().min(1, "ID do coorientador inválido").optional().nullable(),
+  cursoId: z.number().int().min(1),
   dataRealizacao: z.coerce.date(),
-  avaliadores: z.array(z.string()).min(1, "Pelo menos um avaliador é necessário").optional(),
-  membros: z.array(z.object({ id: z.number().min(1, "ID do avaliador é obrigatório") })).optional(),
+  avaliadores: z.array(z.string().max(200)).min(1, "Pelo menos um avaliador é necessário").optional(),
+  membros: z.array(z.object({ id: z.number().int().min(1, "ID do avaliador é obrigatório") })).max(50).optional(),
   linkTrabalho: linkTrabalhoSchema,
 })
 

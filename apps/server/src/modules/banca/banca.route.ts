@@ -209,12 +209,13 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
   })
   .post(
     "/convites/email",
+    checkRole(["ADMIN", "TEACHER"]),
     validator(
       "json",
       z.object({
-        bancaId: z.number(),
-        email: z.string().email(),
-        role: z.string(),
+        bancaId: z.number().int().positive(),
+        email: z.string().email().max(254),
+        role: z.string().max(50),
       })
     ),
     async (c) => {
@@ -231,10 +232,13 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
       return c.json(result.data, 201)
     }
   )
-  .delete("/:bancaId/usuarios/:userId", async (c) => {
-    const bancaId = Number(c.req.param("bancaId"))
-    const userId = Number(c.req.param("userId"))
-    const result = await service.removeUserFromBanca(c, bancaId, userId)
+  .delete(
+    "/:bancaId/usuarios/:userId",
+    checkRole(["ADMIN", "TEACHER"]),
+    async (c) => {
+      const bancaId = Number(c.req.param("bancaId"))
+      const userId = Number(c.req.param("userId"))
+      const result = await service.removeUserFromBanca(c, bancaId, userId)
 
     if (!result.ok) {
       throw match(result.error)
@@ -296,10 +300,11 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
   )
   .post(
     "/:bancaId/notas",
+    checkRole(["ADMIN", "TEACHER"]),
     validator(
       "json",
       z.object({
-        notaFinal: z.string(),
+        notaFinal: z.string().max(10),
       })
     ),
     async (c) => {

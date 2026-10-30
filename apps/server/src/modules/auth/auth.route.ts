@@ -42,7 +42,7 @@ export const authRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json(result.data, 200)
   })
-  .get("/invites/:hash", async (c) => {
+  .get("/invites/:hash", rateLimit({ name: "auth-invite-verify", max: 30 }), async (c) => {
     const hash = c.req.param("hash")
     if (!hash) {
       return c.json({ message: "Hash do convite é obrigatório." }, 400)
@@ -56,7 +56,7 @@ export const authRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json(result.data, 200)
   })
-  .post("/reset-password", validator("json", requestResetSchema), async (c) => {
+  .post("/reset-password", rateLimit({ name: "auth-request-reset", max: 10 }), validator("json", requestResetSchema), async (c) => {
     const { email } = c.req.valid("json")
     const result = await requestPasswordResetService(c, email)
 
@@ -68,7 +68,7 @@ export const authRoutes = new Hono<{ Variables: AppVariables }>()
 
     return c.json({ message: "Se o email existir, um link de redefinição foi enviado." }, 200)
   })
-  .get("/reset-password/:hash", async (c) => {
+  .get("/reset-password/:hash", rateLimit({ name: "auth-reset-verify", max: 30 }), async (c) => {
     const hash = c.req.param("hash")
     if (!hash) {
       return c.json({ message: "Hash de reset é obrigatório." }, 400)
@@ -76,13 +76,13 @@ export const authRoutes = new Hono<{ Variables: AppVariables }>()
     const result = await verifyResetHashService(c, hash)
     if (!result.ok) {
       throw match(result.error)
-        .with({ type: "token_expired" }, () => new AppError(400, "Token de redefinição expirado."))
+        .with({ type: "token_expired" }, () => new AppError(400, "Token de redefinição inválido."))
         .with({ type: "token_invalid" }, () => new AppError(400, "Token de redefinição inválido."))
         .otherwise(() => new AppError(500, "Erro interno ao verificar o token de redefinição."))
     }
     return c.json(result.data, 200)
   })
-  .post("/reset-password/reset", validator("json", resetPasswordSchema), async (c) => {
+  .post("/reset-password/reset", rateLimit({ name: "auth-reset-execute", max: 10 }), validator("json", resetPasswordSchema), async (c) => {
     const { hash, newPassword } = c.req.valid("json")
     const result = await resetPasswordService(c, hash, newPassword)
     if (!result.ok) {

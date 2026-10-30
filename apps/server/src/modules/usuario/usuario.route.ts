@@ -102,7 +102,7 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
     }
     return c.json(result.data)
   })
-  .put("/me", validator("json", schema.updateUserSchema.shape.body.omit({ role: true })), async (c) => {
+  .put("/me", requireAuth, validator("json", schema.updateUserSchema.shape.body.omit({ role: true })), async (c) => {
     const validatedUpdateData = c.req.valid("json")
     const result = await service.updateUser(c, Number(c.get("jwtPayload").sub), validatedUpdateData)
     if (!result.ok) {
@@ -112,9 +112,9 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
         .with({ type: "duplicate_username" }, () => new AppError(400, "Nome de usuário já cadastrado"))
         .exhaustive()
     }
-    return c.json(result.data)
+    return c.json(service.toPublicUser(result.data))
   })
-  .post("/me/change-password", validator("json", schema.changePasswordSchema), async (c) => {
+  .post("/me/change-password", requireAuth, rateLimit({ name: "change-password", keyByUser: true, max: 10, message: "Muitas tentativas. Tente novamente mais tarde." }), validator("json", schema.changePasswordSchema), async (c) => {
     const { currentPassword, newPassword } = c.req.valid("json")
     const userId = Number(c.get("jwtPayload").sub)
 
@@ -146,7 +146,7 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
           .with({ type: "duplicate_username" }, () => new AppError(400, "Nome de usuário já cadastrado"))
           .exhaustive()
       }
-      return c.json(result.data)
+      return c.json(service.toPublicUser(result.data))
     }
   )
   .delete(
@@ -206,7 +206,7 @@ export const usuarioRoutes = new Hono<{ Variables: AppVariables }>()
     if (!result.ok) {
       throw match(result.error)
         .with({ type: "invalid_token" }, () => new AppError(400, "Token inválido"))
-        .with({ type: "token_expired" }, () => new AppError(400, "Token expirado"))
+        .with({ type: "token_expired" }, () => new AppError(400, "Token inválido"))
         .with({ type: "user_not_found" }, () => new AppError(400, "Token inválido"))
         .with({ type: "hashing_error" }, () => new AppError(500, "Erro ao processar senha"))
         .with({ type: "database_error" }, () => new AppError(500, "Erro interno do servidor"))

@@ -2,6 +2,7 @@ import { asc, eq } from "drizzle-orm"
 import { type Context } from "hono"
 import type { Database } from "../../database"
 import { Bancas, Cursos, Users, type SelectCurso } from "../../database/schema"
+import { toPublicUser } from "../usuario/usuario.service"
 import { type AppResult, err, ok } from "../../result"
 import { type AppVariables } from "../../types"
 import { type CreateCursoInput, type UpdateCursoInput } from "./curso.schema"
@@ -25,7 +26,9 @@ type DeleteCursoError =
   | { type: "database_error"; error: unknown }
 
 type CursoWithCoordenador = SelectCurso & {
-  coordenador: typeof Users.$inferSelect | null
+  // Sempre PublicUser: nenhuma resposta de curso carrega a linha de Users
+  // inteira (a listagem é pública — vazava passwordHash do coordenador).
+  coordenador: ReturnType<typeof toPublicUser> | null
 }
 
 const isDuplicateSiglaError = (error: unknown) =>
@@ -42,7 +45,8 @@ const findCursoWithCoordenador = async (dbInstance: Database, id: number): Promi
     },
   })
 
-  return curso ?? null
+  if (!curso) return null
+  return { ...curso, coordenador: curso.coordenador ? toPublicUser(curso.coordenador) : null }
 }
 
 const validateCoordenador = async (
@@ -72,8 +76,13 @@ export const getAllCursos = async (
       },
       orderBy: [asc(Cursos.nome)],
     })
-    return ok(result)
-  } catch (error) {
+    // Anti-vazamento: coordenador chega como PublicUser (a rota é pública —
+    // sem projeção, `with: { coordenador: true }` levava passwordHash).
+    const sanitized = result.map((curso) => ({
+      ...curso,
+      coordenador: curso.coordenador ? toPublicUser(curso.coordenador) : null,
+    }))
+    return ok(sanitized)  } catch (error) {
     console.error("Error fetching all cursos:", error)
     return err({ type: "database_error", error })
   }

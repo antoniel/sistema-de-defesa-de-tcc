@@ -10,9 +10,10 @@ Cada módulo é uma metodologia completa, autocontida, indexada pelo [SKILL.md](
 | [`deps`](modules/deps/MODULE.md) | Dependências: inventário de lockfile, CVEs com match de versão, triagem de exploração, patch não-breaking, relatório | ✅ ativo |
 | [`fingerprinting`](modules/fingerprinting/MODULE.md) | Anti-reconhecimento: headers, erros, assets, arquivos gerados — o que a app revela da stack para um red team | ✅ ativo |
 | [`dos-hardening`](modules/dos-hardening/MODULE.md) | Rate limiting, lockout e abuso de conteúdo: o que acontece se alguém decidir flodar registros, e-mails, CPU | ✅ ativo |
-| ofensiva (auditoria de superfície, auth, IDOR, enumeração) | Pentest do código próprio | planejado |
-| DoS/hardening | Rate limit, cap de payloads, abuso de endpoints caros | planejado |
-| secrets/config | Vazamento de segredos, config de produção, headers | planejado |
+| [`access-control`](modules/access-control/MODULE.md) | Authn/authz/IDOR/escalação: matriz rota × papel × recurso como harness, com os padrões de bug daqui codificados em checklist | ✅ ativo |
+| [`data-exposure`](modules/data-exposure/MODULE.md) | Vazamento nas respostas: regra da projeção, specs negativas, greps automatizados de construção de vazamento | ✅ ativo |
+| [`enumeration`](modules/enumeration/MODULE.md) | Oráculos de existência: pares existente/inexistente com uniformidade de resposta | ✅ ativo |
+| secrets/config | Vazamento de segredos, config de produção, headers, dump de banco | planejado |
 
 ## Como um módulo entra
 

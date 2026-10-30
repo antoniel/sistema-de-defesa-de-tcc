@@ -42,8 +42,13 @@ interface RateLimitOptions {
 }
 
 const clientKey = (c: Context<{ Variables: AppVariables }>): string => {
-  const forwarded = c.req.raw.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-  return forwarded && forwarded.length > 0 ? forwarded : "unknown"
+  // X-Forwarded-For: o ATACANTE controla o primeiro valor (spoof testado:
+  // 15 registros rotacionando o header). O proxy confiável (nginx do Dokku)
+  // acrescenta o IP real no FIM da lista — por isso o ÚLTIMO valor é o
+  // digno de confiança. Sem header (rede interna/testes): "unknown".
+  const forwarded = c.req.raw.headers.get("x-forwarded-for")?.split(",").map((s) => s.trim()).filter(Boolean)
+  const last = forwarded?.[forwarded.length - 1]
+  return last && last.length > 0 ? last : "unknown"
 }
 
 export const rateLimit = (options: RateLimitOptions) => {

@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm"
 import type { Context } from "hono"
 import type { InferResultType } from "../database"
 import { Bancas, usuariosBancas } from "../database/schema"
-import { getUserById } from "../modules/usuario/usuario.service"
+import { getUserById, toPublicUser, type PublicUser } from "../modules/usuario/usuario.service"
 import { err, ok, type AppResult } from "../result"
 import type { AppVariables } from "../types"
 
@@ -25,6 +25,13 @@ export type BancaInfoForDocument = InferResultType<
 
 export type DocumentInfoError = { type: "banca_not_found" } | { type: "database_error"; error: unknown }
 
+/** Variante de BancaInfoForDocument com usuários projetados (sem passwordHash). */
+export type BancaInfoSanitized = Omit<BancaInfoForDocument, "orientador" | "curso" | "membros"> & {
+  orientador: PublicUser
+  curso: Omit<NonNullable<BancaInfoForDocument["curso"]>, "coordenador"> & { coordenador: PublicUser | null } | null
+  membros: Array<Omit<BancaInfoForDocument["membros"][number], "usuario"> & { usuario: PublicUser }>
+}
+
 export type DocumentGenerationError =
   | { type: "banca_not_found" }
   | { type: "access_denied" }
@@ -34,7 +41,7 @@ export type DocumentGenerationError =
 export const getBancaInfoForDocument = async (
   c: Context<{ Variables: AppVariables }>,
   bancaId: number
-): Promise<AppResult<BancaInfoForDocument, DocumentInfoError>> => {
+): Promise<AppResult<BancaInfoSanitized, DocumentInfoError>> => {
   const dbInstance = c.get("db")
 
   try {
@@ -81,7 +88,20 @@ export const getBancaInfoForDocument = async (
       }
     }
 
-    return ok(bancaInfo)
+    // Anti-vazamento: nenhuma resposta carrega o Users inteiro —
+    // orientador, coordenador e membros projetados (sem passwordHash).
+    const sanitized: BancaInfoSanitized = {
+      ...bancaInfo,
+      orientador: toPublicUser(bancaInfo.orientador),
+      curso: bancaInfo.curso
+        ? { ...bancaInfo.curso, coordenador: bancaInfo.curso.coordenador ? toPublicUser(bancaInfo.curso.coordenador) : null }
+        : bancaInfo.curso,
+      membros: bancaInfo.membros.map((membro) => ({
+        ...membro,
+        usuario: toPublicUser(membro.usuario),
+      })),
+    }
+    return ok(sanitized)
   } catch (error) {
     console.error("Error fetching banca info:", error)
     return err({ type: "database_error", error })
