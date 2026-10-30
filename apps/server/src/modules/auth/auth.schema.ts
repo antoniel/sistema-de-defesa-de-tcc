@@ -11,7 +11,7 @@ export const insertUserSchema = createInsertSchema(Users)
     role: true,
   })
   .extend({
-    password: z.string(),
+    password: z.string().min(8, { message: "Senha deve ter no mínimo 8 caracteres." }),
   })
   .strip()
 export type RegisterUserInput = z.infer<typeof insertUserSchema>

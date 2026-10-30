@@ -1,9 +1,10 @@
-import { zValidator } from "@hono/zod-validator"
+import { validator } from "../../lib/validator"
 import { Hono } from "hono"
 import { match } from "ts-pattern"
 import { AppError } from "../../error"
 import { type AppVariables } from "../../types"
 import { checkRole } from "../auth/auth.middleware"
+import { rateLimit } from "../../middleware/rate-limit"
 import {
   acceptTeacherInvitationSchema,
   createTeacherInvitationSchema,
@@ -17,7 +18,7 @@ import {
 } from "./teacher-invitation.service"
 
 const app = new Hono<{ Variables: AppVariables }>()
-  .post("/", checkRole(["ADMIN", "TEACHER"]), zValidator("json", createTeacherInvitationSchema), async (c) => {
+  .post("/", checkRole(["ADMIN", "TEACHER"]), rateLimit({ name: "teacher-invitation", keyByUser: true, max: 10, message: "Limite de envios atingido, tente mais tarde." }), validator("json", createTeacherInvitationSchema), async (c) => {
     const body = c.req.valid("json")
 
     const result = await createTeacherInvitationService(c, body)
@@ -40,7 +41,7 @@ const app = new Hono<{ Variables: AppVariables }>()
       },
     })
   })
-  .get("/verify/:hash", zValidator("param", verifyTeacherInvitationSchema), async (c) => {
+  .get("/verify/:hash", validator("param", verifyTeacherInvitationSchema), async (c) => {
     const { hash } = c.req.valid("param")
 
     const result = await verifyTeacherInvitationService(c, hash)
@@ -63,7 +64,7 @@ const app = new Hono<{ Variables: AppVariables }>()
       },
     })
   })
-  .post("/accept", zValidator("json", acceptTeacherInvitationSchema), async (c) => {
+  .post("/accept", rateLimit({ name: "teacher-invitation-accept" }), validator("json", acceptTeacherInvitationSchema), async (c) => {
     const body = c.req.valid("json")
 
     const result = await acceptTeacherInvitationService(c, body)

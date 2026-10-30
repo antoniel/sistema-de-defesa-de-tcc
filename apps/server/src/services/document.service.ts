@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm"
 import type { Context } from "hono"
 import type { InferResultType } from "../database"
 import { Bancas, usuariosBancas } from "../database/schema"
+import { getUserById } from "../modules/usuario/usuario.service"
 import { err, ok, type AppResult } from "../result"
 import type { AppVariables } from "../types"
 
@@ -55,6 +56,29 @@ export const getBancaInfoForDocument = async (
     })
     if (!bancaInfo) {
       return err({ type: "banca_not_found" })
+    }
+
+    // Mesmas regras de visibilidade de getBancaById (banca.service.ts):
+    // bancas visíveis são públicas; bancas privadas só para ADMIN e membros.
+    if (!bancaInfo.visible) {
+      const payload = c.get("jwtPayload")
+      const currentUserId = payload ? Number(payload.sub) : null
+
+      let isAdmin = false
+      if (currentUserId !== null) {
+        const userResult = await getUserById(c, currentUserId)
+        isAdmin = userResult.ok && userResult.data.role === "ADMIN"
+      }
+
+      const isMember =
+        currentUserId !== null &&
+        (bancaInfo.orientadorId === currentUserId ||
+          bancaInfo.membros.some((membro) => membro.usuario.id === currentUserId))
+
+      if (!isAdmin && !isMember) {
+        // 404 (não 403) para não revelar a existência de bancas privadas.
+        return err({ type: "banca_not_found" })
+      }
     }
 
     return ok(bancaInfo)

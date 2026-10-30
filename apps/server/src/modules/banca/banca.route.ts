@@ -1,4 +1,4 @@
-import { zValidator } from "@hono/zod-validator"
+import { validator } from "../../lib/validator"
 import { and, eq } from "drizzle-orm"
 import { Hono } from "hono"
 import { match } from "ts-pattern"
@@ -11,7 +11,7 @@ import * as schema from "./banca.schema"
 import * as service from "./banca.service"
 
 export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
-  .post("/", zValidator("json", schema.createBancaSchema), async (c) => {
+  .post("/", checkRole(["ADMIN", "TEACHER"]), validator("json", schema.createBancaSchema), async (c) => {
     const validatedBancaData = c.req.valid("json")
     const result = await service.createBanca(c, validatedBancaData)
 
@@ -163,7 +163,7 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
   .delete(
     "/:id",
     checkRole(["ADMIN", "TEACHER"]),
-    zValidator("param", z.object({ id: z.coerce.number() })),
+    validator("param", z.object({ id: z.coerce.number() })),
     async (c) => {
       const { id } = c.req.valid("param")
       const result = await service.deleteBanca(c, id)
@@ -180,7 +180,7 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
   .patch(
     "/:id/toggle-visibility",
     checkRole(["ADMIN", "TEACHER"]),
-    zValidator("param", z.object({ id: z.coerce.number() })),
+    validator("param", z.object({ id: z.coerce.number() })),
     async (c) => {
       const { id } = c.req.valid("param")
       const result = await service.toggleBancaVisibility(c, id)
@@ -209,7 +209,7 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
   })
   .post(
     "/convites/email",
-    zValidator(
+    validator(
       "json",
       z.object({
         bancaId: z.number(),
@@ -270,7 +270,7 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
   .post(
     "/:bancaId/usuarios/:userId/nota",
     checkRole(["ADMIN", "TEACHER"]),
-    zValidator("json", schema.gradeAssignmentSchema),
+    validator("json", schema.gradeAssignmentSchema),
     async (c) => {
       const bancaId = Number(c.req.param("bancaId"))
       const userId = Number(c.req.param("userId"))
@@ -296,7 +296,7 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
   )
   .post(
     "/:bancaId/notas",
-    zValidator(
+    validator(
       "json",
       z.object({
         notaFinal: z.string(),
@@ -356,7 +356,7 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
   .delete("/:bancaId/documentos/:docId", async (c) => {
     throw new AppError(501, "Não implementado: exclusão de documentos")
   })
-  .put("/:id", checkRole(["ADMIN", "TEACHER"]), zValidator("json", schema.updateBancaSchema), async (c) => {
+  .put("/:id", checkRole(["ADMIN", "TEACHER"]), validator("json", schema.updateBancaSchema), async (c) => {
     const id = Number(c.req.param("id"))
     const validatedBancaData = c.req.valid("json")
     const result = await service.updateBanca(c, id, validatedBancaData)

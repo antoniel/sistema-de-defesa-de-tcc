@@ -1,0 +1,113 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-29T15:46:55.953Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "tap",
+        "summary": "tap button \"Login\"",
+        "target": {
+          "role": "button",
+          "name": "Login"
+        }
+      },
+      {
+        "name": "type",
+        "summary": "type \"student.free@e2e.local\" into textbox \"Email\" in \"Login\"",
+        "target": {
+          "role": "textbox",
+          "name": "Email",
+          "placeholder": "exemplo@ufba.br",
+          "within": "Login"
+        },
+        "value": "student.free@e2e.local"
+      },
+      {
+        "name": "type",
+        "summary": "type \"senha-e2e-123\" into textbox \"Senha\" in \"Login\"",
+        "target": {
+          "role": "textbox",
+          "name": "Senha",
+          "inputPurpose": "password",
+          "within": "Login"
+        },
+        "value": "senha-e2e-123"
+      },
+      {
+        "name": "tap",
+        "summary": "tap button \"Entrar\" in \"Login\"",
+        "target": {
+          "role": "button",
+          "name": "Entrar",
+          "within": "Login"
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "tests/flows.e2e.ts::aluno%20n%C3%A3o%20v%C3%AA%20os%20atalhos%20de%20administra%C3%A7%C3%A3o%20no%20menu%20do%20usu%C3%A1rio",
+      "targetId": "web",
+      "instructionDigest": "07051989053472b1587a7117b904d02682d1d579270ca3ec449edeca0e91c44c",
+      "paramsDigest": "d960aa64bac06254638c9c79bec888ab522f1b7de9d4ac3aa20d01bcf9044cee",
+      "callIndex": 0,
+      "agent": "default"
+    },
+    "recordedBy": {
+      "provider": "opencode.go",
+      "model": "deepseek-v4.1-flash"
+    },
+    "summary": "O diálogo de login foi aberto pelo botão \"Login\" no cabeçalho, o email student.free@e2e.local e a senha foram preenchidos e \"Entrar\" foi acionado. O login foi concluído com sucesso: toast \"Login realizado com sucesso ✅ / Você foi redirecionado para a página inicial\" e o cabeçalho passou a exibir o …",
+    "startPath": "/?activeTab=%22all-defenses%22",
+    "endPath": "/?activeTab=%22all-defenses%22",
+    "endAnchors": [
+      {
+        "role": "status",
+        "name": "Login realizado com sucesso ✅ Você foi redirecionado para a página inicial"
+      },
+      {
+        "text": "Olá, Aluno Livre E2E"
+      },
+      {
+        "text": "Aluno"
+      },
+      {
+        "role": "button",
+        "name": "Cadastrar Defesa de TCC"
+      },
+      {
+        "text": "Login realizado com sucesso ✅"
+      },
+      {
+        "text": "Você foi redirecionado para a página inicial"
+      },
+      {
+        "role": "button",
+        "name": "Menu do usuário: Aluno Livre E2E"
+      }
+    ],
+    "goneAnchors": [
+      {
+        "role": "button",
+        "name": "Login"
+      },
+      {
+        "role": "button",
+        "name": "Registre-se"
+      }
+    ],
+    "endWaitMs": 13895,
+    "keyedBy": {
+      "cacheSchema": "trace-1",
+      "policyVersion": "conservative/6",
+      "project": "bacda00e1afe41aeb0a88004723ff5369c54411bbd7cecc1b53a3e87003f7a58",
+      "platform": "web",
+      "engineName": "web",
+      "engineSpiVersion": 1,
+      "appIdentity": "c840cb9706b31787443e64b2845fff62ae1833779ff79b190f7cb5ebb7a996d0",
+      "agentContextDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}

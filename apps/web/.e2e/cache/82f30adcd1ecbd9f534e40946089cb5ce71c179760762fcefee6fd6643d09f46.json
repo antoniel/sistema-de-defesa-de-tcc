@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "trace-1",
+  "createdAt": "2026-10-29T15:46:55.953Z",
+  "payload": {
+    "actions": [
+      {
+        "name": "tap",
+        "summary": "tap button \"Menu do usuário: Aluno Livre E2E\"",
+        "target": {
+          "role": "button",
+          "name": "Menu do usuário: Aluno Livre E2E"
+        }
+      }
+    ],
+    "executor": {
+      "name": "e2e-default-agent",
+      "version": "2"
+    },
+    "recordedFor": {
+      "testId": "tests/flows.e2e.ts::aluno%20n%C3%A3o%20v%C3%AA%20os%20atalhos%20de%20administra%C3%A7%C3%A3o%20no%20menu%20do%20usu%C3%A1rio",
+      "targetId": "web",
+      "instructionDigest": "2db05aa8b5cb2806da537ff70c74768fce1643500908750499f7e475d4eb6716",
+      "paramsDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "callIndex": 0,
+      "agent": "default"
+    },
+    "recordedBy": {
+      "provider": "opencode.go",
+      "model": "deepseek-v4.1-flash"
+    },
+    "summary": "O menu do usuário \"Aluno Livre E2E\" foi aberto no cabeçalho: o botão #n120001 passou a exibir o menu (role=menu, \"Menu do usuário: Aluno Livre E2E\") com os itens \"Meu Perfil\", um separador e \"Sair\". Nenhum atalho de administração é listado para o aluno.",
+    "startPath": "/?activeTab=%22all-defenses%22",
+    "endPath": "/?activeTab=%22all-defenses%22",
+    "endAnchors": [
+      {
+        "role": "menuitem",
+        "name": "Meu Perfil"
+      },
+      {
+        "role": "menuitem",
+        "name": "Sair"
+      },
+      {
+        "role": "menu",
+        "name": "Menu do usuário: Aluno Livre E2E"
+      }
+    ],
+    "goneAnchors": [
+      {
+        "text": "Sistema de Defesas de TCC"
+      },
+      {
+        "text": "Olá, Aluno Livre E2E"
+      },
+      {
+        "text": "Aluno"
+      },
+      {
+        "role": "searchbox",
+        "name": "Buscar defesas, alunos, orientadores ou avaliadores...",
+        "placeholder": "Buscar defesas, alunos, orientadores ou avaliadores..."
+      },
+      {
+        "role": "button",
+        "name": "Cadastrar Defesa de TCC"
+      },
+      {
+        "role": "tab",
+        "name": "Defesas",
+        "testId": "all-defenses-tab",
+        "states": [
+          "selected"
+        ]
+      },
+      {
+        "text": "Exibir:"
+      },
+      {
+        "text": "linhas"
+      }
+    ],
+    "endWaitMs": 13916,
+    "keyedBy": {
+      "cacheSchema": "trace-1",
+      "policyVersion": "conservative/6",
+      "project": "bacda00e1afe41aeb0a88004723ff5369c54411bbd7cecc1b53a3e87003f7a58",
+      "platform": "web",
+      "engineName": "web",
+      "engineSpiVersion": 1,
+      "appIdentity": "c840cb9706b31787443e64b2845fff62ae1833779ff79b190f7cb5ebb7a996d0",
+      "agentContextDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}

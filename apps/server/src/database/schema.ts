@@ -372,3 +372,18 @@ export const featureRequestVotesRelations = relations(featureRequestVotes, ({ on
     references: [featureRequests.id],
   }),
 }))
+
+/**
+ * Buckets de rate limiting (KV com TTL — módulo dos-hardening).
+ *
+ * Uma linha por chave (`rota:ip` ou `rota:sub`). Nenhuma linha vive mais
+ * que a janela do limiter: `expires_at` carrega o fim da janela e a purga
+ * oportunista devolve o espaço — a tabela nunca cresce indefinidamente.
+ */
+export const rateLimitBuckets = pgTable("rate_limit_bucket", {
+  key: text("key").primaryKey(),
+  count: integer("count").notNull().default(0),
+  expiresAt: timestamp("expires_at")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+})

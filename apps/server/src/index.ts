@@ -1,7 +1,6 @@
 import { Hono, type MiddlewareHandler } from "hono"
 import { cors } from "hono/cors"
 import { logger } from "hono/logger"
-import { poweredBy } from "hono/powered-by"
 import { prettyJSON } from "hono/pretty-json"
 import { AppError } from "./error"
 import { appJwt } from "./modules/auth/auth.middleware"
@@ -21,10 +20,10 @@ import { type AppVariables } from "./types"
 export const app = (depsMiddleware: MiddlewareHandler<{ Variables: AppVariables }>) =>
   new Hono<{ Variables: AppVariables }>()
     .use(depsMiddleware)
-    .use("*", poweredBy())
     .use("*", logger())
     .use("*", cors())
-    .use("*", prettyJSON())
+    // Anti-fingerprinting: JSON identado é assinatura de dev-config em produção.
+    .use("*", process.env.NODE_ENV === "production" ? (_c, next) => next() : prettyJSON())
     .use("*", appJwt({ secret: JWT_SECRET }))
     .route("/auth", authRoutes)
     .route("/banca", bancaRoutes)
@@ -37,7 +36,8 @@ export const app = (depsMiddleware: MiddlewareHandler<{ Variables: AppVariables 
     .route("/teacher-invitation", teacherInvitationRoutes)
     .route("/student-invitation", studentInvitationRoutes)
     .notFound((c) => {
-      return c.json({ message: "Not Found", ok: false }, 404)
+      // Anti-fingerprinting: 404 sem corpo (shape de erro característico entrega o framework).
+      return c.body(null, 404)
     })
     .onError((err, c) => {
       if (err instanceof AppError) {

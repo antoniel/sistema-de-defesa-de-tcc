@@ -1,4 +1,6 @@
-import { zValidator } from "@hono/zod-validator"
+import { validator } from "../../lib/validator"
+import { rateLimit } from "../../middleware/rate-limit"
+import { requireAuth } from "../auth/auth.middleware"
 import { Hono } from "hono"
 import { match } from "ts-pattern"
 import { AppError } from "../../error"
@@ -7,7 +9,7 @@ import { createFeedbackSchema } from "./feedback.schema"
 import { createFeedback, getFeedbackStatistics } from "./feedback.service"
 
 export const feedbackRoutes = new Hono<{ Variables: AppVariables }>()
-  .post("/", zValidator("json", createFeedbackSchema), async (c) => {
+  .post("/", requireAuth, rateLimit({ name: "feedback", max: 10 }), validator("json", createFeedbackSchema), async (c) => {
     const validatedData = c.req.valid("json")
     const result = await createFeedback(c, validatedData)
 

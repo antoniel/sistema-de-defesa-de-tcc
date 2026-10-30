@@ -1,4 +1,6 @@
-import { zValidator } from "@hono/zod-validator"
+import { validator } from "../../lib/validator"
+import { rateLimit } from "../../middleware/rate-limit"
+import { requireAuth } from "../auth/auth.middleware"
 import { Hono } from "hono"
 import { match } from "ts-pattern"
 import { AppError } from "../../error"
@@ -12,7 +14,7 @@ import {
 } from "./feature-request.service"
 
 export const featureRequestRoutes = new Hono<{ Variables: AppVariables }>()
-  .post("/", zValidator("json", createFeatureRequestSchema), async (c) => {
+  .post("/", requireAuth, rateLimit({ name: "feature-request", keyByUser: true, max: 10 }), validator("json", createFeatureRequestSchema), async (c) => {
     const validatedData = c.req.valid("json")
     const result = await createFeatureRequest(c, validatedData)
 
@@ -54,7 +56,7 @@ export const featureRequestRoutes = new Hono<{ Variables: AppVariables }>()
 
     return c.json(requestsWithUserVoted)
   })
-  .post("/vote", zValidator("json", voteFeatureRequestSchema), async (c) => {
+  .post("/vote", requireAuth, rateLimit({ name: "feature-request-vote", keyByUser: true, max: 30 }), validator("json", voteFeatureRequestSchema), async (c) => {
     const { featureRequestId } = c.req.valid("json")
     const userId = c.get("jwtPayload").sub
 

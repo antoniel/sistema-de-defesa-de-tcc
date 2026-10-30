@@ -15,8 +15,7 @@
     "tscheck": "tsc --noEmit"
   },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "faker": "^6.6.6"
+    "bcryptjs": "^2.4.3"
   },
   "devDependencies": {
     "@faker-js/faker": "^9.9.0",

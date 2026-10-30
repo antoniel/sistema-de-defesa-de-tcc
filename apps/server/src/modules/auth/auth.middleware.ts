@@ -58,7 +58,7 @@ export const appJwt = (options: { secret: SignatureKey }) => {
 
     let payload
     try {
-      payload = await verify(token, options.secret)
+      payload = await verify(token, options.secret, "HS256")
     } catch (e) {
       return await next()
     }

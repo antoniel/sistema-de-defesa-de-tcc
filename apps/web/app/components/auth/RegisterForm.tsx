@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { __DEV__ } from "@/config/env"
 import { useToast } from "@/hooks/use-toast"
+import { getServerErrorMessage } from "@/lib/server-error"
 import { useRegisterMutation } from "@/services/authService"
 import type { RegisterUserInput } from "@tcc/server"
 import { AlertCircle } from "lucide-react"
@@ -52,8 +53,7 @@ export function RegisterForm(p: { onSuccess?: () => void }) {
     )
   }
 
-  const errorMessage =
-    error instanceof Error ? (error.cause instanceof Error ? error.cause.message : error.message) : null
+  const errorMessage = getServerErrorMessage(error)
 
   return (
     <Form {...form}>
@@ -128,17 +128,17 @@ export function RegisterForm(p: { onSuccess?: () => void }) {
         </div>
 
         <div>
-          <Label htmlFor="register-password">Senha</Label>
+          <Label htmlFor="register-password">Senha (mínimo 8 caracteres)</Label>
           <Input
             id="register-password"
             type="password"
-            placeholder="Crie uma senha segura"
+            placeholder="Crie uma senha segura (mínimo 8 caracteres)"
             disabled={isPending}
             {...register("password", {
               required: "Senha é obrigatória",
               minLength: {
-                value: 6,
-                message: "A senha deve ter pelo menos 6 caracteres",
+                value: 8,
+                message: "A senha deve ter no mínimo 8 caracteres",
               },
             })}
           />

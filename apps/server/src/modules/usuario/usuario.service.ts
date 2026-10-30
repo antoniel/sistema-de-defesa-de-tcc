@@ -1,9 +1,9 @@
 import * as bcrypt from "bcryptjs"
-import crypto from "crypto"
 import { and, asc, desc, eq, inArray, not, or } from "drizzle-orm"
 import { type Context } from "hono"
 import { z } from "zod"
 import type { InferResultType } from "../../database"
+import { pgErrorInfo } from "../../lib/pg-error"
 import {
   Bancas,
   bancasDocumentos,
@@ -19,6 +19,7 @@ import {
   Users,
   usuariosBancas,
 } from "../../database/schema"
+import { generateResetToken, hashResetToken, resetTokenHashesMatch } from "../../lib/reset-token"
 import { type AppResult, err, ok } from "../../result"
 import { createPasswordResetEmail, sendEmail } from "../../services/email.service"
 import { type AppVariables } from "../../types"
@@ -368,10 +369,7 @@ export const deleteUser = async (
   } catch (error) {
     console.error(`Error deleting user with ID ${id}:`, error)
 
-    const isFkError =
-      error instanceof Error &&
-      (error.message.includes("FOREIGN KEY constraint failed") ||
-        error.message.includes("violates foreign key constraint"))
+    const isFkError = pgErrorInfo(error).message.includes("violates foreign key constraint")
     if (isFkError) {
       return err({ type: "user_referenced_elsewhere" })
     }
@@ -527,9 +525,13 @@ export const getUserBancas = async (
       orderBy: desc(Bancas.dataRealizacao),
     })
 
-    // Add user's role to each banca
+    // Add user's role to each banca, devolvendo apenas dados públicos dos membros
     const bancasWithRole: UserBancaWithRole[] = bancas.map((banca) => ({
       ...banca,
+      membros: banca.membros.map(({ usuario, ...membro }) => ({
+        ...membro,
+        usuario: toPublicUser(usuario) as SelectUser,
+      })),
       userRole: roleMap.get(banca.id) as "orientador" | "coorientador" | "aluno" | "avaliador",
     }))
 
@@ -568,10 +570,7 @@ export const getStudents = async (
   }
 }
 
-type RequestPasswordResetError =
-  | { type: "user_not_found" }
-  | { type: "database_error"; error: unknown }
-  | { type: "email_error" }
+type RequestPasswordResetError = { type: "database_error"; error: unknown }
 
 export const requestPasswordReset = async (
   c: Context<{ Variables: AppVariables }>,
@@ -588,19 +587,22 @@ export const requestPasswordReset = async (
       .limit(1)
 
     if (user.length === 0) {
-      return err({ type: "user_not_found" })
+      return ok(undefined)
     }
 
     const userData = user[0]
 
     // Generate reset token
-    const resetToken = crypto.randomBytes(32).toString("hex")
+    const resetToken = generateResetToken()
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
 
-    // Store reset token
+    // Only one active token per user: invalidate previous requests.
+    await dbInstance.delete(resetPasswords).where(eq(resetPasswords.userId, userData.id))
+
+    // Store only the derived hash of the token, never the token itself.
     await dbInstance.insert(resetPasswords).values({
       userId: userData.id,
-      resetPasswordHash: resetToken,
+      resetPasswordHash: hashResetToken(resetToken),
       expiresAt,
     })
 
@@ -616,7 +618,7 @@ export const requestPasswordReset = async (
 
     if (!emailResult.ok) {
       console.error("Failed to send password reset email:", emailResult.error)
-      return err({ type: "email_error" })
+      return ok(undefined)
     }
 
     return ok(undefined)
@@ -641,15 +643,17 @@ export const resetPassword = async (
   const dbInstance = c.get("db")
 
   try {
-    // Find reset token
+    // Find reset token by its derived hash
+    const tokenHash = hashResetToken(token)
     const resetRecord = await dbInstance
       .select({
         id: resetPasswords.id,
         userId: resetPasswords.userId,
         expiresAt: resetPasswords.expiresAt,
+        resetPasswordHash: resetPasswords.resetPasswordHash,
       })
       .from(resetPasswords)
-      .where(eq(resetPasswords.resetPasswordHash, token))
+      .where(eq(resetPasswords.resetPasswordHash, tokenHash))
       .limit(1)
 
     if (resetRecord.length === 0) {
@@ -657,6 +661,10 @@ export const resetPassword = async (
     }
 
     const reset = resetRecord[0]
+
+    if (!resetTokenHashesMatch(reset.resetPasswordHash, tokenHash)) {
+      return err({ type: "invalid_token" })
+    }
 
     // Check if token is expired
     if (reset.expiresAt < new Date()) {

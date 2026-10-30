@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, gte, ilike, inArray, lt, or } from "drizzle-orm"
 import { type Context } from "hono"
 import type { InferResultType } from "../../database"
+import { pgErrorInfo } from "../../lib/pg-error"
 import {
   Bancas,
   bancasDocumentos,
@@ -14,11 +15,35 @@ import {
 } from "../../database/schema"
 import { type AppResult, err, ok } from "../../result"
 import { type AppVariables } from "../../types"
-import { getUserById } from "../usuario/usuario.service"
+import { getUserById, toPublicUser, type PublicUser } from "../usuario/usuario.service"
 import { BancaDAO } from "./banca.dao"
 import { type CreateBancaInput, type UpdateBancaInput } from "./banca.schema"
 
 type GetAllBancasError = { type: "database_error"; error: unknown }
+
+/**
+ * Bancas carregadas com relações podem trazer `Users` completos (inclusive
+ * `passwordHash`) em `membros[].usuario` e `orientador`. Toda resposta da API
+ * passa por aqui antes de sair do serviço.
+ */
+type SanitizableBanca = {
+  orientador?: SelectUser | PublicUser | null
+  membros?: { usuario: SelectUser | PublicUser }[]
+}
+
+export const sanitizeBanca = <T extends SanitizableBanca>(banca: T): T => {
+  const sanitized = { ...banca } as SanitizableBanca
+  if (sanitized.orientador) {
+    sanitized.orientador = toPublicUser(sanitized.orientador as SelectUser)
+  }
+  if (sanitized.membros) {
+    sanitized.membros = sanitized.membros.map((membro) => ({
+      ...membro,
+      usuario: toPublicUser(membro.usuario as SelectUser),
+    }))
+  }
+  return sanitized as T
+}
 
 async function resolveAuthenticatedUserRole(c: Context<{ Variables: AppVariables }>) {
   const userId = c.get("jwtPayload")?.sub
@@ -120,7 +145,7 @@ export const getUpcomingBancasVisible = async (
     const totalPages = Math.ceil(total / limit)
 
     return ok({
-      bancasWithMembros: bancas,
+      bancasWithMembros: bancas.map((banca) => sanitizeBanca(banca)),
       meta: {
         total,
         totalPages,
@@ -179,7 +204,7 @@ export const getPastBancasVisible = async (
     const totalPages = Math.ceil(total / limit)
 
     return ok({
-      bancasWithMembros: bancas,
+      bancasWithMembros: bancas.map((banca) => sanitizeBanca(banca)),
       meta: {
         total,
         totalPages,
@@ -254,8 +279,8 @@ export const getAllBancasVisible = async (
     const totalPages = Math.ceil(totalBancas / limit)
 
     return ok({
-      bancasWithMembrosUpcoming: upcomingResult.bancas,
-      bancasWithMembrosPast: pastResult.bancas,
+      bancasWithMembrosUpcoming: upcomingResult.bancas.map((banca) => sanitizeBanca(banca)),
+      bancasWithMembrosPast: pastResult.bancas.map((banca) => sanitizeBanca(banca)),
       meta: {
         total: totalBancas,
         totalPages,
@@ -492,8 +517,8 @@ export const getAllBancasVisibleOld = async (
     }
 
     return ok({
-      bancasWithMembrosPast,
-      bancasWithMembrosUpcoming,
+      bancasWithMembrosPast: bancasWithMembrosPast.map((banca) => sanitizeBanca(banca)),
+      bancasWithMembrosUpcoming: bancasWithMembrosUpcoming.map((banca) => sanitizeBanca(banca)),
       meta: {
         total,
         totalPages,
@@ -559,7 +584,7 @@ export const getBancaById = async (
       return err({ type: "banca_not_found" })
     }
 
-    return ok(result)
+    return ok(sanitizeBanca(result))
   } catch (error) {
     console.error(`Error fetching banca with ID ${id}:`, error)
     return err({ type: "database_error", error })
@@ -634,7 +659,8 @@ export const createBanca = async (
 
     return ok(newBanca)
   } catch (error: any) {
-    if (error?.code === "23505" && error?.constraint === "aluno_curso_unique") {
+    const pgError = pgErrorInfo(error)
+    if (pgError.code === "23505" && pgError.constraint === "aluno_curso_unique") {
       return err({ type: "student_already_has_banca" })
     }
     console.error("Error creating banca:", error)
@@ -815,7 +841,7 @@ export const getBancasByUser = async (
 export const getUsersByBanca = async (
   c: Context<{ Variables: AppVariables }>,
   bancaId: number
-): Promise<AppResult<(SelectUser & { role: string })[], GetBancaByIdError>> => {
+): Promise<AppResult<(PublicUser & { role: string })[], GetBancaByIdError>> => {
   const dbInstance = c.get("db")
 
   try {
@@ -835,7 +861,7 @@ export const getUsersByBanca = async (
       .where(eq(usuariosBancas.bancaId, bancaId))
 
     const users = usersWithRole.map((row) => ({
-      ...row.user,
+      ...toPublicUser(row.user),
       role: row.role as UserRole,
     }))
 
@@ -1059,8 +1085,8 @@ export const getBancasByOrientador = async (
     const totalPages = Math.ceil(total / limit)
 
     return ok({
-      past,
-      upcoming,
+      past: past.map((banca) => sanitizeBanca(banca)),
+      upcoming: upcoming.map((banca) => sanitizeBanca(banca)),
       meta: {
         total,
         totalPages,
@@ -1099,7 +1125,11 @@ export const getBancasByMember = async (
       searchQuery,
     })
 
-    return ok(result)
+    return ok({
+      ...result,
+      past: result.past.map((banca) => sanitizeBanca(banca)),
+      upcoming: result.upcoming.map((banca) => sanitizeBanca(banca)),
+    })
   } catch (error) {
     console.error("Error fetching bancas by member:", error)
     return err({ type: "database_error", error })
