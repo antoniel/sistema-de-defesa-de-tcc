@@ -226,6 +226,8 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
         throw match(result.error)
           .with({ type: "database_error" }, () => new AppError(500, "Erro ao enviar convite"))
           .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
+          .with({ type: "unauthorized" }, () => new AppError(403, "Não autorizado"))
+          .with({ type: "invalid_role" }, () => new AppError(400, "Papel inválido para convite"))
           .exhaustive()
       }
 
@@ -244,6 +246,8 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
       throw match(result.error)
         .with({ type: "database_error" }, () => new AppError(500, "Erro ao remover usuário"))
         .with({ type: "relation_not_found" }, () => new AppError(404, "Relação usuário-banca não encontrada"))
+        .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
+        .with({ type: "unauthorized" }, () => new AppError(403, "Não autorizado"))
         .exhaustive()
     }
 
@@ -317,6 +321,7 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
         throw match(result.error)
           .with({ type: "database_error" }, () => new AppError(500, "Erro ao atribuir nota final"))
           .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
+          .with({ type: "unauthorized" }, () => new AppError(403, "Não autorizado"))
           .exhaustive()
       }
 
@@ -370,6 +375,7 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
       throw match(result.error)
         .with({ type: "database_error" }, () => new AppError(500, "Erro ao atualizar banca"))
         .with({ type: "banca_not_found" }, () => new AppError(404, "Banca não encontrada"))
+        .with({ type: "unauthorized" }, () => new AppError(403, "Não autorizado"))
         .with({ type: "invalid_input" }, () => new AppError(403, "Dados inválidos"))
         .exhaustive()
     }

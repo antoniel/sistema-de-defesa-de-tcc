@@ -1,0 +1,17 @@
+id: rt11-enumeracao-usuario-reconhecida
+info:
+  name: "REGRESSAO conhecida: STUDENT le perfil de qualquer usuario por id (/usuario/1 -> dados do admin)"
+  author: redteam-sisdef
+  severity: low
+  description: "GET /usuario/:id com requireAuth sem restricao de papel - achado LOW da rodada 1, ainda em aberto (decisao de produto). Template serve de controle de regressao."
+  tags: redteam,idor,regression
+http:
+  - raw:
+      - |
+        GET /usuario/1 HTTP/1.1
+        Host: {{Hostname}}
+        Authorization: Bearer {{TOKEN_STUDENT}}
+    matchers:
+      - type: status
+        status:
+          - 200

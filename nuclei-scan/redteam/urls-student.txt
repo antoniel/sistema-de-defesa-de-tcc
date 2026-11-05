@@ -1,0 +1,10 @@
+http://localhost:9100/banca/2
+http://localhost:9100/banca/my-participations
+http://localhost:9100/banca/usuario/6
+http://localhost:9100/banca/2/nota
+http://localhost:9100/banca/2/documentos
+http://localhost:9100/usuario/1
+http://localhost:9100/usuario/students
+http://localhost:9100/usuario/teachers
+http://localhost:9100/feedback/statistics
+http://localhost:9100/feature-request

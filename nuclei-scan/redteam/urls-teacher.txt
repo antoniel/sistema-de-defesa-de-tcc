@@ -1,0 +1,8 @@
+http://localhost:9100/banca/my-defenses?searchQuery=redteam&orderBy=dataRealizacao&order=desc
+http://localhost:9100/banca/my-participations?searchQuery=redteam
+http://localhost:9100/banca/usuario/7
+http://localhost:9100/banca/3/usuarios
+http://localhost:9100/documentos/info/1
+http://localhost:9100/usuario/all
+http://localhost:9100/usuario/students/available-for-banca
+http://localhost:9100/usuario/7

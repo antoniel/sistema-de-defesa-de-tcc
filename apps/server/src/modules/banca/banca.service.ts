@@ -11,6 +11,7 @@ import {
   type SelectUser,
   type UserRole,
   Users,
+  usuarioBancaRole,
   usuariosBancas,
 } from "../../database/schema"
 import { type AppResult, err, ok } from "../../result"
@@ -68,6 +69,7 @@ type CreateBancaError =
 
 type UpdateBancaError =
   | { type: "banca_not_found" }
+  | { type: "unauthorized" }
   | { type: "database_error"; error: unknown }
   | { type: "invalid_input" }
 
@@ -90,13 +92,26 @@ type AddUserToBancaError =
   | { type: "already_member" }
   | { type: "database_error"; error: unknown }
 
-type RemoveUserFromBancaError = { type: "relation_not_found" } | { type: "database_error"; error: unknown }
+type RemoveUserFromBancaError =
+  | { type: "relation_not_found" }
+  | { type: "banca_not_found" }
+  | { type: "unauthorized" }
+  | { type: "database_error"; error: unknown }
 type SetEvaluatorGradeError =
   | { type: "relation_not_found" }
   | { type: "unauthorized" }
   | { type: "database_error"; error: unknown }
 
-type SetBancaGradeError = { type: "banca_not_found" } | { type: "database_error"; error: unknown }
+type SetBancaGradeError =
+  | { type: "banca_not_found" }
+  | { type: "unauthorized" }
+  | { type: "database_error"; error: unknown }
+
+type SendInviteEmailError =
+  | { type: "banca_not_found" }
+  | { type: "unauthorized" }
+  | { type: "invalid_role" }
+  | { type: "database_error"; error: unknown }
 
 type GetBancasByOrientadorError = { type: "database_error"; error: unknown }
 
@@ -674,7 +689,28 @@ export const updateBanca = async (
   data: UpdateBancaInput
 ): Promise<AppResult<typeof Bancas.$inferSelect, UpdateBancaError>> => {
   const dbInstance = c.get("db")
+  const payload = c.get("jwtPayload")
+
   try {
+    const [banca] = await dbInstance
+      .select({ id: Bancas.id, orientadorId: Bancas.orientadorId })
+      .from(Bancas)
+      .where(eq(Bancas.id, id))
+      .limit(1)
+    if (!banca) {
+      return err({ type: "banca_not_found" })
+    }
+
+    const userResult = await getUserById(c, Number(payload.sub))
+    if (!userResult.ok) {
+      return err({ type: "unauthorized" })
+    }
+    const user = userResult.data
+
+    if (user.role !== "ADMIN" && banca.orientadorId !== user.id) {
+      return err({ type: "unauthorized" })
+    }
+
     // Convert the data format from frontend to database format
     const bancaUpdateData = {
       tituloTrabalho: data.tituloTrabalho,
@@ -753,12 +789,27 @@ export const deleteBanca = async (
   id: number
 ): Promise<AppResult<void, DeleteBancaError>> => {
   const dbInstance = c.get("db")
+  const payload = c.get("jwtPayload")
 
   try {
-    const bancaExists = await dbInstance.select({ id: Bancas.id }).from(Bancas).where(eq(Bancas.id, id)).limit(1)
+    const [banca] = await dbInstance
+      .select({ id: Bancas.id, orientadorId: Bancas.orientadorId })
+      .from(Bancas)
+      .where(eq(Bancas.id, id))
+      .limit(1)
 
-    if (bancaExists.length === 0) {
+    if (!banca) {
       return err({ type: "banca_not_found" })
+    }
+
+    const userResult = await getUserById(c, Number(payload.sub))
+    if (!userResult.ok) {
+      return err({ type: "unauthorized" })
+    }
+    const user = userResult.data
+
+    if (user.role !== "ADMIN" && banca.orientadorId !== user.id) {
+      return err({ type: "unauthorized" })
     }
 
     await dbInstance.delete(usuariosBancas).where(eq(usuariosBancas.bancaId, id))
@@ -859,9 +910,24 @@ export const getUsersByBanca = async (
   const dbInstance = c.get("db")
 
   try {
-    const bancaExists = await dbInstance.select({ id: Bancas.id }).from(Bancas).where(eq(Bancas.id, bancaId)).limit(1)
+    let currentUserId: number | null = null
+    let isAdmin = false
+    const payload = c.get("jwtPayload")
+    if (payload) {
+      const userResult = await getUserById(c, Number(payload.sub))
+      if (userResult.ok) {
+        currentUserId = userResult.data.id
+        isAdmin = userResult.data.role === "ADMIN"
+      }
+    }
 
-    if (bancaExists.length === 0) {
+    const [banca] = await dbInstance
+      .select({ id: Bancas.id, visible: Bancas.visible, orientadorId: Bancas.orientadorId })
+      .from(Bancas)
+      .where(eq(Bancas.id, bancaId))
+      .limit(1)
+
+    if (!banca) {
       return err({ type: "banca_not_found" })
     }
 
@@ -873,6 +939,16 @@ export const getUsersByBanca = async (
       .from(usuariosBancas)
       .innerJoin(Users, eq(usuariosBancas.usuarioId, Users.id))
       .where(eq(usuariosBancas.bancaId, bancaId))
+
+    const canAccess =
+      banca.visible ||
+      (!currentUserId
+        ? false
+        : isAdmin || banca.orientadorId === currentUserId || usersWithRole.some((row) => row.user.id === currentUserId))
+
+    if (!canAccess) {
+      return err({ type: "banca_not_found" })
+    }
 
     const users = usersWithRole.map((row) => ({
       ...toPublicUser(row.user),
@@ -892,8 +968,29 @@ export const removeUserFromBanca = async (
   userId: number
 ): Promise<AppResult<void, RemoveUserFromBancaError>> => {
   const dbInstance = c.get("db")
+  const payload = c.get("jwtPayload")
 
   try {
+    const [banca] = await dbInstance
+      .select({ id: Bancas.id, orientadorId: Bancas.orientadorId })
+      .from(Bancas)
+      .where(eq(Bancas.id, bancaId))
+      .limit(1)
+
+    if (!banca) {
+      return err({ type: "banca_not_found" })
+    }
+
+    const userResult = await getUserById(c, Number(payload.sub))
+    if (!userResult.ok) {
+      return err({ type: "unauthorized" })
+    }
+    const user = userResult.data
+
+    if (user.role !== "ADMIN" && banca.orientadorId !== user.id) {
+      return err({ type: "unauthorized" })
+    }
+
     const relationExists = await dbInstance
       .select({ id: usuariosBancas.id })
       .from(usuariosBancas)
@@ -921,12 +1018,24 @@ export const setBancaGrade = async (
   grade: string
 ): Promise<AppResult<typeof Bancas.$inferSelect, SetBancaGradeError>> => {
   const dbInstance = c.get("db")
+  const payload = c.get("jwtPayload")
 
   try {
     const bancaExists = await dbInstance.select({ id: Bancas.id }).from(Bancas).where(eq(Bancas.id, bancaId)).limit(1)
 
     if (bancaExists.length === 0) {
       return err({ type: "banca_not_found" })
+    }
+
+    const userResult = await getUserById(c, Number(payload.sub))
+    if (!userResult.ok) {
+      return err({ type: "unauthorized" })
+    }
+    const user = userResult.data
+
+    const [banca] = await dbInstance.select().from(Bancas).where(eq(Bancas.id, bancaId))
+    if (user.role !== "ADMIN" && banca.orientadorId !== user.id) {
+      return err({ type: "unauthorized" })
     }
 
     const [updatedBanca] = await dbInstance
@@ -1031,14 +1140,34 @@ export const sendInviteEmail = async (
   bancaId: number,
   email: string,
   role: string
-): Promise<AppResult<typeof invites.$inferSelect, GetBancaByIdError>> => {
+): Promise<AppResult<typeof invites.$inferSelect, SendInviteEmailError>> => {
   const dbInstance = c.get("db")
+  const payload = c.get("jwtPayload")
 
   try {
-    const bancaExists = await dbInstance.select({ id: Bancas.id }).from(Bancas).where(eq(Bancas.id, bancaId)).limit(1)
+    const [banca] = await dbInstance
+      .select({ id: Bancas.id, orientadorId: Bancas.orientadorId })
+      .from(Bancas)
+      .where(eq(Bancas.id, bancaId))
+      .limit(1)
 
-    if (bancaExists.length === 0) {
+    if (!banca) {
       return err({ type: "banca_not_found" })
+    }
+
+    const userResult = await getUserById(c, Number(payload.sub))
+    if (!userResult.ok) {
+      return err({ type: "unauthorized" })
+    }
+    const user = userResult.data
+
+    if (user.role !== "ADMIN" && banca.orientadorId !== user.id) {
+      return err({ type: "unauthorized" })
+    }
+
+    const normalizedRole = role.toLowerCase()
+    if (!(usuarioBancaRole.enumValues as readonly string[]).includes(normalizedRole)) {
+      return err({ type: "invalid_role" })
     }
 
     const [newInvite] = await dbInstance
@@ -1046,7 +1175,7 @@ export const sendInviteEmail = async (
       .values({
         bancaId,
         emailConvidado: email,
-        roleConvidado: role,
+        roleConvidado: normalizedRole,
         inviteHash: crypto.randomUUID(),
         status: "pending",
         createdAt: new Date(),
