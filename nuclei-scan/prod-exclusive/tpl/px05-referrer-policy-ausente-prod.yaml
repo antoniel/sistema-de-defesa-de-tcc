@@ -1,0 +1,22 @@
+id: px05-referrer-policy-ausente-prod
+info:
+  name: "Referrer-Policy ausente na resposta HTTPS de produção"
+  author: redteam-sisdef
+  severity: info
+  description: "Validação de headers (só em PROD): referrer pode vazar para terceiros."
+  tags: prod-exclusive,headers
+http:
+  - raw:
+      - |
+        GET / HTTP/1.1
+        Host: {{Hostname}}
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+      - type: word
+        part: header
+        words:
+          - "Referrer-Policy"
+        negative: true

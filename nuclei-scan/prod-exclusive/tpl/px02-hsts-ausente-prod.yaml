@@ -1,0 +1,22 @@
+id: px02-hsts-ausente-prod
+info:
+  name: "HSTS ausente na resposta HTTPS de produção"
+  author: redteam-sisdef
+  severity: info
+  description: "Validação de transporte (Só em PROD): o nginx/dokku não envia Strict-Transport-Security."
+  tags: prod-exclusive,headers,tls
+http:
+  - raw:
+      - |
+        GET / HTTP/1.1
+        Host: {{Hostname}}
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+      - type: word
+        part: header
+        words:
+          - "Strict-Transport-Security"
+        negative: true

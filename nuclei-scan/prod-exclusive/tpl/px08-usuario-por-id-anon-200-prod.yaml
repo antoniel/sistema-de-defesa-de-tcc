@@ -1,0 +1,44 @@
+id: px08-usuario-por-id-anon-200-prod
+info:
+  name: "Leitura anônima de perfil de usuário em produção (/usuario/:id sem requireAuth aplicado)"
+  author: redteam-sisdef
+  severity: medium
+  description: "Sonda read-only: /usuario/:id anonimo deve ser 401 (requireAuth). Qualquer 200 = leak de perfil REAL (dados de usuário da UFBA)."
+  tags: prod-exclusive,idor,read-only
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/usuario/1"
+      - "{{BaseURL}}/usuario/2"
+      - "{{BaseURL}}/usuario/3"
+      - "{{BaseURL}}/usuario/4"
+      - "{{BaseURL}}/usuario/5"
+      - "{{BaseURL}}/usuario/6"
+      - "{{BaseURL}}/usuario/7"
+      - "{{BaseURL}}/usuario/8"
+      - "{{BaseURL}}/usuario/9"
+      - "{{BaseURL}}/usuario/10"
+      - "{{BaseURL}}/usuario/11"
+      - "{{BaseURL}}/usuario/12"
+      - "{{BaseURL}}/usuario/13"
+      - "{{BaseURL}}/usuario/14"
+      - "{{BaseURL}}/usuario/15"
+      - "{{BaseURL}}/usuario/16"
+      - "{{BaseURL}}/usuario/17"
+      - "{{BaseURL}}/usuario/18"
+      - "{{BaseURL}}/usuario/19"
+      - "{{BaseURL}}/usuario/20"
+      - "{{BaseURL}}/usuario/21"
+      - "{{BaseURL}}/usuario/22"
+      - "{{BaseURL}}/usuario/23"
+      - "{{BaseURL}}/usuario/24"
+      - "{{BaseURL}}/usuario/25"
+      - "{{BaseURL}}/usuario/26"
+      - "{{BaseURL}}/usuario/27"
+      - "{{BaseURL}}/usuario/28"
+      - "{{BaseURL}}/usuario/29"
+      - "{{BaseURL}}/usuario/30"
+    matchers:
+      - type: status
+        status:
+          - 200

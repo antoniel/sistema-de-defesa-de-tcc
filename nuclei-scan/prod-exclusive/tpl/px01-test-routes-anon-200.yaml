@@ -1,0 +1,16 @@
+id: px01-test-routes-anon-200
+info:
+  name: "Rotas de controle de teste (/__test__/*) expostas no ambiente de produção"
+  author: redteam-sisdef
+  severity: high
+  description: "As rotas /__test__/* existem para dar health/reset ao E2E e o app REAL também as registra. Qualquer 200 provaria exposição de infraestrutura de teste na UFBA — só GET health, nunca touch no /reset."
+  tags: prod-exclusive,exposure
+http:
+  - raw:
+      - |
+        GET /__test__/health HTTP/1.1
+        Host: {{Hostname}}
+    matchers:
+      - type: status
+        status:
+          - 200

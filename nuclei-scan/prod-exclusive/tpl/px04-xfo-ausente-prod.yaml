@@ -1,0 +1,22 @@
+id: px04-xfo-ausente-prod
+info:
+  name: "X-Frame-Options ausente na resposta HTTPS de produção"
+  author: redteam-sisdef
+  severity: info
+  description: "Validação de headers (só em PROD): sem proteção contra clickjacking."
+  tags: prod-exclusive,headers
+http:
+  - raw:
+      - |
+        GET / HTTP/1.1
+        Host: {{Hostname}}
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+      - type: word
+        part: header
+        words:
+          - "X-Frame-Options"
+        negative: true

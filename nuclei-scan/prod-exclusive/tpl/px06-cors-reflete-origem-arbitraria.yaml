@@ -1,0 +1,20 @@
+id: px06-cors-reflete-origem-arbitraria
+info:
+  name: "CORS reflete Origin arbitrário em produção"
+  author: redteam-sisdef
+  severity: medium
+  description: "Validação de CORS (só em PROD): Access-Control-Allow-Origin aceitando origem externa arbitrária permite leitura authenticated cross-site."
+  tags: prod-exclusive,cors
+http:
+  - raw:
+      - |
+        GET / HTTP/1.1
+        Host: {{Hostname}}
+        Origin: https://evil.example.com
+    matchers:
+      - type: word
+        part: header
+        words:
+          - "Access-Control-Allow-Origin: https://evil.example.com"
+          - "access-control-allow-origin: https://evil.example.com"
+        case-insensitive: true

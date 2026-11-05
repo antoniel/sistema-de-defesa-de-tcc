@@ -1,0 +1,48 @@
+id: px07-banca-privada-listavel-anon-prod
+info:
+  name: "Banca PRIVADA (visible:false) listável por anônimo em produção (/banca/:id sem filtro de visibilidade)"
+  author: redteam-sisdef
+  severity: high
+  description: "Sonda read-only do hardening rt: o fix de visibilidade aplicado no código deve dar 404 para bancas privada em /banca/:id; qualquer 200 com '\"visible\": false' na resposta de produção significa que o fix não chegou no deploy (ou regrediu)."
+  tags: prod-exclusive,idor,read-only
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/banca/1"
+      - "{{BaseURL}}/banca/2"
+      - "{{BaseURL}}/banca/3"
+      - "{{BaseURL}}/banca/4"
+      - "{{BaseURL}}/banca/5"
+      - "{{BaseURL}}/banca/6"
+      - "{{BaseURL}}/banca/7"
+      - "{{BaseURL}}/banca/8"
+      - "{{BaseURL}}/banca/9"
+      - "{{BaseURL}}/banca/10"
+      - "{{BaseURL}}/banca/11"
+      - "{{BaseURL}}/banca/12"
+      - "{{BaseURL}}/banca/13"
+      - "{{BaseURL}}/banca/14"
+      - "{{BaseURL}}/banca/15"
+      - "{{BaseURL}}/banca/16"
+      - "{{BaseURL}}/banca/17"
+      - "{{BaseURL}}/banca/18"
+      - "{{BaseURL}}/banca/19"
+      - "{{BaseURL}}/banca/20"
+      - "{{BaseURL}}/banca/21"
+      - "{{BaseURL}}/banca/22"
+      - "{{BaseURL}}/banca/23"
+      - "{{BaseURL}}/banca/24"
+      - "{{BaseURL}}/banca/25"
+      - "{{BaseURL}}/banca/26"
+      - "{{BaseURL}}/banca/27"
+      - "{{BaseURL}}/banca/28"
+      - "{{BaseURL}}/banca/29"
+      - "{{BaseURL}}/banca/30"
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+      - type: regex
+        regex:
+          - '"visible"\s*:\s*false'

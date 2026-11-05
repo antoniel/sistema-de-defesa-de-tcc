@@ -1,0 +1,44 @@
+id: px10-documentos-endpoint-permissivo-prod
+info:
+  name: "GET /banca/:bancaId/documentos responde 200 para anônimo (endpoint sem filtro de visibilidade)"
+  author: redteam-sisdef
+  severity: info
+  description: "Sonda read-only: o endpooínt não confere visibilidade (descoberto no red team — foi deixado de fora do lote de correções, hoje sem conteúdo real porque o upload de documentos está 501). 200s em Produção confirmam a superfície; para prova real de vazamento, combine cruzando com o registrlyho px07 (bancas privadas) — o script da varredura inteligente no wrapper faz esse cruzamento."
+  tags: prod-exclusive,idor,read-only
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/banca/1/documentos"
+      - "{{BaseURL}}/banca/2/documentos"
+      - "{{BaseURL}}/banca/3/documentos"
+      - "{{BaseURL}}/banca/4/documentos"
+      - "{{BaseURL}}/banca/5/documentos"
+      - "{{BaseURL}}/banca/6/documentos"
+      - "{{BaseURL}}/banca/7/documentos"
+      - "{{BaseURL}}/banca/8/documentos"
+      - "{{BaseURL}}/banca/9/documentos"
+      - "{{BaseURL}}/banca/10/documentos"
+      - "{{BaseURL}}/banca/11/documentos"
+      - "{{BaseURL}}/banca/12/documentos"
+      - "{{BaseURL}}/banca/13/documentos"
+      - "{{BaseURL}}/banca/14/documentos"
+      - "{{BaseURL}}/banca/15/documentos"
+      - "{{BaseURL}}/banca/16/documentos"
+      - "{{BaseURL}}/banca/17/documentos"
+      - "{{BaseURL}}/banca/18/documentos"
+      - "{{BaseURL}}/banca/19/documentos"
+      - "{{BaseURL}}/banca/20/documentos"
+      - "{{BaseURL}}/banca/21/documentos"
+      - "{{BaseURL}}/banca/22/documentos"
+      - "{{BaseURL}}/banca/23/documentos"
+      - "{{BaseURL}}/banca/24/documentos"
+      - "{{BaseURL}}/banca/25/documentos"
+      - "{{BaseURL}}/banca/26/documentos"
+      - "{{BaseURL}}/banca/27/documentos"
+      - "{{BaseURL}}/banca/28/documentos"
+      - "{{BaseURL}}/banca/29/documentos"
+      - "{{BaseURL}}/banca/30/documentos"
+    matchers:
+      - type: status
+        status:
+          - 200
