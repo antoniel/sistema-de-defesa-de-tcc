@@ -1,0 +1,26 @@
+id: enumeracao-dados-de-usuario
+info:
+  name: "[INFO] Usuario autenticado le perfil de outro usuario por id"
+  description: >
+    GET /usuario/:id so exige requireAuth (qualquer papel). Um STUDENT pode
+    ler perfil de qualquer usuario, incluindo ADMIN (id 1). Provavelmente e
+    desenho (avaliadores precisam ver orientandos), mas vale confirmar se
+    e intencional e se nao expoe dados sensiveis.
+  author: sisdef-audit
+  severity: low
+  tags: sisdef, authz, enumeracao
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/usuario/1"
+    headers:
+      Authorization: "Bearer {{TOKEN_STUDENT_FREE}}"
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+      - type: word
+        part: body
+        words:
+          - "Admin E2E"

@@ -1,0 +1,20 @@
+id: jwt-assinatura-invalida
+info:
+  name: "[JWT] Token com assinatura corrompida e aceito"
+  description: >
+    Assinatura do token do student.free com os 2 ultimos caracteres trocados.
+    verify() deve rejeitar; GET /usuario/me tem que devolver 401.
+    200 = token nao-assinado validado como autentico.
+  author: sisdef-audit
+  severity: critical
+  tags: sisdef, jwt
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/usuario/me"
+    headers:
+      Authorization: "Bearer {{TOKEN_STUDENT_BADSIG}}"
+    matchers:
+      - type: status
+        status:
+          - 200

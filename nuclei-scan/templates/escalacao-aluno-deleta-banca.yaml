@@ -1,0 +1,21 @@
+id: escalacao-aluno-deleta-banca
+info:
+  name: "[AUTHZ] Aluno deleta defesa de outro usuario"
+  description: >
+    DELETE /banca/:id exige ADMIN/TEACHER e o service valida propriedade.
+    student.free deve receber 403. 2xx = escalada + destruicao de dados.
+  author: sisdef-audit
+  severity: high
+  tags: sisdef, authz, escalacao
+http:
+  - method: DELETE
+    path:
+      - "{{BaseURL}}/banca/2"
+    headers:
+      Authorization: "Bearer {{TOKEN_STUDENT_FREE}}"
+    matchers:
+      - type: status
+        status:
+          - 200
+          - 202
+          - 204

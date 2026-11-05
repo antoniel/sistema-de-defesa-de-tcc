@@ -1,0 +1,25 @@
+id: idor-banca-privada-orientador-externo
+info:
+  name: "[AUTHZ] Professor sem vinculo le banca privada"
+  description: >
+    Banca 3 do seed e privada; orientador = teacher, membros = teacher2.
+    teacher3 (avaliador de reserva, sem vinculo) so pode le-la se for ADMIN
+    ou membro. Achado = quebra da regra de visibilidade.
+  author: sisdef-audit
+  severity: medium
+  tags: sisdef, authz, idor
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/banca/3"
+    headers:
+      Authorization: "Bearer {{TOKEN_TEACHER3}}"
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+      - type: word
+        part: body
+        words:
+          - "Banca Futura Privada"

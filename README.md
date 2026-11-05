@@ -237,6 +237,30 @@ usuários (controle de acesso por papel nas telas também — edição e atalhos
 anti-flake (isolamento de dados, espera de hidratação, escopo de seletores) está documentada em
 [`apps/web/tests/README.md`](apps/web/tests/README.md) — leia antes de escrever uma spec nova.
 
+### Scan de segurança (nuclei)
+
+Reproduzível numa linha — sempre contra a **stack de teste** (API 9100, PGlite em
+memória, seed determinístico), nunca contra dev/produção:
+
+```bash
+scripts/nuclei-auth-scan.sh
+```
+
+O script sobe a API se preciso, loga as contas do seed (`@tcc/tests`), deriva tokens
+corrompidos (assinatura trocada, `alg=none`), renderiza `nuclei-scan/templates/` em
+`templates-build/` e roda dois passes do nuclei via Docker: templates custom de
+autorização/JWT (IDOR de banca privada, escalada de papel em rotas ADMIN/TEACHER,
+tampering de token) e um pass genérico autenticado (`exposure`, `misconfig`, `dast`,
+`sqli`, `xss`…). Fecha sondando o rate limit do login (25 tentativas erradas).
+Requisito: Docker; resultados em `nuclei-scan/results/*.jsonl`.
+
+Templates custom são hipóteses de code review codificadas em matcher ("2xx onde
+devia ser 403 dispara") — o nuclei genérico não enxerga lógica de autorização.
+Achado conhecido e aceito por enquanto: `GET /usuario/:id` responde 200 a qualquer
+papel autenticado (`requireAuth` sem `checkRole`) — LOW, confirmar se é desenho.
+`results/` e `templates-build/` ficam fora do git (tokens renderizados nunca são
+commitados).
+
 ---
 
 # Deploy (infra IC-UFBA / Dokku)

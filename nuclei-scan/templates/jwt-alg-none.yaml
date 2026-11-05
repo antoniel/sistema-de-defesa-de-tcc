@@ -1,0 +1,20 @@
+id: jwt-alg-none
+info:
+  name: "[JWT] Token alg=none e aceito"
+  description: >
+    Header {"alg":"none"} + payload legitimo do student.free + assinatura
+    vazia. O middleware fixa HS256, entao verify() deve rejeitar com 401.
+    200 = aceitacao de token sem assinatura (critico).
+  author: sisdef-audit
+  severity: critical
+  tags: sisdef, jwt
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/usuario/me"
+    headers:
+      Authorization: "Bearer {{TOKEN_ALG_NONE}}"
+    matchers:
+      - type: status
+        status:
+          - 200

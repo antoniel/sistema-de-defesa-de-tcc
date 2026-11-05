@@ -1,0 +1,24 @@
+id: escalacao-aluno-lista-usuarios
+info:
+  name: "[AUTHZ] Aluno lista todos os usuarios (rota ADMIN)"
+  description: >
+    GET /usuario/all exige checkRole(ADMIN). STUDENT deve receber 403.
+    200 com lista de usuarios = escalada de privilegio / vazamento de dados.
+  author: sisdef-audit
+  severity: high
+  tags: sisdef, authz, escalacao
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/usuario/all"
+    headers:
+      Authorization: "Bearer {{TOKEN_STUDENT_FREE}}"
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+      - type: word
+        part: body
+        words:
+          - "admin@e2e.local"

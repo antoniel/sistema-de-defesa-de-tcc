@@ -1,0 +1,25 @@
+id: idor-banca-privada-aluno
+info:
+  name: "[AUTHZ] Aluno acessa banca privada de outro aluno"
+  description: >
+    A banca 3 do seed e futura e PRIVADA (visible: false), dono = student.private.
+    Um aluno sem relacao com ela (student.free) nao deve conseguir le-la.
+    Achado = aluno leu dados de banca privada (IDOR).
+  author: sisdef-audit
+  severity: high
+  tags: sisdef, authz, idor
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/banca/3"
+    headers:
+      Authorization: "Bearer {{TOKEN_STUDENT_FREE}}"
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+      - type: word
+        part: body
+        words:
+          - "Banca Futura Privada"

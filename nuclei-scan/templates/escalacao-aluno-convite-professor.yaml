@@ -1,0 +1,27 @@
+id: escalacao-aluno-convite-professor
+info:
+  name: "[AUTHZ] Aluno envia convite de professor (rota ADMIN/TEACHER)"
+  description: >
+    POST /teacher-invitation exige checkRole(ADMIN, TEACHER); o middleware
+    roda ANTES do validator. STUDENT deve receber 403 mesmo com body vazio.
+    400/422/2xx = gate de papel atravessado.
+  author: sisdef-audit
+  severity: high
+  tags: sisdef, authz, escalacao
+http:
+  - method: POST
+    path:
+      - "{{BaseURL}}/teacher-invitation"
+    headers:
+      Authorization: "Bearer {{TOKEN_STUDENT_FREE}}"
+      Content-Type: "application/json"
+    body: '{}'
+    matchers:
+      - type: status
+        status:
+          - 200
+          - 201
+          - 202
+          - 204
+          - 400
+          - 422

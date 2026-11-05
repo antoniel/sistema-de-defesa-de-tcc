@@ -1,0 +1,27 @@
+id: escalacao-aluno-cria-banca
+info:
+  name: "[AUTHZ] Aluno cria defesa (rota ADMIN/TEACHER)"
+  description: >
+    POST /banca exige checkRole(ADMIN, TEACHER). STUDENT deve receber 403
+    antes mesmo da validacao. Qualquer status != 403 (2xx ou 400/422 de
+    validacao) indica que o gate de papel foi atravessado.
+  author: sisdef-audit
+  severity: high
+  tags: sisdef, authz, escalacao
+http:
+  - method: POST
+    path:
+      - "{{BaseURL}}/banca"
+    headers:
+      Authorization: "Bearer {{TOKEN_STUDENT_FREE}}"
+      Content-Type: "application/json"
+    body: '{}'
+    matchers:
+      - type: status
+        status:
+          - 200
+          - 201
+          - 202
+          - 204
+          - 400
+          - 422
