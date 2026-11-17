@@ -73,6 +73,53 @@ describe("Rotas de Banca", async () => {
   })
 
   describe("POST /bancas", () => {
+    it("permite aluno cadastrar sua própria defesa com identidade do cadastro", async () => {
+      await db.delete(Bancas).where(eq(Bancas.id, bancaId))
+      const input = {
+        ...createTestBancaInput(cursoId, teacherId, studentId),
+        autor: "Outro nome",
+        matricula: "Outra matrícula",
+      }
+      const res = await client.banca.$post(
+        { json: input },
+        { headers: { Authorization: `Bearer ${studentToken}` } }
+      )
+      expect(res.status).toBe(201)
+      const data = await res.json()
+      expect(data).toMatchObject({ alunoId: studentId, autor: TEST_STUDENT.nome, matricula: TEST_STUDENT.matricula })
+      const relation = await db.query.usuariosBancas.findFirst({
+        where: and(eq(usuariosBancas.bancaId, data.id), eq(usuariosBancas.usuarioId, studentId)),
+      })
+      expect(relation?.role).toBe("aluno")
+    })
+
+    it("rejeita aluno cadastrando defesa para outro aluno sem persistir dados", async () => {
+      const [otherStudent] = await db.insert(Users).values(await createTestStudent()).returning()
+      const res = await client.banca.$post(
+        { json: createTestBancaInput(cursoId, teacherId, otherStudent.id) },
+        { headers: { Authorization: `Bearer ${studentToken}` } }
+      )
+      expect(res.status).toBe(403)
+      expect(await res.json()).toMatchObject({ message: "Alunos só podem cadastrar suas próprias defesas." })
+      expect(await db.select().from(Bancas).where(eq(Bancas.alunoId, otherStudent.id))).toHaveLength(0)
+    })
+
+    it("rejeita cadastro sem autenticação", async () => {
+      const res = await client.banca.$post({ json: createTestBancaInput(cursoId, teacherId, studentId) })
+      expect(res.status).toBe(401)
+      expect(await db.select().from(Bancas)).toHaveLength(1)
+    })
+
+    it("retorna conflito quando aluno já possui defesa no mesmo curso", async () => {
+      const res = await client.banca.$post(
+        { json: createTestBancaInput(cursoId, teacherId, studentId) },
+        { headers: { Authorization: `Bearer ${studentToken}` } }
+      )
+      expect(res.status).toBe(409)
+      expect(await res.json()).toMatchObject({ message: "Este aluno já possui uma banca cadastrada para este curso." })
+      expect(await db.select().from(Bancas)).toHaveLength(1)
+    })
+
     it("permite um professor criar uma nova banca", async () => {
       const student = await createTestStudent()
       const [studentUser] = await db.insert(Users).values(student).returning()

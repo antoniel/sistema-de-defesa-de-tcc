@@ -11,7 +11,7 @@ import * as schema from "./banca.schema"
 import * as service from "./banca.service"
 
 export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
-  .post("/", checkRole(["ADMIN", "TEACHER"]), validator("json", schema.createBancaSchema), async (c) => {
+  .post("/", checkRole(["ADMIN", "TEACHER", "STUDENT"]), validator("json", schema.createBancaSchema), async (c) => {
     const validatedBancaData = c.req.valid("json")
     const result = await service.createBanca(c, validatedBancaData)
 
@@ -20,6 +20,7 @@ export const bancaRoutes = new Hono<{ Variables: AppVariables }>()
         .with({ type: "database_error" }, () => new AppError(500, "Erro ao criar banca"))
         .with({ type: "curso_not_found" }, () => new AppError(404, "Curso não encontrado"))
         .with({ type: "invalid_input" }, () => new AppError(400, "Dados inválidos"))
+        .with({ type: "unauthorized" }, () => new AppError(403, "Alunos só podem cadastrar suas próprias defesas."))
         .with(
           { type: "student_already_has_banca" },
           () => new AppError(409, "Este aluno já possui uma banca cadastrada para este curso.")

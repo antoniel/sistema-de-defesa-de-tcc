@@ -98,13 +98,15 @@ export const useUpdateBanca = (id: string) => {
 }
 
 export const useAddBancaMutation = () => {
+  const queryClient = useQueryClient()
+
   return useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: RpcType<typeof apiClient.banca.$post>["input"]) => {
       const response = await apiClient.banca.$post(data)
-      const body = await response.json()
-      if (!response.ok) {
-      }
-      return body
+      return rpcReturn(response)
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["bancas"] })
     },
   })
 }

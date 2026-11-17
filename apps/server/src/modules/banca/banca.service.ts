@@ -62,6 +62,7 @@ async function resolveAuthenticatedUserRole(c: Context<{ Variables: AppVariables
 type GetBancaByIdError = { type: "banca_not_found" } | { type: "database_error"; error: unknown }
 
 type CreateBancaError =
+  | { type: "unauthorized" }
   | { type: "database_error"; error: unknown }
   | { type: "curso_not_found" }
   | { type: "invalid_input" }
@@ -613,6 +614,20 @@ export const createBanca = async (
   const dbInstance = c.get("db")
 
   try {
+    const userId = c.get("jwtPayload")?.sub
+    if (!userId) return err({ type: "unauthorized" })
+
+    const user = await getUserById(c, Number(userId))
+    if (!user.ok) {
+      return user.error.type === "database_error"
+        ? err({ type: "database_error", error: user.error })
+        : err({ type: "unauthorized" })
+    }
+    if (user.data.role === "STUDENT") {
+      if (bancaData.alunoId !== user.data.id) return err({ type: "unauthorized" })
+      bancaData = { ...bancaData, autor: user.data.nome, matricula: user.data.matricula }
+    }
+
     const cursoExists = await dbInstance
       .select({ id: Cursos.id })
       .from(Cursos)
